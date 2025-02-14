@@ -1,0 +1,44 @@
+name: Rust CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up Rust
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          cargo fetch
+
+      # Check formatting with rustfmt
+      - name: Check formatting with rustfmt
+        run: cargo fmt -- --check
+
+      # Run Clippy to check for lints
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
+
+      # Run tests
+      - name: Run tests
+        run: cargo test --all
