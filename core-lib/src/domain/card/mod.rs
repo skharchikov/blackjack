@@ -27,7 +27,7 @@ pub use suit::*;
 /// # Examples
 ///
 /// ```
-/// use core_lib::domain::card::{Card, Suit, Rank};
+/// use core_lib::domain::{Card, Suit, Rank};
 ///
 /// let card = Card {
 ///     deck_id: 1,
