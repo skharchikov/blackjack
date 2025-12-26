@@ -1,5 +1,6 @@
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
+use thiserror::Error;
 
 use super::{Card, Rank, Suit};
 
@@ -27,8 +28,14 @@ pub enum DeckId {
     Four,
 }
 
+#[derive(Debug, Error, PartialEq)]
+pub enum DeckIdError {
+    #[error("Invalid deck ID: {0}")]
+    Invalid(u8),
+}
+
 impl TryFrom<u8> for DeckId {
-    type Error = String;
+    type Error = DeckIdError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -36,7 +43,7 @@ impl TryFrom<u8> for DeckId {
             2 => Ok(DeckId::Two),
             3 => Ok(DeckId::Three),
             4 => Ok(DeckId::Four),
-            deck_id => Err(format!("Invalid deck ID: {}", deck_id)),
+            value => Err(DeckIdError::Invalid(value)),
         }
     }
 }

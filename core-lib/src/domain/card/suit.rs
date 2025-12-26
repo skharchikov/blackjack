@@ -1,4 +1,5 @@
 use strum_macros::{EnumIter, FromRepr};
+use thiserror::Error;
 
 #[derive(Debug, PartialEq, FromRepr, EnumIter, Clone, Copy)]
 #[repr(u8)]
@@ -9,8 +10,14 @@ pub enum Suit {
     Clubs,
 }
 
+#[derive(Debug, Error, PartialEq)]
+pub enum SuitError {
+    #[error("Invalid suit value: {0}")]
+    Invalid(u8),
+}
+
 impl TryFrom<u8> for Suit {
-    type Error = &'static str;
+    type Error = SuitError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -18,7 +25,7 @@ impl TryFrom<u8> for Suit {
             1 => Ok(Suit::Spades),
             2 => Ok(Suit::Diamonds),
             3 => Ok(Suit::Clubs),
-            _ => Err("Invalid suit value"),
+            value => Err(SuitError::Invalid(value)),
         }
     }
 }
@@ -32,6 +39,6 @@ mod tests {
         assert_eq!(Suit::try_from(1), Ok(Suit::Spades));
         assert_eq!(Suit::try_from(2), Ok(Suit::Diamonds));
         assert_eq!(Suit::try_from(3), Ok(Suit::Clubs));
-        assert_eq!(Suit::try_from(4), Err("Invalid suit value"));
+        assert_eq!(Suit::try_from(4), Err(SuitError::Invalid(4)));
     }
 }

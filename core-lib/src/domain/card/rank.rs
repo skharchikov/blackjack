@@ -1,4 +1,5 @@
 use strum_macros::{EnumIter, FromRepr};
+use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, FromRepr, EnumIter)]
 #[repr(u8)]
@@ -18,26 +19,17 @@ pub enum Rank {
     Ace,
 }
 
+#[derive(Debug, Error, PartialEq)]
+pub enum RankError {
+    #[error("Invalid rank value: {0}")]
+    Invalid(u8),
+}
+
 impl TryFrom<u8> for Rank {
-    type Error = &'static str;
+    type Error = RankError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            2 => Ok(Rank::Two),
-            3 => Ok(Rank::Three),
-            4 => Ok(Rank::Four),
-            5 => Ok(Rank::Five),
-            6 => Ok(Rank::Six),
-            7 => Ok(Rank::Seven),
-            8 => Ok(Rank::Eight),
-            9 => Ok(Rank::Nine),
-            10 => Ok(Rank::Ten),
-            11 => Ok(Rank::Jack),
-            12 => Ok(Rank::Queen),
-            13 => Ok(Rank::King),
-            14 => Ok(Rank::Ace),
-            _ => Err("Invalid rank value"),
-        }
+        Rank::from_repr(value).ok_or(RankError::Invalid(value))
     }
 }
 
@@ -63,9 +55,9 @@ mod tests {
 
     #[test]
     fn test_try_from_invalid_values() {
-        assert_eq!(Rank::try_from(1).unwrap_err(), "Invalid rank value");
-        assert_eq!(Rank::try_from(15).unwrap_err(), "Invalid rank value");
-        assert_eq!(Rank::try_from(0).unwrap_err(), "Invalid rank value");
-        assert_eq!(Rank::try_from(255).unwrap_err(), "Invalid rank value");
+        assert_eq!(Rank::try_from(1).unwrap_err(), RankError::Invalid(1));
+        assert_eq!(Rank::try_from(15).unwrap_err(), RankError::Invalid(15));
+        assert_eq!(Rank::try_from(0).unwrap_err(), RankError::Invalid(0));
+        assert_eq!(Rank::try_from(255).unwrap_err(), RankError::Invalid(255));
     }
 }

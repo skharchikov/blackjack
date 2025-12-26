@@ -3,10 +3,10 @@ mod rank;
 mod shoe;
 mod suit;
 
-pub use deck::*;
-pub use rank::*;
+pub use deck::{Deck, DeckId, DeckIdError};
+pub use rank::{Rank, RankError};
 pub use shoe::*;
-pub use suit::*;
+pub use suit::{Suit, SuitError};
 
 /// Represents a playing card in a deck.
 ///
@@ -67,7 +67,7 @@ impl Card {
 }
 
 impl TryFrom<u8> for Card {
-    type Error = String;
+    type Error = anyhow::Error;
 
     fn try_from(byte: u8) -> Result<Self, Self::Error> {
         let deck_id = DeckId::try_from((byte & 0b00000011) + 1)?;
