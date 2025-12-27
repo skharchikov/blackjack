@@ -1,28 +1,23 @@
-# DeFi Blackjack
+# Blackjack
 
-A decentralized version of Blackjack where players interact via a WebSocket server. The core logic is implemented in Rust, with a frontend using React and Rust (WASM) for performance. Smart contracts, written in Solidity, manage the DeFi aspects of the game, handling bets, payouts, and game logic securely on the blockchain.
+A multiplayer Blackjack game with a server-client architecture and a text-based user interface (TUI). The core logic is implemented in Rust, with a TUI client for player interaction.
 
 ## Technologies
 
-- **Rust**: Backend game logic, WebSocket server, and performance-critical frontend code (via WASM).
-- **React**: Frontend UI for user interaction.
-- **Solidity**: Smart contracts for DeFi functionality (bets, payouts).
-- **Hardhat**: For Ethereum smart contract development.
-- **Axum**: Web framework for the Rust WebSocket server.
-- **Serde**: For serialization of game data.
+- **Rust**: Backend game logic and server implementation.
+- **Ratatui**: Terminal-based user interface for the client.
+- **Crossterm**: Cross-platform terminal manipulation library.
 
 ## Project Structure
 
 ```
 blackjack-defi/
 │── Cargo.toml         # Workspace configuration
-│── game_logic/        # Core game logic (Rust library)
-│── server/            # WebSocket server (Rust binary)
-│── contracts/         # Solidity smart contracts
-│── frontend/          # React frontend with Rust WASM integration
-│── blockchain/        # Ethereum deployment scripts (Hardhat)
+│── core/              # Core game logic (Rust library)
+│── server/            # Game server (Rust binary)
+│── cli/               # TUI client (Rust binary)
 ```
 
 ## Overview
 
-This project allows users to play a decentralized version of Blackjack. The backend server uses Rust to manage game state and WebSocket communication with clients. Players interact with the game through a React frontend, with critical game logic running via Rust and WebAssembly. The smart contracts on Ethereum ensure that the game's financial transactions (bets and payouts) are secure, transparent, and decentralized.
+This project allows users to play multiplayer Blackjack with a text-based user interface. The server manages game state and handles multiple clients. Players interact with the game through a terminal-based TUI client built with Ratatui, providing an intuitive and responsive experience.
