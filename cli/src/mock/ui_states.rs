@@ -1,6 +1,3 @@
-use std::time::Instant;
-
-use crate::animation::DealAnimation;
 use crate::state::{
     FooterState, HeaderState, PlayerUiState, TableState, UiCard, UiHand, UiState, UiView,
 };

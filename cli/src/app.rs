@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use crossterm::event::KeyCode;
 
 use crate::animation::DealAnimation;
-use crate::mock::{deal_step_ui, mock_lobby_ui, mock_player_turn_ui, mock_resolving_ui};
+use crate::mock::{deal_step_ui, mock_player_turn_ui, mock_resolving_ui};
 use crate::state::lobby::LobbyStatus;
 use crate::state::{UiState, UiView};
 
@@ -19,11 +19,53 @@ impl App {
     }
 
     pub fn on_key(&mut self, key: KeyCode) -> bool {
+        // Check for global screen-switching keys first
+        if let Some(should_quit) = self.handle_global_keys(key) {
+            return should_quit;
+        }
+
+        // Then handle view-specific keys
         match self.ui.view {
             UiView::Lobby => self.on_lobby_key(key),
             UiView::Betting => self.on_betting_key(key),
+            UiView::Dealing => self.on_dealing_key(key),
             _ => false,
         }
+    }
+
+    fn handle_global_keys(&mut self, key: KeyCode) -> Option<bool> {
+        match key {
+            KeyCode::Char('q') => Some(true),
+            KeyCode::Char('l') => {
+                self.ui = UiState::lobby();
+                Some(false)
+            }
+            KeyCode::Char('b') => {
+                self.ui = UiState::betting();
+                Some(false)
+            }
+            KeyCode::Char('d') => {
+                self.start_deal_animation();
+                Some(false)
+            }
+            KeyCode::Char('p') => {
+                self.ui = mock_player_turn_ui();
+                Some(false)
+            }
+            KeyCode::Char('r') => {
+                self.ui = mock_resolving_ui();
+                Some(false)
+            }
+            _ => None,
+        }
+    }
+
+    fn on_dealing_key(&mut self, key: KeyCode) -> bool {
+        if let KeyCode::Char('q') = key {
+            return true;
+        }
+
+        false
     }
 
     fn on_lobby_key(&mut self, key: KeyCode) -> bool {
