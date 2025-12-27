@@ -102,6 +102,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "812e12b5285cc515a9c72a5c1d3b6d46a19dac5acfef5265968c166106e31dd3"
 
 [[package]]
+name = "blackjack-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "rand 0.9.0",
+ "strum",
+ "strum_macros",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -153,8 +164,8 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 name = "cli"
 version = "0.1.0"
 dependencies = [
+ "blackjack-core",
  "color-eyre",
- "core",
  "crossterm",
  "ratatui",
 ]
@@ -207,17 +218,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
 dependencies = [
  "unicode-segmentation",
-]
-
-[[package]]
-name = "core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "rand 0.9.0",
- "strum",
- "strum_macros",
- "thiserror 2.0.11",
 ]
 
 [[package]]

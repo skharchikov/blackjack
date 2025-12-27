@@ -53,7 +53,3 @@ impl From<DeckId> for u8 {
         deck as u8
     }
 }
-
-mod tests {
-    use super::*;
-}
