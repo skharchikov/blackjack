@@ -3,6 +3,7 @@ use std::time::Duration;
 use color_eyre::eyre::Context;
 use color_eyre::Result;
 use crossterm::event::{self, KeyCode};
+use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 
@@ -39,6 +40,7 @@ impl Default for App {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 struct UiCommand {
     action: UiAction,
 }
@@ -72,22 +74,43 @@ fn run(terminal: &mut DefaultTerminal) -> Result<()> {
 
     Ok(())
 }
+fn render_header(frame: &mut Frame, area: ratatui::layout::Rect) {
+    let header = Paragraph::new("Blackjack").block(Block::default().borders(Borders::ALL));
 
-fn render(frame: &mut Frame, app: &App) {
-    let body = match &app.last_command {
-        Some(cmd) => match cmd.action {
-            UiAction::StartGame => "Blackjack\n\nLast command: Start game",
-            UiAction::Hit => "Blackjack\n\nLast command: Hit",
-            UiAction::Quit => "Blackjack\n\nQuitting…",
-        },
-        None => "Blackjack\n\nPress:\n  s = start\n  h = hit\n  q = quit",
+    frame.render_widget(header, area);
+}
+
+fn render_main(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
+    let text = match &app.last_command {
+        Some(cmd) => format!("Last command:\n{cmd:?}"),
+        None => "No commands yet".to_string(),
     };
 
-    let widget = Paragraph::new(body)
-        .block(Block::default().title("Blackjack").borders(Borders::ALL))
-        .centered();
+    let main = Paragraph::new(text).block(Block::default().title("Table").borders(Borders::ALL));
 
-    frame.render_widget(widget, frame.area());
+    frame.render_widget(main, area);
+}
+
+fn render_footer(frame: &mut Frame, area: ratatui::layout::Rect) {
+    let footer = Paragraph::new("s = start   h = hit   q = quit")
+        .block(Block::default().borders(Borders::ALL));
+
+    frame.render_widget(footer, area);
+}
+
+fn render(frame: &mut Frame, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // header
+            Constraint::Min(0),    // main
+            Constraint::Length(3), // footer
+        ])
+        .split(frame.area());
+
+    render_header(frame, chunks[0]);
+    render_main(frame, chunks[1], app);
+    render_footer(frame, chunks[2]);
 }
 
 fn read_key() -> Result<Option<KeyCode>> {
