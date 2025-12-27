@@ -4,6 +4,7 @@ use crossterm::event::KeyCode;
 
 use crate::animation::DealAnimation;
 use crate::mock::{deal_step_ui, mock_lobby_ui, mock_player_turn_ui, mock_resolving_ui};
+use crate::state::lobby::LobbyStatus;
 use crate::state::UiState;
 
 pub struct App {
@@ -13,7 +14,7 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         Self {
-            ui: mock_player_turn_ui(),
+            ui: UiState::lobby(),
         }
     }
 
@@ -26,6 +27,36 @@ impl App {
             KeyCode::Char('r') => self.ui = mock_resolving_ui(),
             _ => {}
         }
+        false
+    }
+
+    fn on_lobby_key(&mut self, key: KeyCode) -> bool {
+        let lobby = self.ui.lobby.as_mut().unwrap();
+
+        match key {
+            KeyCode::Char('q') => return true,
+
+            KeyCode::Up => {
+                if lobby.selected > 0 {
+                    lobby.selected -= 1;
+                }
+            }
+
+            KeyCode::Down => {
+                if lobby.selected + 1 < lobby.tables.len() {
+                    lobby.selected += 1;
+                }
+            }
+
+            KeyCode::Enter => {
+                lobby.status = LobbyStatus::Connecting;
+
+                self.enter_table();
+            }
+
+            _ => {}
+        }
+
         false
     }
 
@@ -60,5 +91,9 @@ impl App {
                 last_tick: Instant::now(),
             });
         }
+    }
+
+    fn enter_table(&mut self) {
+        self.ui = mock_player_turn_ui();
     }
 }

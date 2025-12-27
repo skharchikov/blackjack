@@ -12,13 +12,13 @@ pub fn mock_lobby_ui() -> UiState {
             title: "Blackjack".into(),
             subtitle: "Lobby".into(),
         },
-        table: TableState {
+        table: Some(TableState {
             dealer: UiHand {
                 cards: vec![],
                 value: None,
             },
             players: vec![],
-        },
+        }),
         footer: FooterState {
             hints: vec![
                 "l = lobby".into(),
@@ -27,6 +27,7 @@ pub fn mock_lobby_ui() -> UiState {
             ],
         },
         deal_animation: None,
+        lobby: None,
     }
 }
 
@@ -37,7 +38,7 @@ pub fn mock_player_turn_ui() -> UiState {
             title: "Blackjack".into(),
             subtitle: "Your turn".into(),
         },
-        table: TableState {
+        table: Some(TableState {
             dealer: UiHand {
                 cards: vec![
                     UiCard {
@@ -68,7 +69,7 @@ pub fn mock_player_turn_ui() -> UiState {
                     value: Some("17".into()),
                 },
             }],
-        },
+        }),
         footer: FooterState {
             hints: vec![
                 "h = hit".into(),
@@ -78,6 +79,7 @@ pub fn mock_player_turn_ui() -> UiState {
             ],
         },
         deal_animation: None,
+        lobby: None,
     }
 }
 
@@ -88,7 +90,7 @@ pub fn mock_resolving_ui() -> UiState {
             title: "Blackjack".into(),
             subtitle: "Result".into(),
         },
-        table: TableState {
+        table: Some(TableState {
             dealer: UiHand {
                 cards: vec![
                     UiCard {
@@ -119,11 +121,12 @@ pub fn mock_resolving_ui() -> UiState {
                     value: Some("17".into()),
                 },
             }],
-        },
+        }),
         footer: FooterState {
             hints: vec!["l = lobby".into(), "q = quit".into()],
         },
         deal_animation: None,
+        lobby: None,
     }
 }
 
@@ -161,15 +164,21 @@ pub fn deal_step_ui(step: usize) -> UiState {
         });
     }
 
-    ui.table.dealer.cards = dealer_cards;
-    ui.table.players = vec![PlayerUiState {
+    let player_ui_state = PlayerUiState {
         name: "You".into(),
-        active: true,
+        active: false,
         hand: UiHand {
-            cards: player_cards,
+            cards: player_cards.clone(),
             value: None,
         },
-    }];
+    };
+    ui.table = Some(TableState {
+        dealer: UiHand {
+            cards: dealer_cards.clone(),
+            value: None,
+        },
+        players: vec![player_ui_state],
+    });
 
     ui.footer.hints = vec!["Dealing cards…".into()];
 
