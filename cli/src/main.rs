@@ -1,88 +1,116 @@
 use std::time::Duration;
 
-use color_eyre::eyre::Context;
 use color_eyre::Result;
 use crossterm::event::{self, KeyCode};
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui::{DefaultTerminal, Frame};
+use ratatui::{
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span, Text},
+    widgets::{Block, Borders, Paragraph},
+    DefaultTerminal, Frame,
+};
 
-pub struct App {
-    ui: UiState,
+fn main() -> Result<()> {
+    color_eyre::install()?;
+    ratatui::run(run)
 }
 
-impl App {
-    pub fn new() -> Self {
-        Self {
-            ui: UiState::initial(),
-        }
-    }
+/* =========================
+UI DOMAIN
+========================= */
 
-    fn on_key(&self, key: KeyCode) -> Option<UiCommand> {
-        let action = match key {
-            KeyCode::Char('s') => UiAction::StartGame,
-            KeyCode::Char('h') => UiAction::Hit,
-            KeyCode::Char('q') => UiAction::Quit,
-            _ => return None,
-        };
-
-        Some(UiCommand { action })
-    }
-
-    fn apply_command(&mut self, cmd: UiCommand) -> bool {
-        self.ui.last_command = Some(cmd.clone());
-
-        self.ui.status = match cmd.action {
-            UiAction::StartGame => "Start game pressed".to_string(),
-            UiAction::Hit => "Hit pressed".to_string(),
-            UiAction::Quit => "Quitting…".to_string(),
-        };
-
-        matches!(cmd.action, UiAction::Quit)
-    }
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UiView {
+    Lobby,
+    Dealing,
+    PlayerTurn,
+    DealerTurn,
+    Resolving,
+    Finished,
 }
 
 #[derive(Debug, Clone)]
 struct UiState {
-    title: String,
-    status: String,
-    last_command: Option<UiCommand>,
-    help: String,
+    view: UiView,
+    header: HeaderState,
+    table: TableState,
+    footer: FooterState,
 }
 
-impl UiState {
-    fn initial() -> Self {
+#[derive(Debug, Clone)]
+struct HeaderState {
+    title: String,
+    subtitle: String,
+}
+
+#[derive(Debug, Clone)]
+struct FooterState {
+    hints: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+struct TableState {
+    dealer: UiHand,
+    players: Vec<PlayerUiState>,
+}
+
+#[derive(Debug, Clone)]
+struct PlayerUiState {
+    name: String,
+    active: bool,
+    hand: UiHand,
+}
+
+#[derive(Debug, Clone)]
+struct UiHand {
+    cards: Vec<UiCard>,
+    value: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct UiCard {
+    rank: &'static str,
+    suit: &'static str,
+}
+
+/* =========================
+APP (controller)
+========================= */
+
+struct App {
+    ui: UiState,
+}
+
+impl App {
+    fn new() -> Self {
         Self {
-            title: "Blackjack".to_string(),
-            status: "No commands yet".to_string(),
-            last_command: None,
-            help: "s = start   h = hit   q = quit".to_string(),
+            ui: mock_player_turn_ui(),
         }
+    }
+
+    fn on_key(&mut self, key: KeyCode) -> bool {
+        match key {
+            KeyCode::Char('q') => return true,
+            KeyCode::Char('l') => self.ui = mock_lobby_ui(),
+            KeyCode::Char('p') => self.ui = mock_player_turn_ui(),
+            KeyCode::Char('r') => self.ui = mock_resolving_ui(),
+            _ => {}
+        }
+        false
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct UiCommand {
-    action: UiAction,
+fn suit_color(suit: &str) -> Color {
+    match suit {
+        "♥" | "♦" => Color::Red,
+        "♠" | "♣" => Color::White,
+        _ => Color::Gray,
+    }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum UiAction {
-    StartGame,
-    Hit,
-    Quit,
-}
-
-fn main() -> Result<()> {
-    color_eyre::install()?; // augment errors / panics with easy to read messages
-    ratatui::run(run).context("failed to run app")
-}
+/* =========================
+EVENT LOOP
+========================= */
 
 fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     let mut app = App::new();
@@ -91,39 +119,27 @@ fn run(terminal: &mut DefaultTerminal) -> Result<()> {
         terminal.draw(|f| render(f, &app.ui))?;
 
         if let Some(key) = read_key()? {
-            if let Some(cmd) = app.on_key(key) {
-                if app.apply_command(cmd) {
-                    break;
-                }
+            if app.on_key(key) {
+                break;
             }
         }
     }
 
     Ok(())
 }
-fn render_header(frame: &mut Frame, area: ratatui::layout::Rect) {
-    let header = Paragraph::new("Blackjack").block(Block::default().borders(Borders::ALL));
 
-    frame.render_widget(header, area);
+fn read_key() -> Result<Option<KeyCode>> {
+    if event::poll(Duration::from_millis(250))? {
+        if let Some(key) = event::read()?.as_key_press_event() {
+            return Ok(Some(key.code));
+        }
+    }
+    Ok(None)
 }
 
-fn render_main(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let text = match &ui.last_command {
-        Some(cmd) => format!("Status:\n{}\n\nLast command:\n{:?}", ui.status, cmd),
-        None => ui.status.clone(),
-    };
-
-    let main = Paragraph::new(text).block(Block::default().title("Table").borders(Borders::ALL));
-
-    frame.render_widget(main, area);
-}
-
-fn render_footer(frame: &mut Frame, area: ratatui::layout::Rect) {
-    let footer = Paragraph::new("s = start   h = hit   q = quit")
-        .block(Block::default().borders(Borders::ALL));
-
-    frame.render_widget(footer, area);
-}
+/* =========================
+RENDERING
+========================= */
 
 fn render(frame: &mut Frame, ui: &UiState) {
     let chunks = Layout::default()
@@ -135,16 +151,209 @@ fn render(frame: &mut Frame, ui: &UiState) {
         ])
         .split(frame.area());
 
-    render_header(frame, chunks[0]);
+    render_header(frame, chunks[0], ui);
     render_main(frame, chunks[1], ui);
-    render_footer(frame, chunks[2]);
+    render_footer(frame, chunks[2], ui);
 }
 
-fn read_key() -> Result<Option<KeyCode>> {
-    if event::poll(Duration::from_millis(250))? {
-        if let Some(key) = event::read()?.as_key_press_event() {
-            return Ok(Some(key.code));
-        }
+fn render_header(frame: &mut Frame, area: Rect, ui: &UiState) {
+    let text = format!("{} — {}", ui.header.title, ui.header.subtitle);
+
+    let header = Paragraph::new(text).block(Block::default().borders(Borders::ALL));
+
+    frame.render_widget(header, area);
+}
+
+fn render_main(frame: &mut Frame, area: Rect, ui: &UiState) {
+    let mut lines: Vec<Line> = Vec::new();
+
+    // Dealer
+    lines.push(Line::from(Span::styled(
+        "Dealer",
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD),
+    )));
+    lines.push(render_hand(&ui.table.dealer));
+    lines.push(Line::raw(""));
+
+    // Players
+    for player in &ui.table.players {
+        let name_style = if player.active {
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::White)
+        };
+
+        lines.push(Line::from(Span::styled(&player.name, name_style)));
+
+        lines.push(render_hand(&player.hand));
+        lines.push(Line::raw(""));
     }
-    Ok(None)
+
+    let main = Paragraph::new(Text::from(lines))
+        .block(Block::default().title("Table").borders(Borders::ALL));
+
+    frame.render_widget(main, area);
+}
+
+fn render_footer(frame: &mut Frame, area: Rect, ui: &UiState) {
+    let footer =
+        Paragraph::new(ui.footer.hints.join("   ")).block(Block::default().borders(Borders::ALL));
+
+    frame.render_widget(footer, area);
+}
+
+fn render_hand(hand: &UiHand) -> Line<'static> {
+    let mut spans: Vec<Span> = Vec::new();
+
+    for card in &hand.cards {
+        spans.push(render_card(card));
+        spans.push(Span::raw(" "));
+    }
+
+    if let Some(value) = &hand.value {
+        spans.push(Span::raw("  "));
+        spans.push(Span::styled(
+            format!("= {}", value),
+            Style::default().fg(Color::Yellow),
+        ));
+    }
+
+    Line::from(spans)
+}
+
+fn render_card(card: &UiCard) -> Span<'static> {
+    let text = format!("[{}{}]", card.rank, card.suit);
+    Span::styled(
+        text,
+        Style::default()
+            .fg(suit_color(card.suit))
+            .add_modifier(Modifier::BOLD),
+    )
+}
+
+/* =========================
+MOCK UI STATES
+========================= */
+
+fn mock_lobby_ui() -> UiState {
+    UiState {
+        view: UiView::Lobby,
+        header: HeaderState {
+            title: "Blackjack".into(),
+            subtitle: "Lobby".into(),
+        },
+        table: TableState {
+            dealer: UiHand {
+                cards: vec![],
+                value: None,
+            },
+            players: vec![],
+        },
+        footer: FooterState {
+            hints: vec![
+                "l = lobby".into(),
+                "p = player turn".into(),
+                "q = quit".into(),
+            ],
+        },
+    }
+}
+
+fn mock_player_turn_ui() -> UiState {
+    UiState {
+        view: UiView::PlayerTurn,
+        header: HeaderState {
+            title: "Blackjack".into(),
+            subtitle: "Your turn".into(),
+        },
+        table: TableState {
+            dealer: UiHand {
+                cards: vec![
+                    UiCard {
+                        rank: "K",
+                        suit: "♠",
+                    },
+                    UiCard {
+                        rank: "?",
+                        suit: "?",
+                    },
+                ],
+                value: None,
+            },
+            players: vec![PlayerUiState {
+                name: "You".into(),
+                active: true,
+                hand: UiHand {
+                    cards: vec![
+                        UiCard {
+                            rank: "10",
+                            suit: "♥",
+                        },
+                        UiCard {
+                            rank: "7",
+                            suit: "♦",
+                        },
+                    ],
+                    value: Some("17".into()),
+                },
+            }],
+        },
+        footer: FooterState {
+            hints: vec![
+                "h = hit".into(),
+                "s = stand".into(),
+                "r = resolve".into(),
+                "q = quit".into(),
+            ],
+        },
+    }
+}
+
+fn mock_resolving_ui() -> UiState {
+    UiState {
+        view: UiView::Resolving,
+        header: HeaderState {
+            title: "Blackjack".into(),
+            subtitle: "Result".into(),
+        },
+        table: TableState {
+            dealer: UiHand {
+                cards: vec![
+                    UiCard {
+                        rank: "K",
+                        suit: "♠",
+                    },
+                    UiCard {
+                        rank: "9",
+                        suit: "♣",
+                    },
+                ],
+                value: Some("19".into()),
+            },
+            players: vec![PlayerUiState {
+                name: "You".into(),
+                active: false,
+                hand: UiHand {
+                    cards: vec![
+                        UiCard {
+                            rank: "10",
+                            suit: "♥",
+                        },
+                        UiCard {
+                            rank: "7",
+                            suit: "♦",
+                        },
+                    ],
+                    value: Some("17".into()),
+                },
+            }],
+        },
+        footer: FooterState {
+            hints: vec!["l = lobby".into(), "q = quit".into()],
+        },
+    }
 }
