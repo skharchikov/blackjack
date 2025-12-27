@@ -3,7 +3,7 @@ use std::time::Duration;
 use color_eyre::eyre::Context;
 use color_eyre::Result;
 use crossterm::event::{self, KeyCode};
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 
 fn main() -> Result<()> {
@@ -22,7 +22,14 @@ fn run(terminal: &mut DefaultTerminal) -> Result<()> {
 }
 
 fn render(frame: &mut Frame) {
-    let greeting = Paragraph::new("Hello World! (press 'q' to quit)");
+    let block = Block::default()
+        .title("Blackjack DeFi")
+        .borders(Borders::ALL);
+
+    let greeting = Paragraph::new("Blackjack DeFi (press 'q' to quit)")
+        .block(block)
+        .centered();
+
     frame.render_widget(greeting, frame.area());
 }
 
