@@ -5,7 +5,7 @@ use crossterm::event::KeyCode;
 use crate::animation::DealAnimation;
 use crate::mock::{deal_step_ui, mock_lobby_ui, mock_player_turn_ui, mock_resolving_ui};
 use crate::state::lobby::LobbyStatus;
-use crate::state::UiState;
+use crate::state::{UiState, UiView};
 
 pub struct App {
     pub ui: UiState,
@@ -19,15 +19,11 @@ impl App {
     }
 
     pub fn on_key(&mut self, key: KeyCode) -> bool {
-        match key {
-            KeyCode::Char('q') => return true,
-            KeyCode::Char('d') => self.start_deal_animation(),
-            KeyCode::Char('l') => self.ui = mock_lobby_ui(),
-            KeyCode::Char('p') => self.ui = mock_player_turn_ui(),
-            KeyCode::Char('r') => self.ui = mock_resolving_ui(),
-            _ => {}
+        match self.ui.view {
+            UiView::Lobby => self.on_lobby_key(key),
+            UiView::Betting => self.on_betting_key(key),
+            _ => false,
         }
-        false
     }
 
     fn on_lobby_key(&mut self, key: KeyCode) -> bool {
@@ -52,6 +48,35 @@ impl App {
                 lobby.status = LobbyStatus::Connecting;
 
                 self.enter_table();
+            }
+
+            _ => {}
+        }
+
+        false
+    }
+
+    fn on_betting_key(&mut self, key: KeyCode) -> bool {
+        let betting = self.ui.betting.as_mut().unwrap();
+
+        match key {
+            KeyCode::Char('q') => return true,
+
+            KeyCode::Left => {
+                betting.current_bet = betting
+                    .current_bet
+                    .saturating_sub(betting.step)
+                    .max(betting.min_bet);
+            }
+
+            KeyCode::Right => {
+                betting.current_bet = (betting.current_bet + betting.step).min(betting.max_bet);
+            }
+
+            KeyCode::Enter => {
+                betting.confirmed = true;
+
+                self.start_deal_animation();
             }
 
             _ => {}
@@ -94,6 +119,6 @@ impl App {
     }
 
     fn enter_table(&mut self) {
-        self.ui = mock_player_turn_ui();
+        self.ui = UiState::betting()
     }
 }

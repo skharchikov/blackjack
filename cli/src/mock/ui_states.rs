@@ -28,6 +28,7 @@ pub fn mock_lobby_ui() -> UiState {
         },
         deal_animation: None,
         lobby: None,
+        betting: None,
     }
 }
 
@@ -80,6 +81,7 @@ pub fn mock_player_turn_ui() -> UiState {
         },
         deal_animation: None,
         lobby: None,
+        betting: None,
     }
 }
 
@@ -127,6 +129,7 @@ pub fn mock_resolving_ui() -> UiState {
         },
         deal_animation: None,
         lobby: None,
+        betting: None,
     }
 }
 

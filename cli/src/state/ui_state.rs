@@ -1,12 +1,16 @@
 use super::table::TableState;
 use crate::{
     animation::DealAnimation,
-    state::lobby::{LobbyState, LobbyStatus, TableInfo},
+    state::{
+        lobby::{LobbyState, LobbyStatus, TableInfo},
+        BettingState,
+    },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UiView {
     Lobby,
+    Betting,
     Dealing,
     PlayerTurn,
     DealerTurn,
@@ -21,6 +25,7 @@ pub struct UiState {
     pub footer: FooterState,
     pub lobby: Option<LobbyState>,
     pub table: Option<TableState>,
+    pub betting: Option<BettingState>,
     pub deal_animation: Option<DealAnimation>,
 }
 
@@ -53,6 +58,39 @@ impl UiState {
             }),
 
             table: None,
+            betting: None,
+            deal_animation: None,
+        }
+    }
+
+    pub fn betting() -> Self {
+        Self {
+            view: UiView::Betting,
+
+            header: HeaderState {
+                title: "Blackjack".into(),
+                subtitle: "Place your bet".into(),
+            },
+
+            footer: FooterState {
+                hints: vec![
+                    "← → = change bet".into(),
+                    "enter = confirm".into(),
+                    "q = quit".into(),
+                ],
+            },
+
+            lobby: None,
+            table: None,
+
+            betting: Some(BettingState {
+                min_bet: 10,
+                max_bet: 1_000,
+                current_bet: 50,
+                step: 10,
+                confirmed: false,
+            }),
+
             deal_animation: None,
         }
     }
