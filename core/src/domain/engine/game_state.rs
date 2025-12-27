@@ -51,8 +51,18 @@ impl GameState {
             EventPayload::PhaseChanged { from: _, to } => {
                 self.phase = to.clone();
             }
-            EventPayload::GameFinished => {
+            EventPayload::GameFinished { result } => {
                 self.phase = Phase::Finished;
+                // Apply payouts to players
+                for player_result in &result.player_results {
+                    if let Some(player_state) = self
+                        .players
+                        .iter_mut()
+                        .find(|p| p.player_id == player_result.player)
+                    {
+                        player_state.balance += player_result.payout.total();
+                    }
+                }
             }
             EventPayload::PlayerCardDealt { player, card } => {
                 if let Some(player_state) = self.players.iter_mut().find(|p| p.player_id == *player)
@@ -63,14 +73,11 @@ impl GameState {
             EventPayload::DealerCardDealt { dealer: _, card } => {
                 self.dealer.hand.add_card(*card);
             }
-            EventPayload::PlayerActionTaken { player, action } => {
+            EventPayload::PlayerDecisionTaken { player, action } => {
                 if let Some(player_state) = self.players.iter_mut().find(|p| p.player_id == *player)
                 {
                     player_state.record_action(*action);
                 }
-            }
-            EventPayload::PlayerStand { player: _ } => {
-                // Action tracking is handled by PlayerActionTaken event
             }
             EventPayload::PlayerBust { player: _ } => {
                 // Player has busted, hand value already reflects this

@@ -5,6 +5,8 @@ use crate::domain::{
     Card,
 };
 
+use super::outcome::GameResult;
+
 #[derive(Debug)]
 pub enum EventPayload {
     PlayerJoined {
@@ -22,7 +24,9 @@ pub enum EventPayload {
         from: Phase,
         to: Phase,
     },
-    GameFinished,
+    GameFinished {
+        result: GameResult,
+    },
     PlayerCardDealt {
         player: PlayerId,
         card: Card,
@@ -31,12 +35,9 @@ pub enum EventPayload {
         dealer: DealerId,
         card: Card,
     },
-    PlayerActionTaken {
+    PlayerDecisionTaken {
         player: PlayerId,
         action: PlayerDecision,
-    },
-    PlayerStand {
-        player: PlayerId,
     },
     PlayerBust {
         player: PlayerId,

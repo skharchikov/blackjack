@@ -1,7 +1,9 @@
 mod game_event;
+mod outcome;
 mod payload;
 
 pub use game_event::*;
+pub use outcome::*;
 pub use payload::*;
 
 #[derive(Debug)]
