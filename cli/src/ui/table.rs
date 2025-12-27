@@ -31,6 +31,28 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     let mut lines: Vec<Line> = Vec::new();
 
     /* =====================
+    HEADER - Game metadata
+    ===================== */
+
+    lines.push(Line::from(vec![
+        Span::styled(
+            format!("Game #{}", table.game_id),
+            Style::default().fg(Color::Cyan),
+        ),
+        Span::raw("   "),
+        Span::styled(
+            format!("Phase: {}", table.phase),
+            Style::default().fg(Color::Green),
+        ),
+        Span::raw("   "),
+        Span::styled(
+            format!("Event: {}", table.event_id),
+            Style::default().fg(Color::DarkGray),
+        ),
+    ]));
+    lines.push(Line::raw(""));
+
+    /* =====================
     DEALER
     ===================== */
 
@@ -48,24 +70,50 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     ===================== */
 
     for player in &table.players {
-        let name_style = if player.active {
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD)
+        let name_line = if player.active {
+            Line::from(vec![
+                Span::styled(
+                    format!("{} ", player.name),
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    "◀ ACTIVE",
+                    Style::default()
+                        .fg(Color::Green)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ])
         } else {
-            Style::default().fg(Color::White)
+            Line::from(Span::styled(
+                &player.name,
+                Style::default().fg(Color::White),
+            ))
         };
 
-        let prefix = if player.active { "> " } else { "  " };
-
-        lines.push(Line::from(vec![
-            Span::raw(prefix),
-            Span::styled(&player.name, name_style),
-        ]));
-
+        lines.push(name_line);
         lines.push(render_hand(&player.hand));
+
+        // Status line
+        lines.push(Line::from(Span::styled(
+            format!("Status: {}", player.status),
+            Style::default().fg(Color::DarkGray),
+        )));
         lines.push(Line::raw(""));
     }
+
+    /* =====================
+    FOOTER - Actions hint
+    ===================== */
+
+    lines.push(Line::raw(""));
+    lines.push(Line::from(Span::styled(
+        "Actions: [Hit] [Stand] [Double]",
+        Style::default()
+            .fg(Color::DarkGray)
+            .add_modifier(Modifier::DIM),
+    )));
 
     let widget = Paragraph::new(Text::from(lines))
         .block(Block::default().title("Table").borders(Borders::ALL));
@@ -121,11 +169,15 @@ fn render_hand(hand: &UiHand) -> Line<'static> {
         spans.push(Span::raw(" "));
     }
 
+    // Add spacing before value
+    spans.push(Span::raw("       "));
+
     if let Some(value) = &hand.value {
-        spans.push(Span::raw("  "));
         spans.push(Span::styled(
-            format!("= {}", value),
-            Style::default().fg(Color::Yellow),
+            format!("Value: {}", value),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         ));
     }
 
@@ -133,7 +185,7 @@ fn render_hand(hand: &UiHand) -> Line<'static> {
 }
 
 fn render_card(card: &UiCard) -> Span<'static> {
-    let text = format!("[{}{}]", card.rank, card.suit);
+    let text = format!("[ {}{} ]", card.rank, card.suit);
     Span::styled(
         text,
         Style::default()

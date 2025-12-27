@@ -10,6 +10,9 @@ pub fn mock_lobby_ui() -> UiState {
             subtitle: "Lobby".into(),
         },
         table: Some(TableState {
+            game_id: 0,
+            phase: "Lobby".into(),
+            event_id: 0,
             dealer: UiHand {
                 cards: vec![],
                 value: None,
@@ -37,6 +40,9 @@ pub fn mock_player_turn_ui() -> UiState {
             subtitle: "Your turn".into(),
         },
         table: Some(TableState {
+            game_id: 42,
+            phase: "PlayerTurn".into(),
+            event_id: 17,
             dealer: UiHand {
                 cards: vec![
                     UiCard {
@@ -66,6 +72,7 @@ pub fn mock_player_turn_ui() -> UiState {
                     ],
                     value: Some("17".into()),
                 },
+                status: "playing".into(),
             }],
         }),
         footer: FooterState {
@@ -90,6 +97,9 @@ pub fn mock_resolving_ui() -> UiState {
             subtitle: "Result".into(),
         },
         table: Some(TableState {
+            game_id: 42,
+            phase: "Resolving".into(),
+            event_id: 24,
             dealer: UiHand {
                 cards: vec![
                     UiCard {
@@ -119,6 +129,7 @@ pub fn mock_resolving_ui() -> UiState {
                     ],
                     value: Some("17".into()),
                 },
+                status: "stood".into(),
             }],
         }),
         footer: FooterState {
@@ -171,8 +182,12 @@ pub fn deal_step_ui(step: usize) -> UiState {
             cards: player_cards.clone(),
             value: None,
         },
+        status: "waiting".into(),
     };
     ui.table = Some(TableState {
+        game_id: 42,
+        phase: "Dealing".into(),
+        event_id: step as u64,
         dealer: UiHand {
             cards: dealer_cards.clone(),
             value: None,
