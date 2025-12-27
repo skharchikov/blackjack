@@ -180,8 +180,8 @@ pub enum Event {
 1. Implement state transitions in `state.rs`
 2. Implement event handling in `event.rs`
 3. Write unit tests for all core functionalities
-4. Connect `core-lib` with WebSocket server
+4. Connect `core-lib` with server
 
 ---
 
-This document provides a structured approach to implementing a Blackjack game using Rust and state machines. Future expansions may include decentralized (DeFi) mechanics for handling payouts on-chain.
+This document provides a structured approach to implementing a Blackjack game using Rust and state machines.
