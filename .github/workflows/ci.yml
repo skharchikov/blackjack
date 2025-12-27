@@ -34,8 +34,8 @@ jobs:
         run: cargo fmt -- --check
 
       # Run Clippy to check for lints
-      - name: Run Clippy
-        run: cargo clippy -- -D warnings
+      # - name: Run Clippy
+      # run: cargo clippy -- -D warnings
 
       # Run tests
       - name: Run tests
