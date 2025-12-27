@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use color_eyre::Result;
 use crossterm::event::{self, KeyCode};
@@ -35,6 +35,7 @@ struct UiState {
     header: HeaderState,
     table: TableState,
     footer: FooterState,
+    deal_animation: Option<DealAnimation>,
 }
 
 #[derive(Debug, Clone)]
@@ -73,6 +74,12 @@ struct UiCard {
     suit: &'static str,
 }
 
+#[derive(Debug, Clone)]
+struct DealAnimation {
+    step: usize,
+    last_tick: Instant,
+}
+
 /* =========================
 APP (controller)
 ========================= */
@@ -91,12 +98,46 @@ impl App {
     fn on_key(&mut self, key: KeyCode) -> bool {
         match key {
             KeyCode::Char('q') => return true,
+            KeyCode::Char('d') => self.start_deal_animation(),
             KeyCode::Char('l') => self.ui = mock_lobby_ui(),
             KeyCode::Char('p') => self.ui = mock_player_turn_ui(),
             KeyCode::Char('r') => self.ui = mock_resolving_ui(),
             _ => {}
         }
         false
+    }
+
+    fn start_deal_animation(&mut self) {
+        self.ui = deal_step_ui(0);
+        self.ui.deal_animation = Some(DealAnimation {
+            step: 0,
+            last_tick: Instant::now(),
+        });
+    }
+
+    fn update_animation(&mut self) {
+        let Some(anim) = self.ui.deal_animation.as_mut() else {
+            return;
+        };
+
+        if anim.last_tick.elapsed() < Duration::from_millis(500) {
+            return;
+        }
+
+        anim.step += 1;
+        anim.last_tick = Instant::now();
+
+        let step = anim.step;
+
+        if step > 4 {
+            self.ui = mock_player_turn_ui();
+        } else {
+            self.ui = deal_step_ui(step);
+            self.ui.deal_animation = Some(DealAnimation {
+                step,
+                last_tick: Instant::now(),
+            });
+        }
     }
 }
 
@@ -116,6 +157,7 @@ fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     let mut app = App::new();
 
     loop {
+        app.update_animation();
         terminal.draw(|f| render(f, &app.ui))?;
 
         if let Some(key) = read_key()? {
@@ -157,9 +199,18 @@ fn render(frame: &mut Frame, ui: &UiState) {
 }
 
 fn render_header(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let text = format!("{} — {}", ui.header.title, ui.header.subtitle);
+    let line = Line::from(vec![
+        Span::styled(
+            &ui.header.title,
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(" — "),
+        Span::styled(&ui.header.subtitle, Style::default().fg(Color::Cyan)),
+    ]);
 
-    let header = Paragraph::new(text).block(Block::default().borders(Borders::ALL));
+    let header = Paragraph::new(Text::from(line)).block(Block::default().borders(Borders::ALL));
 
     frame.render_widget(header, area);
 }
@@ -200,8 +251,15 @@ fn render_main(frame: &mut Frame, area: Rect, ui: &UiState) {
 }
 
 fn render_footer(frame: &mut Frame, area: Rect, ui: &UiState) {
+    let spans = ui
+        .footer
+        .hints
+        .iter()
+        .map(|h| Span::styled(h.clone(), Style::default().fg(Color::DarkGray)))
+        .collect::<Vec<_>>();
+
     let footer =
-        Paragraph::new(ui.footer.hints.join("   ")).block(Block::default().borders(Borders::ALL));
+        Paragraph::new(Text::from(Line::from(spans))).block(Block::default().borders(Borders::ALL));
 
     frame.render_widget(footer, area);
 }
@@ -234,6 +292,54 @@ fn render_card(card: &UiCard) -> Span<'static> {
             .add_modifier(Modifier::BOLD),
     )
 }
+fn deal_step_ui(step: usize) -> UiState {
+    let mut ui = mock_lobby_ui(); // база
+
+    ui.view = UiView::Dealing;
+    ui.header.subtitle = "Dealing…".into();
+
+    let mut dealer_cards = Vec::new();
+    let mut player_cards = Vec::new();
+
+    if step >= 1 {
+        player_cards.push(UiCard {
+            rank: "10",
+            suit: "♥",
+        });
+    }
+    if step >= 2 {
+        dealer_cards.push(UiCard {
+            rank: "K",
+            suit: "♠",
+        });
+    }
+    if step >= 3 {
+        player_cards.push(UiCard {
+            rank: "7",
+            suit: "♦",
+        });
+    }
+    if step >= 4 {
+        dealer_cards.push(UiCard {
+            rank: "?",
+            suit: "?",
+        });
+    }
+
+    ui.table.dealer.cards = dealer_cards;
+    ui.table.players = vec![PlayerUiState {
+        name: "You".into(),
+        active: true,
+        hand: UiHand {
+            cards: player_cards,
+            value: None,
+        },
+    }];
+
+    ui.footer.hints = vec!["Dealing cards…".into()];
+
+    ui
+}
 
 /* =========================
 MOCK UI STATES
@@ -260,6 +366,7 @@ fn mock_lobby_ui() -> UiState {
                 "q = quit".into(),
             ],
         },
+        deal_animation: None,
     }
 }
 
@@ -310,6 +417,7 @@ fn mock_player_turn_ui() -> UiState {
                 "q = quit".into(),
             ],
         },
+        deal_animation: None,
     }
 }
 
@@ -355,5 +463,6 @@ fn mock_resolving_ui() -> UiState {
         footer: FooterState {
             hints: vec!["l = lobby".into(), "q = quit".into()],
         },
+        deal_animation: None,
     }
 }
