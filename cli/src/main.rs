@@ -3,17 +3,19 @@ use std::time::Duration;
 use color_eyre::eyre::Context;
 use color_eyre::Result;
 use crossterm::event::{self, KeyCode};
-use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 
 pub struct App {
-    last_command: Option<UiCommand>,
+    ui: UiState,
 }
 
 impl App {
     pub fn new() -> Self {
-        Self { last_command: None }
+        Self {
+            ui: UiState::initial(),
+        }
     }
 
     fn on_key(&self, key: KeyCode) -> Option<UiCommand> {
@@ -28,15 +30,40 @@ impl App {
     }
 
     fn apply_command(&mut self, cmd: UiCommand) -> bool {
-        let should_quit = matches!(cmd.action, UiAction::Quit);
-        self.last_command = Some(cmd);
-        should_quit
+        self.ui.last_command = Some(cmd.clone());
+
+        self.ui.status = match cmd.action {
+            UiAction::StartGame => "Start game pressed".to_string(),
+            UiAction::Hit => "Hit pressed".to_string(),
+            UiAction::Quit => "Quitting…".to_string(),
+        };
+
+        matches!(cmd.action, UiAction::Quit)
     }
 }
 
 impl Default for App {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct UiState {
+    title: String,
+    status: String,
+    last_command: Option<UiCommand>,
+    help: String,
+}
+
+impl UiState {
+    fn initial() -> Self {
+        Self {
+            title: "Blackjack".to_string(),
+            status: "No commands yet".to_string(),
+            last_command: None,
+            help: "s = start   h = hit   q = quit".to_string(),
+        }
     }
 }
 
@@ -61,7 +88,7 @@ fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     let mut app = App::new();
 
     loop {
-        terminal.draw(|f| render(f, &app))?;
+        terminal.draw(|f| render(f, &app.ui))?;
 
         if let Some(key) = read_key()? {
             if let Some(cmd) = app.on_key(key) {
@@ -80,10 +107,10 @@ fn render_header(frame: &mut Frame, area: ratatui::layout::Rect) {
     frame.render_widget(header, area);
 }
 
-fn render_main(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
-    let text = match &app.last_command {
-        Some(cmd) => format!("Last command:\n{cmd:?}"),
-        None => "No commands yet".to_string(),
+fn render_main(frame: &mut Frame, area: Rect, ui: &UiState) {
+    let text = match &ui.last_command {
+        Some(cmd) => format!("Status:\n{}\n\nLast command:\n{:?}", ui.status, cmd),
+        None => ui.status.clone(),
     };
 
     let main = Paragraph::new(text).block(Block::default().title("Table").borders(Borders::ALL));
@@ -98,7 +125,7 @@ fn render_footer(frame: &mut Frame, area: ratatui::layout::Rect) {
     frame.render_widget(footer, area);
 }
 
-fn render(frame: &mut Frame, app: &App) {
+fn render(frame: &mut Frame, ui: &UiState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -109,7 +136,7 @@ fn render(frame: &mut Frame, app: &App) {
         .split(frame.area());
 
     render_header(frame, chunks[0]);
-    render_main(frame, chunks[1], app);
+    render_main(frame, chunks[1], ui);
     render_footer(frame, chunks[2]);
 }
 
