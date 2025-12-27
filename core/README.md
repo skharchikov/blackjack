@@ -2,12 +2,12 @@
 
 ## Overview
 
-The `core-lib` module is responsible for defining the domain models, state machine, game commands, and events required to implement a Blackjack game. It encapsulates all game-related logic and ensures the game follows a structured and well-defined flow.
+The `core` module is responsible for defining the domain models, state machine, game commands, and events required to implement a Blackjack game. It encapsulates all game-related logic and ensures the game follows a structured and well-defined flow.
 
 ## Project Structure
 
 ```
-core-lib/
+core/
 │── src/
 │   ├── table.rs        # Represents an active game table
 │   ├── game.rs         # Manages game state and player actions
@@ -185,4 +185,3 @@ pub enum Event {
 ---
 
 This document provides a structured approach to implementing a Blackjack game using Rust and state machines. Future expansions may include decentralized (DeFi) mechanics for handling payouts on-chain.
-

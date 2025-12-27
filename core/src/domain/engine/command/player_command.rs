@@ -1,11 +1,12 @@
 use crate::domain::{
-    engine::{command::CommandId, event::GameId},
+    engine::{action::PlayerDecision, command::CommandId, event::GameId},
     player::PlayerId,
 };
 
 #[derive(Debug)]
 pub struct PlayerCommand {
-    pub command_id: CommandId,
     pub game_id: GameId,
+    pub command_id: CommandId,
     pub player_id: PlayerId,
+    pub action: PlayerDecision,
 }

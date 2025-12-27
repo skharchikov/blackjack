@@ -1,2 +1,2 @@
 [workspace]
-members = ["core-lib", "server", "cli-client"]
+members = ["core", "server", "cli"]

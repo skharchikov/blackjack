@@ -14,7 +14,7 @@ impl Hand {
         self.cards.push(card);
     }
 
-    pub fn value(&self) -> HandValue {
+    pub fn value(&self) -> HandScore {
         let mut hard = 0;
         let mut aces = 0;
 
@@ -40,17 +40,17 @@ impl Hand {
         let soft = hard + 10; // Adding 10 converts one ace from 1 to 11
 
         if hard > 21 {
-            HandValue::Bust { value: hard }
+            HandScore::Bust { value: hard }
         } else if aces > 0 && soft <= 21 {
-            HandValue::Dual { soft, hard }
+            HandScore::Dual { soft, hard }
         } else {
-            HandValue::Single { value: hard }
+            HandScore::Single { value: hard }
         }
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum HandValue {
+#[derive(Debug, Clone, PartialEq)]
+pub enum HandScore {
     Single { value: u8 },
     Dual { soft: u8, hard: u8 },
     Bust { value: u8 },
@@ -76,91 +76,91 @@ mod tests {
     #[test]
     fn test_simple_hard_hand() {
         let hand = create_hand(vec![Rank::King, Rank::Queen]);
-        assert_eq!(hand.value(), HandValue::Single { value: 20 });
+        assert_eq!(hand.value(), HandScore::Single { value: 20 });
     }
 
     #[test]
     fn test_simple_soft_hand() {
         let hand = create_hand(vec![Rank::Ace, Rank::Seven]);
-        assert_eq!(hand.value(), HandValue::Dual { soft: 18, hard: 8 });
+        assert_eq!(hand.value(), HandScore::Dual { soft: 18, hard: 8 });
     }
 
     #[test]
     fn test_blackjack() {
         let hand = create_hand(vec![Rank::Ace, Rank::King]);
-        assert_eq!(hand.value(), HandValue::Dual { soft: 21, hard: 11 });
+        assert_eq!(hand.value(), HandScore::Dual { soft: 21, hard: 11 });
     }
 
     #[test]
     fn test_bust_hand() {
         let hand = create_hand(vec![Rank::King, Rank::Queen, Rank::Five]);
-        assert_eq!(hand.value(), HandValue::Bust { value: 25 });
+        assert_eq!(hand.value(), HandScore::Bust { value: 25 });
     }
 
     #[test]
     fn test_soft_hand_becomes_hard() {
         // A, 5, 10 = 16 (soft 16 would be 26, which busts, so it's hard 16)
         let hand = create_hand(vec![Rank::Ace, Rank::Five, Rank::Ten]);
-        assert_eq!(hand.value(), HandValue::Single { value: 16 });
+        assert_eq!(hand.value(), HandScore::Single { value: 16 });
     }
 
     #[test]
     fn test_multiple_aces_soft() {
         // A, A, 9 = soft 21 (one ace as 11, one as 1), hard 11
         let hand = create_hand(vec![Rank::Ace, Rank::Ace, Rank::Nine]);
-        assert_eq!(hand.value(), HandValue::Dual { soft: 21, hard: 11 });
+        assert_eq!(hand.value(), HandScore::Dual { soft: 21, hard: 11 });
     }
 
     #[test]
     fn test_multiple_aces_hard() {
         // A, A, A = soft 13 (one ace as 11, two as 1), hard 3
         let hand = create_hand(vec![Rank::Ace, Rank::Ace, Rank::Ace]);
-        assert_eq!(hand.value(), HandValue::Dual { soft: 13, hard: 3 });
+        assert_eq!(hand.value(), HandScore::Dual { soft: 13, hard: 3 });
     }
 
     #[test]
     fn test_low_value_hand() {
         let hand = create_hand(vec![Rank::Two, Rank::Three]);
-        assert_eq!(hand.value(), HandValue::Single { value: 5 });
+        assert_eq!(hand.value(), HandScore::Single { value: 5 });
     }
 
     #[test]
     fn test_exactly_21() {
         let hand = create_hand(vec![Rank::Seven, Rank::Seven, Rank::Seven]);
-        assert_eq!(hand.value(), HandValue::Single { value: 21 });
+        assert_eq!(hand.value(), HandScore::Single { value: 21 });
     }
 
     #[test]
     fn test_face_cards() {
         let hand = create_hand(vec![Rank::Jack, Rank::Queen, Rank::King]);
-        assert_eq!(hand.value(), HandValue::Bust { value: 30 });
+        assert_eq!(hand.value(), HandScore::Bust { value: 30 });
     }
 
     #[test]
     fn test_ace_with_ten_value_cards() {
         // Ace with Jack
         let hand = create_hand(vec![Rank::Ace, Rank::Jack]);
-        assert_eq!(hand.value(), HandValue::Dual { soft: 21, hard: 11 });
+        assert_eq!(hand.value(), HandScore::Dual { soft: 21, hard: 11 });
 
         // Ace with Queen
         let hand = create_hand(vec![Rank::Ace, Rank::Queen]);
-        assert_eq!(hand.value(), HandValue::Dual { soft: 21, hard: 11 });
+        assert_eq!(hand.value(), HandScore::Dual { soft: 21, hard: 11 });
 
         // Ace with King
         let hand = create_hand(vec![Rank::Ace, Rank::King]);
-        assert_eq!(hand.value(), HandValue::Dual { soft: 21, hard: 11 });
+        assert_eq!(hand.value(), HandScore::Dual { soft: 21, hard: 11 });
     }
 
     #[test]
     fn test_empty_hand() {
         let hand = Hand::new();
-        assert_eq!(hand.value(), HandValue::Single { value: 0 });
+        assert_eq!(hand.value(), HandScore::Single { value: 0 });
     }
 
     #[test]
     fn test_single_ace() {
         let hand = create_hand(vec![Rank::Ace]);
-        assert_eq!(hand.value(), HandValue::Dual { soft: 11, hard: 1 });
+        assert_eq!(hand.value(), HandScore::Dual { soft: 11, hard: 1 });
     }
 
     #[test]
@@ -173,6 +173,6 @@ mod tests {
             Rank::Five,
             Rank::Six,
         ]);
-        assert_eq!(hand.value(), HandValue::Single { value: 20 });
+        assert_eq!(hand.value(), HandScore::Single { value: 20 });
     }
 }
