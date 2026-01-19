@@ -11,7 +11,7 @@ A multiplayer Blackjack game with a server-client architecture and a text-based 
 ## Project Structure
 
 ```
-blackjack-defi/
+blackjack/
 │── Cargo.toml         # Workspace configuration
 │── core/              # Core game logic (Rust library)
 │── server/            # Game server (Rust binary)
