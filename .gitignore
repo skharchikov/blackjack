@@ -27,3 +27,4 @@ server/target/      # Ignore compiled files for the server module
 # Temporary and backup files
 *.tmp               # Ignore temporary files
 *.bak               # Ignore backup files
+*.env
