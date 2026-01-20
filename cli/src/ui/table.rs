@@ -9,6 +9,12 @@ use tui_cards::{Card, Rank as TuiRank, Suit as TuiSuit};
 
 use crate::state::{lobby::LobbyState, UiCard, UiHand, UiState, UiView};
 
+// Constants for tui-cards widget dimensions
+const CARD_HEIGHT: u16 = 9;
+const CARD_WIDTH: u16 = 15;
+const CARD_SPACING: u16 = 1;
+const HIDDEN_CARD_MARKER: &str = "?";
+
 pub fn render_main(frame: &mut Frame, area: Rect, ui: &UiState) {
     match ui.view {
         UiView::Lobby => render_lobby(frame, area, ui.lobby.as_ref().unwrap()),
@@ -64,8 +70,8 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
             .add_modifier(Modifier::BOLD),
     )));
     
-    // Reserve space for dealer cards (10 lines for card height)
-    for _ in 0..10 {
+    // Reserve space for dealer cards
+    for _ in 0..CARD_HEIGHT {
         lines.push(Line::raw(""));
     }
 
@@ -109,8 +115,8 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
 
         lines.push(name_line);
 
-        // Reserve space for player cards (10 lines for card height)
-        for _ in 0..10 {
+        // Reserve space for player cards
+        for _ in 0..CARD_HEIGHT {
             lines.push(Line::raw(""));
         }
 
@@ -152,18 +158,20 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     // Now render the actual tui-cards widgets on top of the reserved spaces
     // Calculate positions relative to the area
     
-    // Dealer cards start at line 4 (after header + dealer label + blank line)
-    let dealer_card_y = area.y + 4;
+    // Dealer cards start after: header (2 lines) + dealer label (1 line) + blank line (1 line) = 4 lines
+    const HEADER_LINES: u16 = 2;
+    const DEALER_LABEL_LINES: u16 = 2; // Label + blank line before cards
+    let dealer_card_y = area.y + HEADER_LINES + DEALER_LABEL_LINES;
     let card_x_start = area.x + 2; // Start inside the border
 
     // Render dealer cards
     for (i, card) in table.dealer.cards.iter().enumerate() {
         if let Some(tui_card) = ui_card_to_tui_card(card) {
             let card_area = Rect::new(
-                card_x_start + (i as u16 * 16), // 15 width + 1 spacing
+                card_x_start + (i as u16 * (CARD_WIDTH + CARD_SPACING)),
                 dealer_card_y,
-                15,
-                9,
+                CARD_WIDTH,
+                CARD_HEIGHT,
             );
             if card_area.x + card_area.width <= area.x + area.width - 1 {
                 frame.render_widget(&tui_card, card_area);
@@ -172,19 +180,22 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     }
 
     // First player cards start after dealer section
-    // Dealer section = 4 (header) + 10 (cards) + 1 (value) + 1 (blank) = 16 lines from top
-    // Then player name + blank = 2 more lines
+    // Dealer section = HEADER_LINES + DEALER_LABEL_LINES + CARD_HEIGHT + value line (1) + blank (1)
+    // Then player name (1) + blank (1) = 2 more lines
+    const VALUE_AND_BLANK_LINES: u16 = 2;
+    const PLAYER_LABEL_LINES: u16 = 2;
     if let Some(player) = table.players.first() {
-        let player_card_y = area.y + 18;
+        let player_card_y = area.y + HEADER_LINES + DEALER_LABEL_LINES + CARD_HEIGHT 
+                           + VALUE_AND_BLANK_LINES + PLAYER_LABEL_LINES;
         
         // Render player cards
         for (i, card) in player.hand.cards.iter().enumerate() {
             if let Some(tui_card) = ui_card_to_tui_card(card) {
                 let card_area = Rect::new(
-                    card_x_start + (i as u16 * 16), // 15 width + 1 spacing
+                    card_x_start + (i as u16 * (CARD_WIDTH + CARD_SPACING)),
                     player_card_y,
-                    15,
-                    9,
+                    CARD_WIDTH,
+                    CARD_HEIGHT,
                 );
                 if card_area.x + card_area.width <= area.x + area.width - 1 {
                     frame.render_widget(&tui_card, card_area);
@@ -278,7 +289,7 @@ fn suit_color(suit: &str) -> Color {
 // Convert UiCard to tui_cards::Card for rendering with card widget
 fn ui_card_to_tui_card(card: &UiCard) -> Option<Card> {
     // Skip hidden cards
-    if card.rank == "?" || card.suit == "?" {
+    if card.rank == HIDDEN_CARD_MARKER || card.suit == HIDDEN_CARD_MARKER {
         return None;
     }
 
