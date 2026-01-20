@@ -5,6 +5,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+use tui_cards::{Card, Rank as TuiRank, Suit as TuiSuit};
 
 use crate::state::{lobby::LobbyState, UiCard, UiHand, UiState, UiView};
 
@@ -53,7 +54,7 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     lines.push(Line::raw(""));
 
     /* =====================
-    DEALER
+    DEALER CARDS (using tui-cards)
     ===================== */
 
     lines.push(Line::from(Span::styled(
@@ -62,14 +63,28 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
             .fg(Color::Cyan)
             .add_modifier(Modifier::BOLD),
     )));
-    lines.push(render_hand(&table.dealer));
+    
+    // Reserve space for dealer cards (10 lines for card height)
+    for _ in 0..10 {
+        lines.push(Line::raw(""));
+    }
+
+    // Show dealer value if available
+    if let Some(value) = &table.dealer.value {
+        lines.push(Line::from(Span::styled(
+            format!("Value: {}", value),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )));
+    }
     lines.push(Line::raw(""));
 
     /* =====================
-    PLAYERS
+    FIRST PLAYER CARDS (using tui-cards)
     ===================== */
 
-    for player in &table.players {
+    if let Some(player) = table.players.first() {
         let name_line = if player.active {
             Line::from(vec![
                 Span::styled(
@@ -93,7 +108,21 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
         };
 
         lines.push(name_line);
-        lines.push(render_hand(&player.hand));
+
+        // Reserve space for player cards (10 lines for card height)
+        for _ in 0..10 {
+            lines.push(Line::raw(""));
+        }
+
+        // Show player value if available
+        if let Some(value) = &player.hand.value {
+            lines.push(Line::from(Span::styled(
+                format!("Value: {}", value),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )));
+        }
 
         // Status line
         lines.push(Line::from(Span::styled(
@@ -119,6 +148,50 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
         .block(Block::default().title("Table").borders(Borders::ALL));
 
     frame.render_widget(widget, area);
+
+    // Now render the actual tui-cards widgets on top of the reserved spaces
+    // Calculate positions relative to the area
+    
+    // Dealer cards start at line 4 (after header + dealer label + blank line)
+    let dealer_card_y = area.y + 4;
+    let card_x_start = area.x + 2; // Start inside the border
+
+    // Render dealer cards
+    for (i, card) in table.dealer.cards.iter().enumerate() {
+        if let Some(tui_card) = ui_card_to_tui_card(card) {
+            let card_area = Rect::new(
+                card_x_start + (i as u16 * 16), // 15 width + 1 spacing
+                dealer_card_y,
+                15,
+                9,
+            );
+            if card_area.x + card_area.width <= area.x + area.width - 1 {
+                frame.render_widget(&tui_card, card_area);
+            }
+        }
+    }
+
+    // First player cards start after dealer section
+    // Dealer section = 4 (header) + 10 (cards) + 1 (value) + 1 (blank) = 16 lines from top
+    // Then player name + blank = 2 more lines
+    if let Some(player) = table.players.first() {
+        let player_card_y = area.y + 18;
+        
+        // Render player cards
+        for (i, card) in player.hand.cards.iter().enumerate() {
+            if let Some(tui_card) = ui_card_to_tui_card(card) {
+                let card_area = Rect::new(
+                    card_x_start + (i as u16 * 16), // 15 width + 1 spacing
+                    player_card_y,
+                    15,
+                    9,
+                );
+                if card_area.x + card_area.width <= area.x + area.width - 1 {
+                    frame.render_widget(&tui_card, card_area);
+                }
+            }
+        }
+    }
 }
 
 fn render_lobby(frame: &mut Frame, area: Rect, lobby: &LobbyState) {
@@ -200,4 +273,39 @@ fn suit_color(suit: &str) -> Color {
         "♠" | "♣" => Color::White,
         _ => Color::Gray,
     }
+}
+
+// Convert UiCard to tui_cards::Card for rendering with card widget
+fn ui_card_to_tui_card(card: &UiCard) -> Option<Card> {
+    // Skip hidden cards
+    if card.rank == "?" || card.suit == "?" {
+        return None;
+    }
+
+    let rank = match card.rank {
+        "A" => TuiRank::Ace,
+        "2" => TuiRank::Two,
+        "3" => TuiRank::Three,
+        "4" => TuiRank::Four,
+        "5" => TuiRank::Five,
+        "6" => TuiRank::Six,
+        "7" => TuiRank::Seven,
+        "8" => TuiRank::Eight,
+        "9" => TuiRank::Nine,
+        "10" => TuiRank::Ten,
+        "J" => TuiRank::Jack,
+        "Q" => TuiRank::Queen,
+        "K" => TuiRank::King,
+        _ => return None,
+    };
+
+    let suit = match card.suit {
+        "♠" => TuiSuit::Spades,
+        "♥" => TuiSuit::Hearts,
+        "♦" => TuiSuit::Diamonds,
+        "♣" => TuiSuit::Clubs,
+        _ => return None,
+    };
+
+    Some(Card::new(rank, suit))
 }

@@ -168,6 +168,7 @@ dependencies = [
  "color-eyre",
  "crossterm",
  "ratatui",
+ "tui-cards",
 ]
 
 [[package]]
@@ -1498,6 +1499,19 @@ dependencies = [
  "sharded-slab",
  "thread_local",
  "tracing-core",
+]
+
+[[package]]
+name = "tui-cards"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a294c7192e8074d75066008b7e5446d2aa012f6644d690bfbaa28d129738128"
+dependencies = [
+ "color-eyre",
+ "indoc",
+ "itertools 0.14.0",
+ "ratatui-core",
+ "strum",
 ]
 
 [[package]]
