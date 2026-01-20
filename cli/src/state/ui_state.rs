@@ -136,6 +136,32 @@ impl UiState {
             }),
         }
     }
+
+    pub fn table_view() -> Self {
+        Self {
+            view: UiView::PlayerTurn,
+
+            header: HeaderState {
+                title: "Blackjack".into(),
+                subtitle: "Table #1".into(),
+            },
+
+            footer: FooterState {
+                hints: vec![
+                    "[H] Hit  ".into(),
+                    "[S] Stand  ".into(),
+                    "[D] Double  ".into(),
+                    "[L] Leave Table  ".into(),
+                    "[Q] Quit".into(),
+                ],
+            },
+
+            lobby: None,
+            table: None,
+            betting: None,
+            deal_animation: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

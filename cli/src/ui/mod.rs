@@ -1,10 +1,14 @@
 pub mod card;
 pub mod footer;
 pub mod header;
+pub mod history;
 pub mod layout;
 pub mod lobby;
 pub mod login;
+pub mod observers;
 pub mod table;
+pub mod table_view;
+pub mod waiting_list;
 
 use ratatui::Frame;
 
