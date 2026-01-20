@@ -38,12 +38,12 @@ pub struct TableLayout {
 }
 
 pub fn split_table_view(area: Rect) -> TableLayout {
-    // Split into 3 columns: 25% | 50% | 25%
+    // Split into 3 columns: 10% | 65% | 25%
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(25), // left column
-            Constraint::Percentage(50), // center column (board)
+            Constraint::Percentage(10), // left column
+            Constraint::Percentage(65), // center column (board)
             Constraint::Percentage(25), // right column (history)
         ])
         .split(area);

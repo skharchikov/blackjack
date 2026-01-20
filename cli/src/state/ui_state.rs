@@ -138,14 +138,24 @@ impl UiState {
     }
 
     pub fn table_view() -> Self {
-        Self {
-            view: UiView::PlayerTurn,
+        use crate::state::table::GamePhase;
+        use crate::state::UiHand;
 
+        Self {
+            screen: Screen::Table(TableState {
+                game_id: 1,
+                phase: GamePhase::PlayerTurn,
+                event_id: 0,
+                dealer: UiHand {
+                    cards: vec![],
+                    value: None,
+                },
+                players: vec![],
+            }),
             header: HeaderState {
                 title: "Blackjack".into(),
                 subtitle: "Table #1".into(),
             },
-
             footer: FooterState {
                 hints: vec![
                     "[H] Hit  ".into(),
@@ -155,11 +165,7 @@ impl UiState {
                     "[Q] Quit".into(),
                 ],
             },
-
-            lobby: None,
-            table: None,
             betting: None,
-            deal_animation: None,
         }
     }
 }
