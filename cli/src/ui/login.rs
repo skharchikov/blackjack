@@ -5,31 +5,36 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+use tui_big_text::{BigText, PixelSize};
 
 use crate::state::{LoginState, LoginStatus};
 
 pub fn render_login(frame: &mut Frame, area: Rect, login: &LoginState) {
-    let block = Block::default().title("Login").borders(Borders::ALL);
+    let block = Block::default().borders(Borders::ALL);
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
     let chunks = Layout::vertical([
-        Constraint::Length(3),
-        Constraint::Length(3),
-        Constraint::Length(2),
-        Constraint::Min(0),
+        Constraint::Length(8), // BigText with PixelSize::Full needs 8 lines
+        Constraint::Min(0),    // Flexible space
+        Constraint::Length(3), // Username input
+        Constraint::Length(2), // Status
     ])
     .split(inner);
 
     // Title
-    let title = Paragraph::new(Line::from(vec![Span::styled(
-        "Welcome to Blackjack",
-        Style::default()
-            .fg(Color::Cyan)
-            .add_modifier(Modifier::BOLD),
-    )]))
-    .alignment(Alignment::Center);
-    frame.render_widget(title, chunks[0]);
+    let big_text = BigText::builder()
+        .pixel_size(PixelSize::Full)
+        .style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
+        .lines(vec!["BLACKJACK".into()])
+        .alignment(Alignment::Center)
+        .build();
+
+    frame.render_widget(big_text, chunks[0]);
 
     // Username input
     let username_block = Block::default()
@@ -41,7 +46,7 @@ pub fn render_login(frame: &mut Frame, area: Rect, login: &LoginState) {
     let username_text = Paragraph::new(format!("{}{}", login.username, cursor))
         .block(username_block)
         .style(Style::default().fg(Color::White));
-    frame.render_widget(username_text, chunks[1]);
+    frame.render_widget(username_text, chunks[2]);
 
     // Status
     let (status_text, status_color) = match &login.status {
@@ -55,5 +60,6 @@ pub fn render_login(frame: &mut Frame, area: Rect, login: &LoginState) {
         Style::default().fg(status_color),
     )))
     .alignment(Alignment::Center);
-    frame.render_widget(status, chunks[2]);
+
+    frame.render_widget(status, chunks[3]);
 }

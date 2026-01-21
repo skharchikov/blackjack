@@ -11,7 +11,6 @@ use crate::state::{Screen, UiState};
 
 pub fn render(frame: &mut Frame, ui: &UiState) {
     let layout = layout::split_screen(frame.area());
-
     header::render_header(frame, layout.header, ui);
     render_main(frame, layout.main, ui);
     footer::render_footer(frame, layout.footer, ui);
