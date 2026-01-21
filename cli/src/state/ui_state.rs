@@ -1,53 +1,47 @@
-use super::table::TableState;
-use crate::{
-    animation::DealAnimation,
-    state::{
-        lobby::{LobbyState, LobbyStatus, TableInfo},
-        BettingState,
-    },
+use crate::state::{
+    lobby::{LobbyState, LobbyStatus, TableInfo},
+    login::LoginState,
+    table::TableState,
+    BettingState,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum UiView {
-    Lobby,
-    Betting,
-    Dealing,
-    PlayerTurn,
-    DealerTurn,
-    Resolving,
-    Finished,
+#[derive(Debug, Clone)]
+pub enum Screen {
+    Login(LoginState),
+    Lobby(LobbyState),
+    Table(TableState),
 }
 
 #[derive(Debug, Clone)]
 pub struct UiState {
-    pub view: UiView,
+    pub screen: Screen,
     pub header: HeaderState,
     pub footer: FooterState,
-    pub lobby: Option<LobbyState>,
-    pub table: Option<TableState>,
     pub betting: Option<BettingState>,
-    pub deal_animation: Option<DealAnimation>,
 }
 
 impl UiState {
-    pub fn lobby() -> Self {
+    pub fn login() -> Self {
         Self {
-            view: UiView::Lobby,
-
+            screen: Screen::Login(LoginState::default()),
             header: HeaderState {
                 title: "Blackjack".into(),
-                subtitle: "Lobby".into(),
+                subtitle: "Login".into(),
             },
-
             footer: FooterState {
                 hints: vec![
-                    "↑ ↓ = select table".into(),
-                    "enter = connect".into(),
+                    "type username".into(),
+                    "enter = login".into(),
                     "q = quit".into(),
                 ],
             },
+            betting: None,
+        }
+    }
 
-            lobby: Some(LobbyState {
+    pub fn lobby() -> Self {
+        Self {
+            screen: Screen::Lobby(LobbyState {
                 status: LobbyStatus::Disconnected,
                 selected: 0,
                 tables: vec![TableInfo {
@@ -56,22 +50,54 @@ impl UiState {
                     max_players: 4,
                 }],
             }),
-
-            table: None,
+            header: HeaderState {
+                title: "Blackjack".into(),
+                subtitle: "Lobby".into(),
+            },
+            footer: FooterState {
+                hints: vec![
+                    "↑ ↓ = select table".into(),
+                    "enter = connect".into(),
+                    "q = quit".into(),
+                ],
+            },
             betting: None,
-            deal_animation: None,
+        }
+    }
+
+    pub fn table(table_state: TableState) -> Self {
+        Self {
+            screen: Screen::Table(table_state),
+            header: HeaderState {
+                title: "Blackjack".into(),
+                subtitle: "Table".into(),
+            },
+            footer: FooterState {
+                hints: vec!["q = quit".into()],
+            },
+            betting: None,
         }
     }
 
     pub fn betting() -> Self {
-        Self {
-            view: UiView::Betting,
+        use crate::state::table::GamePhase;
+        use crate::state::UiHand;
 
+        Self {
+            screen: Screen::Table(TableState {
+                game_id: 1,
+                phase: GamePhase::Betting,
+                event_id: 0,
+                dealer: UiHand {
+                    cards: vec![],
+                    value: None,
+                },
+                players: vec![],
+            }),
             header: HeaderState {
                 title: "Blackjack".into(),
                 subtitle: "Place your bet".into(),
             },
-
             footer: FooterState {
                 hints: vec![
                     "← → = change bet".into(),
@@ -79,10 +105,6 @@ impl UiState {
                     "q = quit".into(),
                 ],
             },
-
-            lobby: None,
-            table: None,
-
             betting: Some(BettingState {
                 min_bet: 10,
                 max_bet: 1_000,
@@ -90,8 +112,6 @@ impl UiState {
                 step: 10,
                 confirmed: false,
             }),
-
-            deal_animation: None,
         }
     }
 }

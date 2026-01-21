@@ -1,10 +1,8 @@
 use color_eyre::Result;
 use ratatui::DefaultTerminal;
 
-mod animation;
 mod app;
 mod input;
-mod mock;
 mod state;
 mod ui;
 
@@ -21,7 +19,6 @@ fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     let mut app = App::new();
 
     loop {
-        app.update_animation();
         terminal.draw(|f| render(f, &app.ui))?;
 
         if let Some(key) = read_key()? {
