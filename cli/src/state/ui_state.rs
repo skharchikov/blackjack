@@ -1,3 +1,4 @@
+use crate::state::lobby::TableStatus;
 use crate::state::{
     lobby::{LobbyState, LobbyStatus, TableInfo},
     login::LoginState,
@@ -51,7 +52,7 @@ impl UiState {
                         max_players: 4,
                         min_bet: 10,
                         max_bet: 100,
-                        status: super::lobby::TableStatus::Open,
+                        status: TableStatus::Open,
                     },
                     TableInfo {
                         name: "Big Sharks #2".into(),
@@ -59,7 +60,7 @@ impl UiState {
                         max_players: 4,
                         min_bet: 100,
                         max_bet: 1000,
-                        status: super::lobby::TableStatus::Open,
+                        status: TableStatus::Open,
                     },
                     TableInfo {
                         name: "Sopranos #3".into(),
@@ -67,7 +68,7 @@ impl UiState {
                         max_players: 4,
                         min_bet: 10,
                         max_bet: 1000,
-                        status: super::lobby::TableStatus::Open,
+                        status: TableStatus::Open,
                     },
                 ],
             }),

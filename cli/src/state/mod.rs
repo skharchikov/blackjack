@@ -7,7 +7,7 @@ pub mod ui_state;
 
 pub use betting::*;
 pub use cards::{UiCard, UiHand};
-pub use lobby::{LobbyState, LobbyStatus, TableInfo};
+pub use lobby::LobbyStatus;
 pub use login::{LoginState, LoginStatus};
-pub use table::{GamePhase, PlayerUiState, TableState};
-pub use ui_state::{FooterState, HeaderState, Screen, UiState};
+pub use table::{GamePhase, TableState};
+pub use ui_state::{Screen, UiState};
