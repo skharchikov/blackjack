@@ -1,49 +1,74 @@
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Rect},
     style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Cell, HighlightSpacing, Row, Table},
     Frame,
 };
 
-use crate::state::LobbyState;
+use crate::state::lobby::LobbyState;
 
 pub fn render_lobby(frame: &mut Frame, area: Rect, lobby: &LobbyState) {
-    let mut lines: Vec<Line> = Vec::new();
+    let header_style = Style::default()
+        .fg(Color::White)
+        .bg(Color::DarkGray)
+        .add_modifier(Modifier::BOLD);
 
-    lines.push(Line::from(Span::styled(
-        "Available tables",
-        Style::default()
-            .fg(Color::Cyan)
-            .add_modifier(Modifier::BOLD),
-    )));
-    lines.push(Line::raw(""));
+    let selected_row_style = Style::default()
+        .fg(Color::Black)
+        .bg(Color::Yellow)
+        .add_modifier(Modifier::BOLD);
 
-    for (i, table) in lobby.tables.iter().enumerate() {
-        let selected = i == lobby.selected;
+    let header = ["Table Name", "Stakes", "Players", "Status"]
+        .into_iter()
+        .map(Cell::from)
+        .collect::<Row>()
+        .style(header_style)
+        .height(1);
 
-        let style = if selected {
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(Color::White)
-        };
+    let rows: Vec<Row> = lobby
+        .tables
+        .iter()
+        .enumerate()
+        .map(|(i, table)| {
+            let row_style = if i % 2 == 0 {
+                Style::default().bg(Color::Rgb(30, 30, 30))
+            } else {
+                Style::default().bg(Color::Rgb(40, 40, 40))
+            };
 
-        lines.push(Line::from(vec![Span::styled(
-            format!("{} ({}/{})", table.name, table.players, table.max_players),
-            style,
-        )]));
-    }
+            Row::new(vec![
+                Cell::from(table.name.clone()),
+                Cell::from(format!("${}-${}", table.min_bet, table.max_bet)),
+                Cell::from(format!("{}/{}", table.players, table.max_players)),
+                Cell::from(format!("{:?}", table.status)),
+            ])
+            .style(row_style)
+            .height(1)
+        })
+        .collect();
 
-    lines.push(Line::raw(""));
-    lines.push(Line::from(Span::styled(
-        format!("Status: {:?}", lobby.status),
-        Style::default().fg(Color::DarkGray),
-    )));
+    let table_widget = Table::new(
+        rows,
+        [
+            Constraint::Percentage(40),
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+        ],
+    )
+    .header(header)
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Lobby ")
+            .title_style(Style::default().fg(Color::Cyan).bold()),
+    )
+    .row_highlight_style(selected_row_style)
+    .highlight_symbol("▶ ")
+    .highlight_spacing(HighlightSpacing::Always);
 
-    let widget = Paragraph::new(Text::from(lines))
-        .block(Block::default().title("Lobby").borders(Borders::ALL));
+    let mut table_state = ratatui::widgets::TableState::default();
+    table_state.select(Some(lobby.selected));
 
-    frame.render_widget(widget, area);
+    frame.render_stateful_widget(table_widget, area, &mut table_state);
 }

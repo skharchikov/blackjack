@@ -1,3 +1,4 @@
+use crate::state::lobby::TableStatus;
 use crate::state::{
     lobby::{LobbyState, LobbyStatus, TableInfo},
     login::LoginState,
@@ -44,11 +45,32 @@ impl UiState {
             screen: Screen::Lobby(LobbyState {
                 status: LobbyStatus::Disconnected,
                 selected: 0,
-                tables: vec![TableInfo {
-                    name: "Table #1".into(),
-                    players: 1,
-                    max_players: 4,
-                }],
+                tables: vec![
+                    TableInfo {
+                        name: "Cool Kids #1".into(),
+                        players: 1,
+                        max_players: 4,
+                        min_bet: 10,
+                        max_bet: 100,
+                        status: TableStatus::Open,
+                    },
+                    TableInfo {
+                        name: "Big Sharks #2".into(),
+                        players: 1,
+                        max_players: 4,
+                        min_bet: 100,
+                        max_bet: 1000,
+                        status: TableStatus::Open,
+                    },
+                    TableInfo {
+                        name: "Sopranos #3".into(),
+                        players: 1,
+                        max_players: 4,
+                        min_bet: 10,
+                        max_bet: 1000,
+                        status: TableStatus::Open,
+                    },
+                ],
             }),
             header: HeaderState {
                 title: "Blackjack".into(),
