@@ -8,4 +8,5 @@ ratatui = "0.30.0"
 crossterm = "0.29.0"
 color-eyre = "0.6.5"
 blackjack-core = { path = "../core" }
+indoc = "2"
 tui-big-text = "0.8.1"

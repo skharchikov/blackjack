@@ -167,6 +167,7 @@ dependencies = [
  "blackjack-core",
  "color-eyre",
  "crossterm",
+ "indoc",
  "ratatui",
  "tui-big-text",
 ]
