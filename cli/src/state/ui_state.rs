@@ -30,11 +30,7 @@ impl UiState {
                 subtitle: "Login".into(),
             },
             footer: FooterState {
-                hints: vec![
-                    "type username".into(),
-                    "enter = login".into(),
-                    "q = quit".into(),
-                ],
+                hints: vec!["login (enter) ".into(), "quit (q) ".into()],
             },
             betting: None,
         }
@@ -78,24 +74,10 @@ impl UiState {
             },
             footer: FooterState {
                 hints: vec![
-                    "↑ ↓ = select table".into(),
-                    "enter = connect".into(),
-                    "q = quit".into(),
+                    "select table (↑ ↓) ".into(),
+                    "connect (enter) ".into(),
+                    "quit (q) ".into(),
                 ],
-            },
-            betting: None,
-        }
-    }
-
-    pub fn table(table_state: TableState) -> Self {
-        Self {
-            screen: Screen::Table(table_state),
-            header: HeaderState {
-                title: "Blackjack".into(),
-                subtitle: "Table".into(),
-            },
-            footer: FooterState {
-                hints: vec!["q = quit".into()],
             },
             betting: None,
         }
@@ -122,9 +104,9 @@ impl UiState {
             },
             footer: FooterState {
                 hints: vec![
-                    "← → = change bet".into(),
-                    "enter = confirm".into(),
-                    "q = quit".into(),
+                    "change bet (← →) ".into(),
+                    "confirm (enter) ".into(),
+                    "quit (q) ".into(),
                 ],
             },
             betting: Some(BettingState {
@@ -134,6 +116,38 @@ impl UiState {
                 step: 10,
                 confirmed: false,
             }),
+        }
+    }
+
+    pub fn table_view() -> Self {
+        use crate::state::table::GamePhase;
+        use crate::state::UiHand;
+
+        Self {
+            screen: Screen::Table(TableState {
+                game_id: 1,
+                phase: GamePhase::PlayerTurn,
+                event_id: 0,
+                dealer: UiHand {
+                    cards: vec![],
+                    value: None,
+                },
+                players: vec![],
+            }),
+            header: HeaderState {
+                title: "Blackjack".into(),
+                subtitle: "Table #1".into(),
+            },
+            footer: FooterState {
+                hints: vec![
+                    "[H] Hit  ".into(),
+                    "[S] Stand  ".into(),
+                    "[D] Double  ".into(),
+                    "[L] Leave Table  ".into(),
+                    "[Q] Quit".into(),
+                ],
+            },
+            betting: None,
         }
     }
 }
