@@ -1,3 +1,4 @@
+use crate::ui::theme::TOKIO_NIGHT_GREEN;
 use ratatui::{
     layout::Rect,
     style::{Color, Style},
@@ -7,7 +8,7 @@ use ratatui::{
 
 pub fn render_history(frame: &mut Frame, area: Rect) {
     // Tokyo Night green: #9ece6a
-    let border_color = Color::Rgb(158, 206, 106);
+    let border_color = TOKIO_NIGHT_GREEN;
 
     let widget = Paragraph::new("")
         .block(

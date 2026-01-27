@@ -1,130 +1,38 @@
-use ratatui::{
-    layout::Rect,
-    style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Paragraph},
-    Frame,
+use ratatui::{layout::Rect, Frame};
+
+use super::{
+    history::render_history, layout::split_table_view, observers::render_observers,
+    waiting_list::render_waiting_list,
 };
+use crate::state::UiState;
+use crate::ui::theme::TOKIO_NIGHT_BLUE;
 
-use crate::state::{TableState, UiCard, UiHand};
+pub fn render_table(frame: &mut Frame, area: Rect, _ui: &UiState) {
+    let layout = split_table_view(area);
 
-pub fn render_table(frame: &mut Frame, area: Rect, table: &TableState) {
-    let mut lines: Vec<Line> = Vec::new();
+    render_observers(frame, layout.observers);
+    render_waiting_list(frame, layout.waiting_list);
+    render_board(frame, layout.board);
+    render_history(frame, layout.history);
+}
 
-    // Header - Game metadata
-    lines.push(Line::from(vec![
-        Span::styled(
-            format!("Game #{}", table.game_id),
-            Style::default().fg(Color::Cyan),
-        ),
-        Span::raw("   "),
-        Span::styled(
-            format!("Phase: {}", table.phase),
-            Style::default().fg(Color::Green),
-        ),
-        Span::raw("   "),
-        Span::styled(
-            format!("Event: {}", table.event_id),
-            Style::default().fg(Color::DarkGray),
-        ),
-    ]));
-    lines.push(Line::raw(""));
+fn render_board(frame: &mut Frame, area: Rect) {
+    use ratatui::{
+        style::{Color, Style},
+        widgets::{Block, Borders, Paragraph},
+    };
 
-    // Dealer
-    lines.push(Line::from(Span::styled(
-        "Dealer",
-        Style::default()
-            .fg(Color::Cyan)
-            .add_modifier(Modifier::BOLD),
-    )));
-    lines.push(render_hand(&table.dealer));
-    lines.push(Line::raw(""));
+    // Tokyo Night blue: #7aa2f7
+    let border_color = TOKIO_NIGHT_BLUE;
 
-    // Players
-    for player in &table.players {
-        let name_line = if player.active {
-            Line::from(vec![
-                Span::styled(
-                    format!("{} ", player.name),
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(
-                    "◀ ACTIVE",
-                    Style::default()
-                        .fg(Color::Green)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            ])
-        } else {
-            Line::from(Span::styled(
-                &player.name,
-                Style::default().fg(Color::White),
-            ))
-        };
-
-        lines.push(name_line);
-        lines.push(render_hand(&player.hand));
-
-        lines.push(Line::from(Span::styled(
-            format!("Status: {}", player.status),
-            Style::default().fg(Color::DarkGray),
-        )));
-        lines.push(Line::raw(""));
-    }
-
-    // Footer - Actions hint
-    lines.push(Line::raw(""));
-    lines.push(Line::from(Span::styled(
-        "Actions: [Hit] [Stand] [Double]",
-        Style::default()
-            .fg(Color::DarkGray)
-            .add_modifier(Modifier::DIM),
-    )));
-
-    let widget = Paragraph::new(Text::from(lines))
-        .block(Block::default().title("Table").borders(Borders::ALL));
+    let widget = Paragraph::new("")
+        .block(
+            Block::default()
+                .title(" Board ")
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(border_color)),
+        )
+        .style(Style::default().fg(Color::White));
 
     frame.render_widget(widget, area);
-}
-
-fn render_hand(hand: &UiHand) -> Line<'static> {
-    let mut spans: Vec<Span> = Vec::new();
-
-    for card in &hand.cards {
-        spans.push(render_card(card));
-        spans.push(Span::raw(" "));
-    }
-
-    spans.push(Span::raw("       "));
-
-    if let Some(value) = &hand.value {
-        spans.push(Span::styled(
-            format!("Value: {}", value),
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        ));
-    }
-
-    Line::from(spans)
-}
-
-fn render_card(card: &UiCard) -> Span<'static> {
-    let text = format!("[ {}{} ]", card.rank, card.suit);
-    Span::styled(
-        text,
-        Style::default()
-            .fg(suit_color(&card.suit))
-            .add_modifier(Modifier::BOLD),
-    )
-}
-
-fn suit_color(suit: &str) -> Color {
-    match suit {
-        "♥" | "♦" => Color::Red,
-        "♠" | "♣" => Color::White,
-        _ => Color::Gray,
-    }
 }

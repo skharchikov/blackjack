@@ -1,3 +1,4 @@
+use crate::ui::theme::TOKIO_NIGHT_MAGENTA;
 use ratatui::{
     layout::Rect,
     style::{Color, Style},
@@ -7,7 +8,7 @@ use ratatui::{
 
 pub fn render_waiting_list(frame: &mut Frame, area: Rect) {
     // Tokyo Night magenta: #bb9af7
-    let border_color = Color::Rgb(187, 154, 247);
+    let border_color = TOKIO_NIGHT_MAGENTA;
 
     let widget = Paragraph::new("")
         .block(

@@ -1,3 +1,4 @@
+use crate::ui::theme::TOKIO_NIGHT_CYAN;
 use ratatui::{
     layout::Rect,
     style::{Color, Style},
@@ -7,7 +8,7 @@ use ratatui::{
 
 pub fn render_observers(frame: &mut Frame, area: Rect) {
     // Tokyo Night cyan: #7dcfff
-    let border_color = Color::Rgb(125, 207, 255);
+    let border_color = TOKIO_NIGHT_CYAN;
 
     let widget = Paragraph::new("")
         .block(
