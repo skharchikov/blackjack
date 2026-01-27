@@ -9,9 +9,9 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn load_or_die() -> Result<Settings, config::ConfigError> {
+    pub fn load() -> Result<Settings, config::ConfigError> {
         let base_path = std::env::current_dir().expect("Failed to determine the current directory");
-        let config_dir = base_path.join("configuration");
+        let config_dir = base_path.join("server/configuration");
         let environment: Environment = std::env::var("APP_ENVIRONMENT")
             .unwrap_or_else(|_| "local".into())
             .try_into()
