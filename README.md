@@ -230,15 +230,22 @@ Each module has its own detailed README:
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! Please see our [Contributing Guide](./CONTRIBUTING.md) for detailed information about:
 
-### Development Setup
+- How to set up your development environment
+- Coding standards and best practices
+- How to submit pull requests
+- Testing requirements
+
+### Quick Start for Contributors
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+3. Make your changes and add tests
+4. Run quality checks: `cargo fmt && cargo clippy && cargo test`
+5. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+6. Push to the branch (`git push origin feature/AmazingFeature`)
+7. Open a Pull Request
 
 ## 📝 License
 
