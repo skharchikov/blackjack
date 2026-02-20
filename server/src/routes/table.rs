@@ -2,7 +2,6 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use blackjack_core::domain::{TableSettings, TableStatus};
 use serde::Serialize;
 
-use crate::store::TableStore;
 use crate::AppState;
 
 #[derive(Serialize)]

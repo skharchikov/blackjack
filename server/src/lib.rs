@@ -6,22 +6,21 @@ use serde::{Deserialize, Serialize};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
-use store::PostgresTableStore;
-
 /// Shared application state accessible from all handlers.
 pub type AppState = Arc<App>;
+pub type TableStore = Box<dyn store::TableStore>;
 
 /// Application state.
 pub struct App {
     pub connections: AtomicU64,
-    pub table_store: PostgresTableStore,
+    pub table_store: TableStore,
 }
 
 impl App {
-    pub fn new(table_store: PostgresTableStore) -> Self {
+    pub fn new(table_store: impl store::TableStore + 'static) -> Self {
         Self {
             connections: AtomicU64::new(0),
-            table_store,
+            table_store: Box::new(table_store),
         }
     }
 }
