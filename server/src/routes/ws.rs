@@ -16,11 +16,10 @@ pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> 
 
 /// Handle an individual WebSocket connection.
 async fn handle_socket(mut socket: WebSocket, state: AppState) {
-    let conn_id = {
-        let mut app = state.write().await;
-        app.connections += 1;
-        app.connections
-    };
+    let conn_id = state
+        .connections
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        + 1;
 
     info!("Connection {} established", conn_id);
 

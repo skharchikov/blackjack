@@ -1,13 +1,14 @@
 use server::config::Settings;
+use server::store::PostgresTableStore;
 use server::{routes::create_router, App, AppState};
+use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use tokio::{net::TcpListener, sync::RwLock};
+use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() {
-    // Initialize tracing subscriber for logging
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -17,7 +18,21 @@ async fn main() {
         .init();
     let config = Settings::load().expect("Failed to load configuration");
     info!("Loaded configuration: {:?}", config);
-    let state: AppState = Arc::new(RwLock::new(App::default()));
+
+    let pool = PgPoolOptions::new()
+        .max_connections(config.database.max_connections)
+        .connect(&config.database.connection_string())
+        .await
+        .expect("Failed to connect to Postgres");
+
+    info!("Applying database migrations...");
+    sqlx::migrate!("../migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to run database migrations");
+
+    let table_store = PostgresTableStore::new(pool);
+    let state: AppState = Arc::new(App::new(table_store));
     let app = create_router(state);
 
     let listener = TcpListener::bind(format!(
