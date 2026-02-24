@@ -1,4 +1,4 @@
-use crate::domain::engine::event::{payload::EventPayload, EventId, EventSeqId, GameId};
+use crate::domain::engine::event::{payload::EventPayload, EventSeqId, GameId};
 
 #[derive(Debug)]
 pub struct GameEvent {

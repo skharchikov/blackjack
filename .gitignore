@@ -28,3 +28,6 @@ server/target/      # Ignore compiled files for the server module
 *.tmp               # Ignore temporary files
 *.bak               # Ignore backup files
 *.env
+
+# Claude specific files
+.ai
