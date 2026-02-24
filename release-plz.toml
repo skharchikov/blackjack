@@ -1,0 +1,27 @@
+# release-plz configuration
+# This configuration enables automated version management without publishing to crates.io
+
+[workspace]
+# Enable changelog generation
+changelog_update = true
+
+# Disable publishing to crates.io for all packages
+publish = false
+
+# Enable semantic version checking
+semver_check = true
+
+# Disable git releases (no need since we're not publishing)
+git_release_enable = false
+
+# Optional: Add labels to release PRs
+pr_labels = ["release"]
+
+# Disable dependencies update in changelog
+dependencies_update = false
+
+# Only create releases when there are actual changes
+release_always = false
+
+# All packages in the workspace will inherit these settings
+# Individual packages can override by adding [[package]] sections if needed
