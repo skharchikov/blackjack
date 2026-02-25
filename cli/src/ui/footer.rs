@@ -1,30 +1,39 @@
 use ratatui::{
     layout::Rect,
-    style::{Color, Style},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Paragraph},
+    style::{Modifier, Style},
+    text::{Line, Span},
+    widgets::Paragraph,
     Frame,
 };
 
 use crate::state::UiState;
+use crate::ui::theme::{TOKIO_NIGHT_CYAN, TOKIO_NIGHT_MUTED, TOKIO_NIGHT_SUBTLE};
 
 pub fn render_footer(frame: &mut Frame, area: Rect, ui: &UiState) {
-    // Tokyo Night colors
-    let text_color = Color::Rgb(169, 177, 214); // foreground: #a9b1d6
-    let border_color = Color::Rgb(86, 95, 137); // comment: #565f89
+    let mut spans: Vec<Span> = Vec::new();
 
-    let spans = ui
-        .footer
-        .hints
-        .iter()
-        .map(|h| Span::styled(h.clone(), Style::default().fg(text_color)))
-        .collect::<Vec<_>>();
+    spans.push(Span::styled(
+        " >> ",
+        Style::default()
+            .fg(TOKIO_NIGHT_CYAN)
+            .add_modifier(Modifier::BOLD),
+    ));
 
-    let footer = Paragraph::new(Text::from(Line::from(spans))).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(border_color)),
-    );
+    for (i, hint) in ui.footer.hints.iter().enumerate() {
+        if i > 0 {
+            spans.push(Span::styled(" │ ", Style::default().fg(TOKIO_NIGHT_SUBTLE)));
+        }
 
+        spans.push(Span::styled(
+            format!("[{}]", hint.key),
+            Style::default().fg(TOKIO_NIGHT_CYAN),
+        ));
+        spans.push(Span::styled(
+            hint.label,
+            Style::default().fg(TOKIO_NIGHT_MUTED),
+        ));
+    }
+
+    let footer = Paragraph::new(Line::from(spans));
     frame.render_widget(footer, area);
 }

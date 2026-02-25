@@ -33,6 +33,7 @@ impl TryFrom<u8> for Rank {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
