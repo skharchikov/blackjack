@@ -11,8 +11,8 @@ publish = false
 # Enable semantic version checking
 semver_check = true
 
-# Disable git releases (no need since we're not publishing)
-git_release_enable = false
+# Enable git releases to create GitHub tags and releases
+git_release_enable = true
 
 # Optional: Add labels to release PRs
 pr_labels = ["release"]
