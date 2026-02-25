@@ -30,7 +30,16 @@ impl UiState {
                 subtitle: "Login".into(),
             },
             footer: FooterState {
-                hints: vec!["login (enter) ".into(), "quit (q) ".into()],
+                hints: vec![
+                    FooterHint {
+                        key: "enter",
+                        label: "login",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
+                ],
             },
             betting: None,
         }
@@ -74,9 +83,18 @@ impl UiState {
             },
             footer: FooterState {
                 hints: vec![
-                    "select table (↑ ↓) ".into(),
-                    "connect (enter) ".into(),
-                    "quit (q) ".into(),
+                    FooterHint {
+                        key: "↑↓",
+                        label: "select",
+                    },
+                    FooterHint {
+                        key: "enter",
+                        label: "join",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             },
             betting: None,
@@ -104,9 +122,18 @@ impl UiState {
             },
             footer: FooterState {
                 hints: vec![
-                    "change bet (← →) ".into(),
-                    "confirm (enter) ".into(),
-                    "quit (q) ".into(),
+                    FooterHint {
+                        key: "←→",
+                        label: "bet",
+                    },
+                    FooterHint {
+                        key: "enter",
+                        label: "confirm",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             },
             betting: Some(BettingState {
@@ -140,11 +167,26 @@ impl UiState {
             },
             footer: FooterState {
                 hints: vec![
-                    "[H] Hit  ".into(),
-                    "[S] Stand  ".into(),
-                    "[D] Double  ".into(),
-                    "[L] Leave Table  ".into(),
-                    "[Q] Quit".into(),
+                    FooterHint {
+                        key: "h",
+                        label: "hit",
+                    },
+                    FooterHint {
+                        key: "s",
+                        label: "stand",
+                    },
+                    FooterHint {
+                        key: "d",
+                        label: "double",
+                    },
+                    FooterHint {
+                        key: "l",
+                        label: "leave",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             },
             betting: None,
@@ -159,6 +201,12 @@ pub struct HeaderState {
 }
 
 #[derive(Debug, Clone)]
+pub struct FooterHint {
+    pub key: &'static str,
+    pub label: &'static str,
+}
+
+#[derive(Debug, Clone)]
 pub struct FooterState {
-    pub hints: Vec<String>,
+    pub hints: Vec<FooterHint>,
 }

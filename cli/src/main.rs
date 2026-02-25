@@ -1,34 +1,31 @@
 #![allow(dead_code)]
 
-use color_eyre::Result;
-use ratatui::DefaultTerminal;
-
 mod app;
-mod input;
 mod state;
 mod ui;
 
-use app::App;
-use input::read_key;
-use ui::render;
+use color_eyre::Result;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     color_eyre::install()?;
-    ratatui::run(run)
+    init_tracing();
+
+    let mut terminal = ratatui::init();
+    let result = app::run(&mut terminal).await;
+    ratatui::restore();
+
+    result
 }
 
-fn run(terminal: &mut DefaultTerminal) -> Result<()> {
-    let mut app = App::new();
+fn init_tracing() {
+    use tracing_appender::rolling;
+    use tracing_subscriber::{fmt, EnvFilter};
 
-    loop {
-        terminal.draw(|f| render(f, &app.ui))?;
-
-        if let Some(key) = read_key()? {
-            if app.on_key(key) {
-                break;
-            }
-        }
-    }
-
-    Ok(())
+    let file_appender = rolling::never(".", "blackjack-cli.log");
+    let _ = fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(file_appender)
+        .with_ansi(false)
+        .try_init();
 }

@@ -12,7 +12,7 @@ pub fn split_screen(area: Rect) -> ScreenLayout {
         .constraints([
             Constraint::Length(3), // header
             Constraint::Min(0),    // main
-            Constraint::Length(3), // footer
+            Constraint::Length(1), // footer
         ])
         .split(area);
 

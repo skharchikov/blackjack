@@ -5,9 +5,24 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
-use tui_big_text::{BigText, PixelSize};
 
 use crate::state::{LoginState, LoginStatus};
+
+const BANNER: &[&str] = &[
+    " ██████  ██       █████   ██████ ██   ██      ██  █████   ██████ ██   ██ ",
+    " ██   ██ ██      ██   ██ ██      ██  ██       ██ ██   ██ ██      ██  ██  ",
+    " ██████  ██      ███████ ██      █████        ██ ███████ ██      █████   ",
+    " ██   ██ ██      ██   ██ ██      ██  ██  ██   ██ ██   ██ ██      ██  ██  ",
+    " ██████  ███████ ██   ██  ██████ ██   ██  █████  ██   ██  ██████ ██   ██ ",
+];
+
+fn banner_color(line_index: usize, total: usize) -> Color {
+    let t = line_index as f32 / (total - 1).max(1) as f32;
+    let r = (0.0 + t * 120.0) as u8;
+    let g = (255.0 - t * 60.0) as u8;
+    let b = (255.0 - t * 80.0) as u8;
+    Color::Rgb(r, g, b)
+}
 
 pub fn render_login(frame: &mut Frame, area: Rect, login: &LoginState) {
     let block = Block::default().borders(Borders::ALL);
@@ -15,26 +30,26 @@ pub fn render_login(frame: &mut Frame, area: Rect, login: &LoginState) {
     frame.render_widget(block, area);
 
     let chunks = Layout::vertical([
-        Constraint::Length(8), // BigText with PixelSize::Full needs 8 lines
-        Constraint::Min(0),    // Flexible space
-        Constraint::Length(3), // Username input
-        Constraint::Length(2), // Status
+        Constraint::Length(BANNER.len() as u16 + 2), // banner + padding
+        Constraint::Min(0),                          // flexible space
+        Constraint::Length(3),                       // username input
+        Constraint::Length(2),                       // status
     ])
     .split(inner);
 
-    // Title
-    let big_text = BigText::builder()
-        .pixel_size(PixelSize::Full)
-        .style(
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        )
-        .lines(vec!["BLACKJACK".into()])
-        .alignment(Alignment::Center)
-        .build();
+    // Banner
+    let mut lines: Vec<Line> = Vec::new();
+    lines.push(Line::default()); // top padding
+    for (i, text) in BANNER.iter().enumerate() {
+        let color = banner_color(i, BANNER.len());
+        lines.push(Line::from(Span::styled(
+            *text,
+            Style::default().fg(color).add_modifier(Modifier::BOLD),
+        )));
+    }
 
-    frame.render_widget(big_text, chunks[0]);
+    let banner = Paragraph::new(lines).alignment(Alignment::Center);
+    frame.render_widget(banner, chunks[0]);
 
     // Username input
     let username_block = Block::default()
