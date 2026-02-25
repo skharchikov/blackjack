@@ -31,3 +31,6 @@ server/target/      # Ignore compiled files for the server module
 
 # Claude specific files
 .ai
+
+# app specific files
+blackjack-cli.log
