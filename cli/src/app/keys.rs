@@ -1,11 +1,16 @@
 use crossterm::event::KeyCode;
 
-use crate::state::{GamePhase, LobbyStatus, LoginStatus, Screen, UiState};
+use crate::state::{GamePhase, LobbyStatus, LoginField, LoginStatus, Screen, UiState};
 
 use super::state::App;
 
 pub fn handle_key(app: &mut App, key: KeyCode) {
     if let KeyCode::Char('q') = key {
+        // Don't quit on 'q' when typing in login fields
+        if let Screen::Login(_) = &app.ui.screen {
+            handle_login_key(app, key);
+            return;
+        }
         app.should_quit = true;
         return;
     }
@@ -23,17 +28,32 @@ fn handle_login_key(app: &mut App, key: KeyCode) {
     };
 
     match key {
-        KeyCode::Char(c) => {
-            login.username.push(c);
+        KeyCode::Tab | KeyCode::BackTab => {
+            login.active_field = match login.active_field {
+                LoginField::Username => LoginField::Password,
+                LoginField::Password => LoginField::Username,
+            };
         }
-        KeyCode::Backspace => {
-            login.username.pop();
-        }
+        KeyCode::Char(c) => match login.active_field {
+            LoginField::Username => login.username.push(c),
+            LoginField::Password => login.password.push(c),
+        },
+        KeyCode::Backspace => match login.active_field {
+            LoginField::Username => {
+                login.username.pop();
+            }
+            LoginField::Password => {
+                login.password.pop();
+            }
+        },
         KeyCode::Enter => {
-            if !login.username.is_empty() {
+            if !login.username.is_empty() && !login.password.is_empty() {
                 login.status = LoginStatus::Connecting;
                 app.ui = UiState::lobby();
             }
+        }
+        KeyCode::Esc => {
+            app.should_quit = true;
         }
         _ => {}
     }

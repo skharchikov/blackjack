@@ -32,11 +32,15 @@ impl UiState {
             footer: FooterState {
                 hints: vec![
                     FooterHint {
+                        key: "tab",
+                        label: "switch field",
+                    },
+                    FooterHint {
                         key: "enter",
                         label: "login",
                     },
                     FooterHint {
-                        key: "q",
+                        key: "esc",
                         label: "quit",
                     },
                 ],
