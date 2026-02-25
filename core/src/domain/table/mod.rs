@@ -5,9 +5,15 @@ use uuid::Uuid;
 #[sqlx(transparent)]
 pub struct TableId(pub Uuid);
 
+impl Default for TableId {
+    fn default() -> Self {
+        Self(Uuid::now_v7())
+    }
+}
+
 impl TableId {
     pub fn new() -> Self {
-        Self(Uuid::now_v7())
+        Self::default()
     }
 }
 
