@@ -32,6 +32,7 @@ jobs:
 
   release:
     name: Create GitHub Release
+    needs: [release-plz]
     runs-on: ubuntu-latest
     permissions:
       contents: write
