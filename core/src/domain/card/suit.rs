@@ -30,6 +30,7 @@ impl TryFrom<u8> for Suit {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

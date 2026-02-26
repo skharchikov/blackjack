@@ -1,10 +1,12 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use blackjack_core::domain::{TableSettings, TableStatus};
 use serde::Serialize;
+use utoipa::{ToResponse, ToSchema};
 
 use crate::AppState;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToResponse, ToSchema)]
+#[response(description = "Table information")]
 struct TableResponse {
     id: String,
     name: String,
@@ -12,6 +14,14 @@ struct TableResponse {
     settings: TableSettings,
 }
 
+#[utoipa::path(
+    get,
+    path = "/tables",
+    responses(
+        (status = 200, description = "List of tables", body = [TableResponse]),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn list_tables(State(state): State<AppState>) -> impl IntoResponse {
     match state.table_store.list_tables().await {
         Ok(tables) => {
