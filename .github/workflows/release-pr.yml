@@ -29,3 +29,28 @@ jobs:
           command: release-pr
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  release:
+    name: Create GitHub Release
+    needs: [release-plz]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run release-plz release
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
