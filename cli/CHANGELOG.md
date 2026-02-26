@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/skharchikov/blackjack/compare/cli-v0.1.0...cli-v0.1.1) - 2026-02-26
+
+### Other
+
+- update Cargo.toml dependencies
+
 ## [0.1.0](https://github.com/skharchikov/blackjack/compare/cli-v0.0.1...cli-v0.1.0) - 2026-02-25
 
 ### Fixed
