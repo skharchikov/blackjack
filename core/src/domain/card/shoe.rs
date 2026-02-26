@@ -36,6 +36,7 @@ impl Default for Shoe {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

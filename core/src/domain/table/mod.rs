@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, sqlx::Type)]
@@ -11,14 +12,20 @@ impl TableId {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+impl Default for TableId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "table_status", rename_all = "lowercase")]
 pub enum TableStatus {
     Open,
     Closed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct TableSettings {
     pub min_bet: u32,
     pub max_bet: u32,

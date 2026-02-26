@@ -9,7 +9,13 @@ use tracing::{error, info};
 
 use crate::{AppState, ServerMessage};
 
-/// WebSocket upgrade handler.
+#[utoipa::path(
+    get,
+    path = "/ws",
+    responses(
+        (status = 101, description = "WebSocket upgrade")
+    )
+)]
 pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(socket, state))
 }

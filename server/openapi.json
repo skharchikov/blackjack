@@ -1,0 +1,119 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "server",
+    "description": "",
+    "license": {
+      "name": ""
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_check",
+        "responses": {
+          "200": {
+            "description": "Service is healthy"
+          }
+        }
+      }
+    },
+    "/tables": {
+      "get": {
+        "operationId": "list_tables",
+        "responses": {
+          "200": {
+            "description": "List of tables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TableResponse"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/ws": {
+      "get": {
+        "operationId": "ws_handler",
+        "responses": {
+          "101": {
+            "description": "WebSocket upgrade"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TableResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "settings"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/TableSettings"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TableStatus"
+          }
+        }
+      },
+      "TableSettings": {
+        "type": "object",
+        "required": [
+          "min_bet",
+          "max_bet",
+          "max_players",
+          "max_observers"
+        ],
+        "properties": {
+          "max_bet": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "max_observers": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_players": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "min_bet": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "TableStatus": {
+        "type": "string",
+        "enum": [
+          "Open",
+          "Closed"
+        ]
+      }
+    }
+  }
+}
