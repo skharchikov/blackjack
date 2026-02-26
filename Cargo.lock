@@ -207,7 +207,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "blackjack-core"
+name = "bj-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -300,7 +300,7 @@ dependencies = [
 name = "cli"
 version = "0.1.1"
 dependencies = [
- "blackjack-core",
+ "bj-core",
  "color-eyre",
  "crossterm",
  "indoc",
@@ -2381,7 +2381,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "axum",
- "blackjack-core",
+ "bj-core",
  "color-eyre",
  "config",
  "derive",

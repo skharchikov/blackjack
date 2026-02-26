@@ -1,5 +1,5 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use blackjack_core::domain::{TableSettings, TableStatus};
+use bj_core::domain::{TableSettings, TableStatus};
 use serde::Serialize;
 use utoipa::{ToResponse, ToSchema};
 

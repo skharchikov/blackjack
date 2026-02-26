@@ -1,6 +1,6 @@
 use std::iter::zip;
 
-use blackjack_core::domain::{Card, Rank, Suit};
+use bj_core::domain::{Card, Rank, Suit};
 use indoc::indoc;
 use ratatui::prelude::*;
 

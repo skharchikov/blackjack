@@ -29,7 +29,7 @@ pub use suit::{Suit, SuitError};
 /// # Examples
 ///
 /// ```
-/// use blackjack_core::domain::{Card, Suit, Rank, DeckId};
+/// use bj_core::domain::{Card, Suit, Rank, DeckId};
 ///
 /// let card = Card {
 ///     deck_id: DeckId::One,

@@ -1,4 +1,4 @@
-use blackjack_core::domain::Table;
+use bj_core::domain::Table;
 use color_eyre::eyre::{eyre, Report};
 use sqlx::PgPool;
 use thiserror::Error;
