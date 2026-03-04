@@ -1,15 +1,18 @@
-use blackjack_core::domain::{Card, DeckId, Rank, Suit};
+use std::sync::OnceLock;
+
+use blackjack_core::domain::{Rank, Suit};
 use ratatui::{
+    buffer::Buffer,
     layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, Padding, Paragraph},
+    widgets::{Block, Borders, Clear, Padding, Paragraph, Widget},
     Frame,
 };
 
 use crate::state::login::LoginField;
 use crate::state::{LoginState, LoginStatus};
-use crate::ui::card::{CardWidget, CARD_HEIGHT, CARD_WIDTH};
+use crate::ui::card::{rendered_card_lines, CARD_HEIGHT, CARD_WIDTH};
 use crate::ui::theme::{TOKIO_NIGHT_CYAN, TOKIO_NIGHT_MUTED, TOKIO_NIGHT_SUBTLE};
 
 const BANNER: &[&str] = &[
@@ -42,6 +45,33 @@ const SCATTER_CARDS: &[(Rank, Suit)] = &[
     (Rank::Ace, Suit::Diamonds),
     (Rank::King, Suit::Spades),
 ];
+
+static SCATTER_CARD_LINES: OnceLock<Vec<Vec<String>>> = OnceLock::new();
+
+fn scatter_card_lines() -> &'static [Vec<String>] {
+    SCATTER_CARD_LINES.get_or_init(|| {
+        SCATTER_CARDS
+            .iter()
+            .map(|(rank, suit)| rendered_card_lines(*rank, *suit))
+            .collect()
+    })
+}
+
+/// Lightweight widget that renders pre-computed card text lines, avoiding per-frame allocations.
+struct CachedCardWidget<'a> {
+    lines: &'a [String],
+    fg: Color,
+    bg: Color,
+}
+
+impl Widget for CachedCardWidget<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let style = Style::new().fg(self.fg).bg(self.bg);
+        for (line, row) in self.lines.iter().zip(area.rows()) {
+            Span::styled(line.as_str(), style).render(row, buf);
+        }
+    }
+}
 
 fn banner_color(line_index: usize, total: usize) -> Color {
     let t = line_index as f32 / (total - 1).max(1) as f32;
@@ -205,8 +235,6 @@ fn render_scatter_bg(frame: &mut Frame, area: Rect) {
         return;
     }
 
-    let dimmed = Style::default().fg(TOKIO_NIGHT_SUBTLE);
-
     let cols = (area.width / (CARD_WIDTH + 2)) as usize;
     let rows = (area.height / (CARD_HEIGHT + 1)) as usize;
 
@@ -224,9 +252,12 @@ fn render_scatter_bg(frame: &mut Frame, area: Rect) {
                 continue;
             }
 
-            let (rank, suit) = SCATTER_CARDS[card_idx % SCATTER_CARDS.len()];
-            let card = Card::new(DeckId::One, suit, rank);
-            let widget = CardWidget::new(&card).style(dimmed);
+            let lines = &scatter_card_lines()[card_idx % SCATTER_CARDS.len()];
+            let widget = CachedCardWidget {
+                lines,
+                fg: TOKIO_NIGHT_SUBTLE,
+                bg: Color::Reset,
+            };
 
             let card_area = Rect::new(x, y, CARD_WIDTH, CARD_HEIGHT);
             frame.render_widget(widget, card_area);

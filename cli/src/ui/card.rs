@@ -130,6 +130,21 @@ fn suit_symbol(suit: Suit) -> char {
     }
 }
 
+/// Returns the pre-rendered text lines for a card (rank template with suit symbol substituted).
+///
+/// This is useful for caching card rendering output ahead of time to avoid per-frame string
+/// allocations in hot render paths.
+pub fn rendered_card_lines(rank: Rank, suit: Suit) -> Vec<String> {
+    let symbol = suit_symbol(suit);
+    let mut buf = [0u8; 4];
+    let symbol_str = symbol.encode_utf8(&mut buf);
+    rank_template(rank)
+        .replace('x', symbol_str)
+        .lines()
+        .map(str::to_owned)
+        .collect()
+}
+
 impl Widget for CardWidget<'_> {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
