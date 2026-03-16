@@ -1,12 +1,10 @@
 mod game_event;
-mod outcome;
-mod payload;
+pub mod outcome;
+pub mod payload;
 
 pub use game_event::*;
+pub use outcome::*;
 pub use payload::*;
-
-#[derive(Debug)]
-pub struct GameId(pub u64);
 
 #[derive(Debug)]
 pub struct EventId(pub u64);

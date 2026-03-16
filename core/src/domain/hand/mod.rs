@@ -1,6 +1,6 @@
 use crate::domain::{Card, Rank};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Hand {
     pub cards: Vec<Card>,
 }
@@ -15,8 +15,8 @@ impl Hand {
     }
 
     pub fn value(&self) -> HandScore {
-        let mut hard = 0;
-        let mut aces = 0;
+        let mut hard = 0u8;
+        let mut aces = 0u8;
 
         for card in &self.cards {
             match card.rank {
@@ -49,11 +49,56 @@ impl Hand {
     }
 }
 
+impl Default for Hand {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum HandScore {
     Single { value: u8 },
     Dual { soft: u8, hard: u8 },
     Bust { value: u8 },
+}
+
+impl HandScore {
+    /// Returns the best playable value for this hand.
+    ///
+    /// For a soft hand, returns the soft value (ace counted as 11).
+    /// For a hard or bust hand, returns the hard value (even if over 21).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bj_core::domain::hand::HandScore;
+    ///
+    /// assert_eq!(HandScore::Dual { soft: 18, hard: 8 }.best_value(), 18);
+    /// assert_eq!(HandScore::Single { value: 17 }.best_value(), 17);
+    /// assert_eq!(HandScore::Bust { value: 25 }.best_value(), 25);
+    /// ```
+    pub fn best_value(&self) -> u8 {
+        match self {
+            HandScore::Single { value } => *value,
+            HandScore::Dual { soft, .. } => *soft,
+            HandScore::Bust { value } => *value,
+        }
+    }
+
+    /// Returns true if this hand is busted (over 21).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bj_core::domain::hand::HandScore;
+    ///
+    /// assert!(HandScore::Bust { value: 22 }.is_bust());
+    /// assert!(!HandScore::Single { value: 21 }.is_bust());
+    /// assert!(!HandScore::Dual { soft: 21, hard: 11 }.is_bust());
+    /// ```
+    pub fn is_bust(&self) -> bool {
+        matches!(self, HandScore::Bust { .. })
+    }
 }
 
 #[cfg(test)]
@@ -174,5 +219,30 @@ mod tests {
             Rank::Six,
         ]);
         assert_eq!(hand.value(), HandScore::Single { value: 20 });
+    }
+
+    #[test]
+    fn test_best_value_soft() {
+        let score = HandScore::Dual { soft: 18, hard: 8 };
+        assert_eq!(score.best_value(), 18);
+    }
+
+    #[test]
+    fn test_best_value_hard() {
+        let score = HandScore::Single { value: 17 };
+        assert_eq!(score.best_value(), 17);
+    }
+
+    #[test]
+    fn test_best_value_bust() {
+        let score = HandScore::Bust { value: 25 };
+        assert_eq!(score.best_value(), 25);
+    }
+
+    #[test]
+    fn test_is_bust() {
+        assert!(HandScore::Bust { value: 22 }.is_bust());
+        assert!(!HandScore::Single { value: 21 }.is_bust());
+        assert!(!HandScore::Dual { soft: 21, hard: 11 }.is_bust());
     }
 }

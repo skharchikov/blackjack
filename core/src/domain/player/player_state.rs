@@ -24,11 +24,11 @@ impl PlayerState {
         }
     }
 
-    pub fn record_action(&mut self, action: PlayerDecision) {
+    pub(crate) fn record_action(&mut self, action: PlayerDecision) {
         self.decisions.push(action);
     }
 
-    pub fn place_bet(&mut self, amount: u32) -> Result<(), BetError> {
+    pub(crate) fn place_bet(&mut self, amount: u32) -> Result<(), BetError> {
         if amount > self.balance {
             return Err(BetError::InsufficientFunds);
         }
@@ -41,11 +41,11 @@ impl PlayerState {
         Ok(())
     }
 
-    pub fn clear_bet(&mut self) {
+    pub(crate) fn clear_bet(&mut self) {
         self.bet = None;
     }
 
-    pub fn add_winnings(&mut self, amount: u32) {
+    pub(crate) fn add_winnings(&mut self, amount: u32) {
         self.balance += amount;
     }
 }
