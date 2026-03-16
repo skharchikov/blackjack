@@ -1,17 +1,7 @@
 use bj_core::domain::{
-    engine::{
-        command::{
-            CommandId, GameCommand,
-            dealer::{DealerAction, DealerCommand, DealInitialCards, OpenBetting, PlayHand, SettleRound},
-            player::{Hit, PlaceBet, PlayerAction, PlayerCommand, Stand},
-            system::{CloseTable, PlayerTimeout, SystemCommand},
-        },
-        game_id::GameId,
-        game_state::GameState,
-        phase::Phase,
-    },
+    engine::{game_id::GameId, game_state::GameState},
     hand::Hand,
-    Card, DeckId, DealerId, PlayerId, Rank, Shoe, Suit, TableSettings,
+    Card, DealerId, DeckId, PlayerId, Rank, Shoe, Suit,
 };
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
@@ -25,78 +15,6 @@ fn did() -> DealerId {
 
 fn gid() -> GameId {
     GameId::new()
-}
-
-fn cid() -> CommandId {
-    CommandId(0)
-}
-
-fn default_settings() -> TableSettings {
-    TableSettings {
-        min_bet: 10,
-        max_bet: 1000,
-        max_players: 6,
-        max_observers: 10,
-    }
-}
-
-fn shoe_from_ranks(ranks: &[Rank]) -> Vec<Card> {
-    ranks
-        .iter()
-        .map(|&rank| Card {
-            deck_id: DeckId::One,
-            suit: Suit::Spades,
-            rank,
-        })
-        .collect()
-}
-
-fn place_bet_cmd(player_id: PlayerId, amount: u32) -> GameCommand {
-    GameCommand::Player(PlayerCommand {
-        game_id: gid(),
-        command_id: cid(),
-        action: PlayerAction::PlaceBet(PlaceBet { player_id, amount }),
-    })
-}
-
-fn hit_cmd(player_id: PlayerId) -> GameCommand {
-    GameCommand::Player(PlayerCommand {
-        game_id: gid(),
-        command_id: cid(),
-        action: PlayerAction::Hit(Hit { player_id }),
-    })
-}
-
-fn stand_cmd(player_id: PlayerId) -> GameCommand {
-    GameCommand::Player(PlayerCommand {
-        game_id: gid(),
-        command_id: cid(),
-        action: PlayerAction::Stand(Stand { player_id }),
-    })
-}
-
-fn deal_initial_cards_cmd() -> GameCommand {
-    GameCommand::Dealer(DealerCommand {
-        game_id: gid(),
-        command_id: cid(),
-        action: DealerAction::DealInitialCards(DealInitialCards),
-    })
-}
-
-fn play_hand_cmd() -> GameCommand {
-    GameCommand::Dealer(DealerCommand {
-        game_id: gid(),
-        command_id: cid(),
-        action: DealerAction::PlayHand(PlayHand),
-    })
-}
-
-fn settle_round_cmd() -> GameCommand {
-    GameCommand::Dealer(DealerCommand {
-        game_id: gid(),
-        command_id: cid(),
-        action: DealerAction::SettleRound(SettleRound),
-    })
 }
 
 /// Benchmark `Hand::value()` with various hands — does not require game logic.
@@ -172,5 +90,10 @@ fn bench_game_state_new(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_hand_value, bench_shoe_shuffle, bench_game_state_new);
+criterion_group!(
+    benches,
+    bench_hand_value,
+    bench_shoe_shuffle,
+    bench_game_state_new
+);
 criterion_main!(benches);

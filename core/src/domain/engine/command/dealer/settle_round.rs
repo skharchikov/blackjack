@@ -8,7 +8,11 @@ use crate::domain::table::TableSettings;
 pub struct SettleRound;
 
 impl CommandHandler for SettleRound {
-    fn handle(&self, _state: &GameState, _settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        _state: &GameState,
+        _settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         todo!("settle round handler")
     }
 }

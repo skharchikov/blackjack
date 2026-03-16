@@ -31,12 +31,16 @@ pub enum DealerAction {
 }
 
 impl CommandHandler for DealerAction {
-    fn handle(&self, state: &GameState, settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        state: &GameState,
+        settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         match self {
-            Self::OpenBetting(h)       => h.handle(state, settings),
-            Self::DealInitialCards(h)  => h.handle(state, settings),
-            Self::PlayHand(h)          => h.handle(state, settings),
-            Self::SettleRound(h)       => h.handle(state, settings),
+            Self::OpenBetting(h) => h.handle(state, settings),
+            Self::DealInitialCards(h) => h.handle(state, settings),
+            Self::PlayHand(h) => h.handle(state, settings),
+            Self::SettleRound(h) => h.handle(state, settings),
         }
     }
 }

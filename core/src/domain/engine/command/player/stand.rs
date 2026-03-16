@@ -11,7 +11,11 @@ pub struct Stand {
 }
 
 impl CommandHandler for Stand {
-    fn handle(&self, _state: &GameState, _settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        _state: &GameState,
+        _settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         todo!("stand handler")
     }
 }

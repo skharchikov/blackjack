@@ -11,7 +11,11 @@ pub struct Hit {
 }
 
 impl CommandHandler for Hit {
-    fn handle(&self, _state: &GameState, _settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        _state: &GameState,
+        _settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         todo!("hit handler")
     }
 }

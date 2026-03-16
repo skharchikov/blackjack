@@ -17,10 +17,14 @@ pub enum SystemCommand {
 }
 
 impl CommandHandler for SystemCommand {
-    fn handle(&self, state: &GameState, settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        state: &GameState,
+        settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         match self {
             Self::PlayerTimeout(h) => h.handle(state, settings),
-            Self::CloseTable(h)    => h.handle(state, settings),
+            Self::CloseTable(h) => h.handle(state, settings),
         }
     }
 }

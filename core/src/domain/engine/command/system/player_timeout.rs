@@ -11,7 +11,11 @@ pub struct PlayerTimeout {
 }
 
 impl CommandHandler for PlayerTimeout {
-    fn handle(&self, _state: &GameState, _settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        _state: &GameState,
+        _settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         todo!("player timeout handler")
     }
 }

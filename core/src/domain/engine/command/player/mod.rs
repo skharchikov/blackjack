@@ -28,11 +28,15 @@ pub enum PlayerAction {
 }
 
 impl CommandHandler for PlayerAction {
-    fn handle(&self, state: &GameState, settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        state: &GameState,
+        settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         match self {
             Self::PlaceBet(h) => h.handle(state, settings),
-            Self::Hit(h)      => h.handle(state, settings),
-            Self::Stand(h)    => h.handle(state, settings),
+            Self::Hit(h) => h.handle(state, settings),
+            Self::Stand(h) => h.handle(state, settings),
         }
     }
 }

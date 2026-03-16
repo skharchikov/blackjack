@@ -8,7 +8,11 @@ use crate::domain::table::TableSettings;
 pub struct PlayHand;
 
 impl CommandHandler for PlayHand {
-    fn handle(&self, _state: &GameState, _settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        _state: &GameState,
+        _settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         todo!("play hand handler")
     }
 }

@@ -8,7 +8,11 @@ use crate::domain::table::TableSettings;
 pub struct DealInitialCards;
 
 impl CommandHandler for DealInitialCards {
-    fn handle(&self, _state: &GameState, _settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        _state: &GameState,
+        _settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         todo!("deal initial cards handler")
     }
 }

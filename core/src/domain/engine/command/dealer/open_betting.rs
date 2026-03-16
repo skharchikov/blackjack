@@ -8,7 +8,11 @@ use crate::domain::table::TableSettings;
 pub struct OpenBetting;
 
 impl CommandHandler for OpenBetting {
-    fn handle(&self, _state: &GameState, _settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        _state: &GameState,
+        _settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         todo!("open betting handler")
     }
 }

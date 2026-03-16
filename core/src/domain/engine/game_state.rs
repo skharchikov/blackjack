@@ -1,9 +1,6 @@
 use crate::domain::{
     dealer::{DealerId, DealerState},
-    engine::{
-        game_id::GameId,
-        phase::Phase,
-    },
+    engine::{game_id::GameId, phase::Phase},
     player::{PlayerId, PlayerState},
     Card,
 };

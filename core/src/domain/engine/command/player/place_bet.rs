@@ -12,7 +12,11 @@ pub struct PlaceBet {
 }
 
 impl CommandHandler for PlaceBet {
-    fn handle(&self, _state: &GameState, _settings: &TableSettings) -> Result<Vec<EventPayload>, CommandError> {
+    fn handle(
+        &self,
+        _state: &GameState,
+        _settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
         todo!("place bet handler")
     }
 }
