@@ -18,12 +18,6 @@ impl TableId {
     }
 }
 
-impl Default for TableId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "table_status", rename_all = "lowercase")]
 pub enum TableStatus {

@@ -17,41 +17,52 @@ use state::App;
 pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     let mut app = App::new();
 
-    let (tx, mut rx) = mpsc::unbounded_channel::<AppEvent>();
+    // Bounded channel: key/resize events are small and infrequent; Tick events are
+    // coalesced (dropped when the channel already has capacity used) so memory
+    // usage stays bounded even if rendering falls behind.
+    let (tx, mut rx) = mpsc::channel::<AppEvent>(64);
 
     // Spawn keyboard/resize input reader on a blocking thread
     let tx_input = tx.clone();
     tokio::task::spawn_blocking(move || loop {
-        if ct_event::poll(Duration::from_millis(250)).unwrap_or(false) {
-            if let Ok(event) = ct_event::read() {
-                let app_event = match event {
-                    Event::Key(key_event) => {
-                        if key_event.kind == ct_event::KeyEventKind::Press {
-                            Some(AppEvent::Key(key_event.code))
-                        } else {
-                            None
-                        }
+        match ct_event::poll(Duration::from_millis(250)) {
+            Err(e) => {
+                tracing::error!("terminal poll error: {e}");
+                break;
+            }
+            Ok(false) => continue,
+            Ok(true) => {}
+        }
+        if let Ok(event) = ct_event::read() {
+            let app_event = match event {
+                Event::Key(key_event) => {
+                    if key_event.kind == ct_event::KeyEventKind::Press {
+                        Some(AppEvent::Key(key_event.code))
+                    } else {
+                        None
                     }
-                    Event::Resize(w, h) => Some(AppEvent::Resize(w, h)),
-                    _ => None,
-                };
-                if let Some(evt) = app_event {
-                    if tx_input.send(evt).is_err() {
-                        break;
-                    }
+                }
+                Event::Resize(w, h) => Some(AppEvent::Resize(w, h)),
+                _ => None,
+            };
+            if let Some(evt) = app_event {
+                if tx_input.blocking_send(evt).is_err() {
+                    break;
                 }
             }
         }
     });
 
-    // Spawn tick timer
+    // Spawn tick timer — drop the tick if the channel is full so redundant
+    // Tick events don't accumulate when the main loop is slow.
     let tx_tick = tx.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_millis(250));
         loop {
             interval.tick().await;
-            if tx_tick.send(AppEvent::Tick).is_err() {
-                break;
+            match tx_tick.try_send(AppEvent::Tick) {
+                Ok(_) | Err(mpsc::error::TrySendError::Full(_)) => {}
+                Err(mpsc::error::TrySendError::Closed(_)) => break,
             }
         }
     });
