@@ -29,128 +29,148 @@
 ## Context
 
 We are building a production-grade multiplayer blackjack engine that must support
-thousands of concurrent tables, provide real-time event delivery to browser/TUI
-clients, and maintain a full audit trail. This ADR establishes the baseline
-architecture that all subsequent decisions build on.
+thousands of concurrent tables, provide real-time event delivery to TUI clients,
+and maintain a full audit trail. This ADR establishes the baseline architecture
+that all subsequent decisions build on.
 
 ---
 
 ## Decision
 
-### Goal
+### Deployable Units
 
-A production-grade, event-sourced multiplayer blackjack engine capable of running
-thousands of concurrent tables. Composed of three deployable units:
-
-- **`engine`** — stateless workers that own game logic
-- **`server`** — stateless WebSocket gateway for players
-- **`cli`** — TUI client built with Ratatui
+| Service | Responsibility |
+|---|---|
+| **Engine Workers** | Consume player commands, run game logic, write to PostgreSQL |
+| **Outbox Relay** | Read PostgreSQL outbox, publish events to Kafka |
+| **WebSocket Server** | Gateway between TUI clients and Kafka |
+| **TUI Client** | Player-facing terminal UI |
 
 ---
 
-## Data Flow
+### Data Flow
 
 ```
 TUI Client
     │  WebSocket (JSON)
     ▼
-WebSocket Server  ──── publishes ────►  Kafka: blackjack.commands      (key = table_id)
-    │                                                │
-    │  subscribes                                    ▼
-    │                                   Engine Workers
-    │                                       │  validate command (pure)
-    │                                       │  produce Vec<GameEvent>
-    │                                       │  BEGIN txn
-    │                                       │    INSERT game_events
-    │                                       │    INSERT outbox
-    │                                       │  COMMIT
-    │                                       │  apply events to TableState
-    │                                       │
-    │                                   OutboxRelay (per engine worker)
-    │                                       │  poll unprocessed outbox rows
-    │                                       │  publish → Kafka: blackjack.events
-    │                                       │  mark published
-    │                                       │
-    ◄──── consumes ─────────────────────────┘  (key = table_id)
+WebSocket Server ──── publishes ────► Kafka: blackjack.commands  (key = table_id)
+    │                                               │
+    │  subscribes to                                ▼
+    │  blackjack.events                   Engine Workers
+    │                                        │  consume command
+    │                                        │  validate (pure, no I/O)
+    │                                        │  produce Vec<GameEvent>
+    │                                        │  ┌─────────────────────┐
+    │                                        │  │  BEGIN transaction  │
+    │                                        │  │   INSERT game_events│
+    │                                        │  │   INSERT outbox     │
+    │                                        │  │  COMMIT             │
+    │                                        │  └─────────────────────┘
+    │                                        │  apply events to in-memory TableState
+    │                                        │  (no Kafka interaction)
+    │                                        │
+    │                               PostgreSQL outbox table
+    │                                        │
+    │                                        ▼
+    │                                  Outbox Relay       (separate service)
+    │                                        │  poll / LISTEN for new rows
+    │                                        │  publish → Kafka: blackjack.events
+    │                                        │  mark rows published
+    │                                        │
+    ◄───────────────────────────────────────┘  (key = table_id)
     │
-    pushes events to connected clients
+    push events to connected clients
 ```
 
+The engine worker **never produces to Kafka**. It only writes to PostgreSQL.
+The Outbox Relay is the sole producer on `blackjack.events`.
+This is the Transactional Outbox pattern: both `game_events` and `outbox` are
+written in one PostgreSQL transaction, guaranteeing that a committed game event
+will always be published to Kafka — even if the engine crashes immediately after
+the commit.
+
 ---
 
-## Components
+### Components
 
-### Engine Workers (`engine` crate)
-- Join Kafka consumer group `engine` on `blackjack.commands` and
-  `blackjack.table-lifecycle`.
+#### Engine Workers
+- Kafka **consumer only** (consumer group `engine` on `blackjack.commands` and
+  `blackjack.table-lifecycle`). No Kafka producer.
 - Each worker owns a set of Kafka partitions. Each partition = an execution lane
   for a slice of tables. **Many tables share a partition** — partitions are
-  parallelism units, not table slots.
-- Per partition: one `TablePartitionWorker` task holding a
+  parallelism units, not per-table slots.
+- Per partition: one `TablePartitionWorker` Tokio task holding
   `HashMap<TableId, TableState>` in memory.
-- `TableState` wraps the active `GameState` plus table metadata. It stays warm
-  across rounds — no rebuild between games at the same table.
+- `TableState` wraps the active `GameState` plus table metadata. Stays warm across
+  rounds — no rebuild between games at the same table.
 - On partition assignment: load the active game's events from PostgreSQL and
   rebuild `TableState`. Cold-start only, not per-round.
-- **Command loop** (with transactional outbox):
+- **Command loop**:
   ```
-  poll command (table_id key)
-    → look up in-memory TableState  (lazy-init on first command for new tables)
-    → engine::handle(table, command)            // pure, no I/O
+  poll command (key = table_id)
+    → look up TableState  (lazy-init for new tables)
+    → engine::handle(table, command)   // pure, no I/O
     → BEGIN transaction
-        INSERT INTO game_events (...)
-        INSERT INTO outbox (topic, key, payload)
+        INSERT INTO game_events (game_id, event_seq_id, payload, ...)
+        INSERT INTO outbox      (topic, key, payload, ...)
       COMMIT
     → apply events to in-memory TableState
-    [OutboxRelay picks up outbox rows and publishes to Kafka asynchronously]
   ```
-- **OutboxRelay**: a background task per worker. Polls `outbox` for unpublished
-  rows, publishes to `blackjack.events`, marks rows as published. Uses PostgreSQL
-  `LISTEN/NOTIFY` triggered on `outbox` insert to avoid tight polling.
 - System-driven events (timeouts, dealer turns, phase transitions) are injected
-  as `SystemCommand`s by a per-partition timer task into the same loop.
+  as `SystemCommand`s via a per-partition timer task, entering the same loop.
 - **Table lifecycle**:
-  - `TableCreated` (via `blackjack.table-lifecycle`) → lazily initialise a new
-    `TableState` in the HashMap; no partition change needed.
-  - `TableClosed` → finish current round, reject further commands, drop
-    `TableState` from the HashMap, cancel timers.
+  - `TableCreated` → lazy-init a fresh `TableState` in the HashMap.
+  - `TableClosed` → finish current round, reject new commands, drop `TableState`,
+    cancel timers.
 
-### WebSocket Server (`server` crate)
+#### Outbox Relay (separate service)
+- Watches the `outbox` table using PostgreSQL `LISTEN/NOTIFY` (woken on every
+  insert — no tight polling).
+- Reads batches of unpublished rows, publishes to the appropriate Kafka topic,
+  marks rows as `published_at = now()`.
+- Retries on Kafka failure — rows remain unpublished until delivery succeeds.
+- Can be scaled horizontally; coordinate with row-level locking (`SELECT … FOR
+  UPDATE SKIP LOCKED`) to avoid duplicate publishing.
+- Is the **only** service that produces to `blackjack.events`.
+
+#### WebSocket Server
 - Stateless. No game logic.
-- On `JoinTable`: send a `GameStateSnapshot` (from PostgreSQL) then stream
-  subsequent events from Kafka `blackjack.events`.
-- On `Command` from client: publish to Kafka `blackjack.commands` and return.
-- Multiple instances run behind a load balancer; each consumes from Kafka
-  independently.
+- On `JoinTable`: send a `GameStateSnapshot` rebuilt from PostgreSQL, then stream
+  subsequent events consumed from `blackjack.events`.
+- On `Command` from client: publish to `blackjack.commands` and return (fire and
+  forget — the engine will emit rejection events if invalid).
+- Multiple instances behind a load balancer; each consumes Kafka independently.
 
-### TUI Client (`cli` crate)
-- Connects via WebSocket.
+#### TUI Client (`cli` crate)
+- Connects to WebSocket server.
 - Receives `GameStateSnapshot` on join, then applies arriving `GameEvent`s to
   local UI state.
-- Sends `GameCommand`s (Hit, Stand, PlaceBet, etc.) to the server.
+- Sends `GameCommand`s (Hit, Stand, PlaceBet, …) to the server.
 
 ---
 
-## Storage
+### Storage
 
-### Kafka
+#### Kafka Topics
+
 | Topic | Partition key | Producers | Consumers |
 |---|---|---|---|
 | `blackjack.commands` | `table_id` | WebSocket servers | Engine workers |
-| `blackjack.events` | `table_id` | OutboxRelay (engine) | WS servers, analytics (future) |
+| `blackjack.events` | `table_id` | Outbox Relay | WS servers, analytics (future) |
 | `blackjack.table-lifecycle` | `table_id` | Admin API | Engine workers |
 
-**Partition count**: start with **2048 partitions** on `commands` and `events`.
-Partitions are execution lanes — many tables share one partition. 2048 gives
-headroom for thousands of tables and many worker cores without topic recreation.
-Kafka partition count can be increased but never decreased; over-provision upfront.
+**Partition count**: start with **2048** on `commands` and `events`.
+Partitions are execution lanes — many tables share one partition safely at
+blackjack's human pace. 2048 gives headroom without topic recreation.
+Kafka partition count can never be decreased; over-provision upfront.
 
-Rust client: **`rdkafka`** (librdkafka bindings — most mature option).
+Rust Kafka client: **`rdkafka`** (librdkafka bindings).
 
-### PostgreSQL
-Append-only event log. Source of truth for cold-start rebuilds and audit.
+#### PostgreSQL Schema
 
 ```sql
+-- Append-only durable event log. Source of truth for cold-start state rebuild.
 CREATE TABLE game_events (
     id            BIGSERIAL    PRIMARY KEY,
     game_id       UUID         NOT NULL,
@@ -161,25 +181,21 @@ CREATE TABLE game_events (
 );
 CREATE INDEX game_events_game_id_seq ON game_events (game_id, event_seq_id);
 
--- Transactional outbox: written in the same transaction as game_events.
--- OutboxRelay reads this table and publishes to Kafka, then marks published.
+-- Transactional outbox. Written atomically with game_events.
+-- Outbox Relay reads this and publishes to Kafka.
 CREATE TABLE outbox (
     id            BIGSERIAL    PRIMARY KEY,
     topic         TEXT         NOT NULL,
-    key           TEXT         NOT NULL,   -- table_id (Kafka partition key)
+    key           TEXT         NOT NULL,        -- table_id as string
     payload       JSONB        NOT NULL,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    published_at  TIMESTAMPTZ
+    published_at  TIMESTAMPTZ                   -- NULL = pending
 );
 CREATE INDEX outbox_unpublished ON outbox (id) WHERE published_at IS NULL;
 ```
 
-The outbox guarantees that if the PostgreSQL transaction commits, the Kafka publish
-will eventually happen — even if the engine worker crashes between commit and publish.
-`LISTEN/NOTIFY` on the `outbox` table wakes the relay immediately on insert,
-avoiding tight polling.
+#### EventStore trait (`bj-core` — no PostgreSQL dependency in domain)
 
-`EventStore` trait lives in `bj-core` (domain has no PostgreSQL dependency):
 ```rust
 pub trait EventStore: Send + Sync {
     async fn append(&self, game_id: GameId, expected_seq: u64, events: &[GameEvent])
@@ -193,69 +209,68 @@ pub trait EventStore: Send + Sync {
 
 ---
 
-## Event Sourcing & CQRS
+### Event Sourcing & CQRS
 
-- All game state changes are `GameEvent`s appended to the log.
-- `GameState` is derived solely by replaying events — never mutated in place.
+- All game state mutations are `GameEvent`s appended to the log — never direct
+  state mutation.
+- `GameState` is derived solely by replaying events.
 - `GameEngine::handle(table: &TableState, cmd: GameCommand) -> Result<Vec<GameEvent>, CommandError>`
-  is **pure** (no async, no I/O). All validation lives here. Trivially unit-testable.
-- Write path: command → validate → produce events → persist → publish.
-- Read path: serve `GameStateSnapshot` rebuilt from PostgreSQL events.
+  is **pure** (no async, no I/O). All validation lives here.
+- Write path: command → validate → produce events → persist (PG) → relay to Kafka.
+- Read path: `GameStateSnapshot` rebuilt from `game_events` on demand.
 
 ---
 
-## Ordering & Consistency
+### Ordering & Consistency
 
-- Kafka guarantees ordering within a partition. Partitioning by `table_id` ensures
-  all commands and events for a table arrive in order at the same worker.
-- No optimistic concurrency needed on the hot path — single-partition ownership
-  prevents concurrent writes to the same `TableState`.
-- The `UNIQUE (game_id, event_seq_id)` constraint on `game_events` makes PostgreSQL
-  appends idempotent on retry (at-least-once delivery from Kafka is safe).
+- Kafka partition key = `table_id` → all commands for a table arrive at the same
+  worker in order. No optimistic concurrency needed on the hot path.
+- `UNIQUE (game_id, event_seq_id)` on `game_events` makes appends idempotent on
+  relay retry (at-least-once delivery is safe).
+- `SELECT … FOR UPDATE SKIP LOCKED` on outbox prevents duplicate Kafka publishes
+  when multiple relay instances run.
 
 ---
 
-## Scalability
+### Scalability
 
-- **Workers**: add engine worker processes → Kafka rebalances partitions
-  automatically. Workers handle multiple tables per partition; scale workers to
-  match core count, not table count.
-- **Tables**: adding/removing tables requires no Kafka changes. A new `table_id`
-  hashes into an existing partition; the worker lazily initialises its `TableState`.
-- **Partitions**: start at 2048. Many tables share a partition safely — blackjack
-  is human-paced so throughput per partition is low. Increase partition count only
-  when worker CPU becomes the bottleneck.
-- **WebSocket servers**: stateless, horizontally scalable behind a load balancer.
-- **Snapshots** (future): write `TableState` snapshot after each `GameFinished`
-  event to bound cold-start rebuild time as event logs grow.
+- **Engine workers**: add processes → Kafka rebalances partitions automatically.
+  Scale to match CPU core count, not table count.
+- **Outbox Relay**: scale horizontally; `SKIP LOCKED` coordinates concurrent readers.
+- **Tables**: add/remove with no Kafka changes. New `table_id` hashes into an
+  existing partition; worker lazy-inits `TableState` on first command.
+- **Partitions**: 2048 handles thousands of tables at blackjack pace. Increase only
+  when worker CPU is saturated.
+- **WebSocket servers**: stateless, behind load balancer.
+- **Snapshots** (future): write `TableState` snapshot after `GameFinished` to bound
+  cold-start rebuild time.
 
 ---
 
 ## Consequences
 
 **Positive**
-- Engine workers are stateless between restarts — crash recovery is automatic via
-  Kafka rebalance + PostgreSQL replay.
-- Pure `GameEngine::handle()` is trivially unit-testable with no infra.
-- Outbox pattern eliminates the dual-write reliability gap.
-- Table add/delete requires no Kafka topology changes.
-- Horizontal scaling of all three components is independent.
+- Engine workers never touch Kafka as a producer — simpler, easier to test.
+- Transactional outbox closes the dual-write gap: a committed event is always
+  eventually published, regardless of crashes.
+- Outbox Relay can be scaled and deployed independently of engine workers.
+- `SKIP LOCKED` makes relay horizontal scaling safe without a distributed lock.
+- Pure `GameEngine::handle()` needs no infra in tests.
 
 **Negative / Trade-offs**
-- Kafka and PostgreSQL are both required infra (use managed services to reduce ops).
-- `rdkafka` adds a native (C) dependency via librdkafka.
-- At-least-once delivery from outbox relay means consumers must be idempotent
-  (handled by `UNIQUE (game_id, event_seq_id)` on `game_events`).
-- 2048 Kafka partitions must be provisioned upfront — topic partition count cannot
-  be decreased after creation.
+- Two services (engine + relay) instead of one; more operational units.
+- End-to-end latency = PG commit + relay poll cycle (mitigated by `LISTEN/NOTIFY`
+  keeping relay wakeup under ~1 ms on the same host).
+- `rdkafka` native (C) dependency via librdkafka.
+- 2048 partitions must be provisioned upfront.
 
 ---
 
 ## Open Questions
 
 - **Snapshot store**: Redis or a `game_snapshots` PostgreSQL table?
-- **Command rejections**: inline WebSocket response (correlation ID) or a separate
-  Kafka topic?
-- **Player balance**: managed in PostgreSQL as a projection updated by engine, or
-  passed through as part of `TableState`?
-- **Auth**: JWT on WebSocket upgrade, or session-based?
+- **Command rejections**: inline WebSocket response via correlation ID, or a
+  `blackjack.command-rejections` Kafka topic?
+- **Player balance**: PostgreSQL projection updated by the relay, or part of
+  `TableState` managed by the engine?
+- **Auth**: JWT on WebSocket upgrade, or session token?
