@@ -1,4 +1,5 @@
 use std::iter::zip;
+use std::sync::LazyLock;
 
 use blackjack_core::domain::{Card, Rank, Suit};
 use indoc::indoc;
@@ -130,19 +131,53 @@ fn suit_symbol(suit: Suit) -> char {
     }
 }
 
+// Rank::Two = 2 .. Rank::Ace = 14  →  index = rank as usize - 2  (13 ranks)
+// Suit repr 0..3                    →  index = suit as usize       (4 suits)
+static CARD_STRINGS: LazyLock<[[Box<str>; 4]; 13]> = LazyLock::new(|| {
+    const RANKS: [Rank; 13] = [
+        Rank::Two,
+        Rank::Three,
+        Rank::Four,
+        Rank::Five,
+        Rank::Six,
+        Rank::Seven,
+        Rank::Eight,
+        Rank::Nine,
+        Rank::Ten,
+        Rank::Jack,
+        Rank::Queen,
+        Rank::King,
+        Rank::Ace,
+    ];
+    const SUITS: [Suit; 4] = [Suit::Hearts, Suit::Spades, Suit::Diamonds, Suit::Clubs];
+    RANKS.map(|rank| {
+        SUITS.map(|suit| {
+            let template = rank_template(rank);
+            let symbol = suit_symbol(suit);
+            let mut s = String::with_capacity(template.len());
+            for ch in template.chars() {
+                if ch == 'x' {
+                    s.push(symbol);
+                } else {
+                    s.push(ch);
+                }
+            }
+            s.into_boxed_str()
+        })
+    })
+});
+
 impl Widget for CardWidget<'_> {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
     {
-        let template = rank_template(self.card.rank);
-        let symbol = suit_symbol(self.card.suit);
-        let card = template.replace('x', &symbol.to_string());
+        let card_str = &CARD_STRINGS[self.card.rank as usize - 2][self.card.suit as usize];
 
         let fg = self.style.fg.unwrap_or(suit_color(self.card.suit));
         let bg = self.style.bg.unwrap_or(Color::Reset);
 
-        for (line, row) in zip(card.lines(), area.rows()) {
+        for (line, row) in zip(card_str.lines(), area.rows()) {
             let span = Span::raw(line).fg(fg).bg(bg);
             span.render(row, buf);
         }

@@ -6,6 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Padding, Paragraph},
     Frame,
 };
+use unicode_width::UnicodeWidthStr;
 
 use crate::state::login::LoginField;
 use crate::state::{LoginState, LoginStatus};
@@ -169,13 +170,14 @@ fn render_field(
 
     // Input line: underlined text + underlined padding
     let display = if masked {
-        "*".repeat(value.len())
+        "*".repeat(value.chars().count())
     } else {
         value.to_string()
     };
     let cursor = if active { "▎" } else { "" };
     let text = format!("{}{}", display, cursor);
-    let fill_len = (input_area.width as usize).saturating_sub(text.len());
+    let fill_len =
+        (input_area.width as usize).saturating_sub(UnicodeWidthStr::width(text.as_str()));
     let padding: String = " ".repeat(fill_len);
 
     let line_color = if active {

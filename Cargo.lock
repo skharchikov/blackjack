@@ -308,6 +308,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "unicode-width",
 ]
 
 [[package]]
