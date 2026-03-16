@@ -5,9 +5,9 @@
 
 ## Context
 
-The game engine must process commands for thousands of concurrent games correctly
+The game engine must process commands for thousands of concurrent tables correctly
 and efficiently. We need to decide how engine workers are structured, how they
-manage per-game state, and how they interact with Kafka and PostgreSQL.
+manage per-table state, and how they interact with Kafka and PostgreSQL.
 
 ## Decision
 
@@ -16,30 +16,34 @@ manage per-game state, and how they interact with Kafka and PostgreSQL.
 Each engine worker is a **single Tokio process** that:
 
 1. Joins the Kafka consumer group `engine` on topic `blackjack.commands`.
-2. Receives a set of partitions (each partition = a slice of games).
-3. For each assigned partition, spawns a **`GamePartitionWorker`** task.
-4. Each `GamePartitionWorker` owns an in-memory `HashMap<GameId, GameState>` for its
-   partition's games.
+2. Receives a set of partitions (each partition = a slice of tables).
+3. For each assigned partition, spawns a **`TablePartitionWorker`** task.
+4. Each `TablePartitionWorker` owns an in-memory `HashMap<TableId, TableState>` for
+   every table whose `table_id` hashes to that partition.
 
 ```
 EngineWorker (process)
   ├── KafkaConsumer (consumer group: engine)
-  └── GamePartitionWorker × N  (one per assigned partition)
-        ├── HashMap<GameId, GameState>  (in-memory, rebuilt on assignment)
-        ├── EventStore (PostgreSQL)     (for durable append + cold start)
-        └── KafkaProducer              (publishes to blackjack.events)
+  └── TablePartitionWorker × N  (one per assigned partition)
+        ├── HashMap<TableId, TableState>  (in-memory, rebuilt on assignment)
+        ├── EventStore (PostgreSQL)       (for durable append + cold start)
+        └── KafkaProducer                (publishes to blackjack.events)
 ```
+
+`TableState` wraps the current `GameState` for the active round plus table-level
+metadata (settings, seated players). It persists across rounds — the worker does
+not rebuild state between games at the same table.
 
 ### Command processing loop (per partition worker)
 
 ```
 loop {
-    let command = kafka.poll_command(partition).await;
-    let state   = states.entry(command.game_id).or_load_from_pg().await;
-    let events  = engine.handle(state, command)?;   // pure, no I/O
-    event_store.append(game_id, state.seq, &events).await?;
-    kafka.publish_events(&events).await?;
-    state.apply_all(&events);
+    let command    = kafka.poll_command(partition).await;        // key = table_id
+    let table      = states.entry(command.table_id).or_load_from_pg().await;
+    let events     = engine.handle(table, command)?;            // pure, no I/O
+    event_store.append(table.current_game_id(), table.seq, &events).await?;
+    kafka.publish_events(&events).await?;                       // key = table_id
+    table.apply_all(&events);
 }
 ```
 
@@ -78,14 +82,16 @@ ordering.
 ## Consequences
 
 **Positive**
-- Single-threaded processing per partition = no locks on `GameState`.
+- Single-threaded processing per partition = no locks on `TableState`.
+- `TableState` stays warm across rounds — no per-game rebuild overhead.
 - Pure `handle()` function is trivially unit-testable without Kafka or PostgreSQL.
 - Horizontal scaling: add more engine workers, Kafka rebalances partitions.
-- Crash recovery: rebuilt from PostgreSQL on restart.
+- Crash recovery: rebuild from PostgreSQL for only the active game at each table.
 
 **Negative**
-- A slow game (stuck player, slow DB) blocks other games on the same partition.
-  Mitigate by keeping partition processing non-blocking (async I/O only) and using
-  per-game tokio tasks if needed.
+- A slow table (stuck player, slow DB) can slow other tables on the same partition.
+  Mitigate by keeping partition processing non-blocking (async I/O only).
 - Rebalance causes a brief pause on affected partitions while state is rebuilt.
   Mitigate with snapshots (ADR-0005).
+- Tables are long-lived so hot-spot partitions are possible if a few tables receive
+  disproportionate traffic. Mitigate with partition count headroom.
