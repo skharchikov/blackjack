@@ -42,7 +42,6 @@ that all subsequent decisions build on.
 | Service | Responsibility |
 |---|---|
 | **Engine Workers** | Consume player commands, run game logic, write to PostgreSQL |
-| **Outbox Relay** | Read PostgreSQL outbox, publish events to Kafka |
 | **WebSocket Server** | Gateway between TUI clients and Kafka |
 | **TUI Client** | Player-facing terminal UI |
 
@@ -50,45 +49,29 @@ that all subsequent decisions build on.
 
 ### Data Flow
 
-```
-TUI Client
-    │  WebSocket (JSON)
-    ▼
-WebSocket Server ──── publishes ────► Kafka: blackjack.commands  (key = table_id)
-    │                                               │
-    │  subscribes to                                ▼
-    │  blackjack.events                   Engine Workers
-    │                                        │  consume command
-    │                                        │  validate (pure, no I/O)
-    │                                        │  produce Vec<GameEvent>
-    │                                        │  ┌─────────────────────┐
-    │                                        │  │  BEGIN transaction  │
-    │                                        │  │   INSERT game_events│
-    │                                        │  │   INSERT outbox     │
-    │                                        │  │  COMMIT             │
-    │                                        │  └─────────────────────┘
-    │                                        │  apply events to in-memory TableState
-    │                                        │  (no Kafka interaction)
-    │                                        │
-    │                               PostgreSQL outbox table
-    │                                        │
-    │                                        ▼
-    │                                  Outbox Relay       (separate service)
-    │                                        │  poll / LISTEN for new rows
-    │                                        │  publish → Kafka: blackjack.events
-    │                                        │  mark rows published
-    │                                        │
-    ◄───────────────────────────────────────┘  (key = table_id)
-    │
-    push events to connected clients
+```mermaid
+sequenceDiagram
+    participant C as TUI Client
+    participant WS as WebSocket Server
+    participant KC as Kafka<br/>blackjack.commands
+    participant E as Engine Worker
+    participant PG as PostgreSQL
+    participant KE as Kafka<br/>blackjack.events
+
+    C->>WS: GameCommand (WebSocket)
+    WS->>KC: publish (key = table_id)
+    KC->>E: consume command
+    E->>E: validate & produce events (pure)
+    E->>PG: BEGIN txn<br/>INSERT game_events<br/>INSERT outbox<br/>COMMIT
+    PG-->>KE: outbox consumer publishes
+    KE->>WS: consume events
+    WS->>C: push GameEvent (WebSocket)
 ```
 
-The engine worker **never produces to Kafka**. It only writes to PostgreSQL.
-The Outbox Relay is the sole producer on `blackjack.events`.
-This is the Transactional Outbox pattern: both `game_events` and `outbox` are
-written in one PostgreSQL transaction, guaranteeing that a committed game event
-will always be published to Kafka — even if the engine crashes immediately after
-the commit.
+The engine worker **never produces to Kafka directly**. It only writes to
+PostgreSQL. The transactional outbox guarantees that both `game_events` and
+`outbox` are written atomically — a committed game event will always be
+published to Kafka even if the engine crashes immediately after the commit.
 
 ---
 
@@ -124,22 +107,11 @@ the commit.
   - `TableClosed` → finish current round, reject new commands, drop `TableState`,
     cancel timers.
 
-#### Outbox Relay (separate service)
-- Watches the `outbox` table using PostgreSQL `LISTEN/NOTIFY` (woken on every
-  insert — no tight polling).
-- Reads batches of unpublished rows, publishes to the appropriate Kafka topic,
-  marks rows as `published_at = now()`.
-- Retries on Kafka failure — rows remain unpublished until delivery succeeds.
-- Can be scaled horizontally; coordinate with row-level locking (`SELECT … FOR
-  UPDATE SKIP LOCKED`) to avoid duplicate publishing.
-- Is the **only** service that produces to `blackjack.events`.
-
 #### WebSocket Server
 - Stateless. No game logic.
 - On `JoinTable`: send a `GameStateSnapshot` rebuilt from PostgreSQL, then stream
   subsequent events consumed from `blackjack.events`.
-- On `Command` from client: publish to `blackjack.commands` and return (fire and
-  forget — the engine will emit rejection events if invalid).
+- On `Command` from client: publish to `blackjack.commands` and return.
 - Multiple instances behind a load balancer; each consumes Kafka independently.
 
 #### TUI Client (`cli` crate)
@@ -157,8 +129,12 @@ the commit.
 | Topic | Partition key | Producers | Consumers |
 |---|---|---|---|
 | `blackjack.commands` | `table_id` | WebSocket servers | Engine workers |
-| `blackjack.events` | `table_id` | Outbox Relay | WS servers, analytics (future) |
+| `blackjack.events` | `table_id` | Outbox consumer | WS servers, analytics (future) |
 | `blackjack.table-lifecycle` | `table_id` | Admin API | Engine workers |
+
+**One topic for all tables** — `table_id` is the message key, not the topic name.
+Kafka hashes the key to a partition, preserving per-table ordering without creating
+per-table topics (which would be an anti-pattern at scale).
 
 **Partition count**: start with **2048** on `commands` and `events`.
 Partitions are execution lanes — many tables share one partition safely at
@@ -182,7 +158,7 @@ CREATE TABLE game_events (
 CREATE INDEX game_events_game_id_seq ON game_events (game_id, event_seq_id);
 
 -- Transactional outbox. Written atomically with game_events.
--- Outbox Relay reads this and publishes to Kafka.
+-- Outbox consumer reads this and publishes to Kafka.
 CREATE TABLE outbox (
     id            BIGSERIAL    PRIMARY KEY,
     topic         TEXT         NOT NULL,
@@ -216,7 +192,7 @@ pub trait EventStore: Send + Sync {
 - `GameState` is derived solely by replaying events.
 - `GameEngine::handle(table: &TableState, cmd: GameCommand) -> Result<Vec<GameEvent>, CommandError>`
   is **pure** (no async, no I/O). All validation lives here.
-- Write path: command → validate → produce events → persist (PG) → relay to Kafka.
+- Write path: command → validate → produce events → persist (PG) → outbox → Kafka.
 - Read path: `GameStateSnapshot` rebuilt from `game_events` on demand.
 
 ---
@@ -226,9 +202,7 @@ pub trait EventStore: Send + Sync {
 - Kafka partition key = `table_id` → all commands for a table arrive at the same
   worker in order. No optimistic concurrency needed on the hot path.
 - `UNIQUE (game_id, event_seq_id)` on `game_events` makes appends idempotent on
-  relay retry (at-least-once delivery is safe).
-- `SELECT … FOR UPDATE SKIP LOCKED` on outbox prevents duplicate Kafka publishes
-  when multiple relay instances run.
+  retry (at-least-once delivery is safe).
 
 ---
 
@@ -236,7 +210,6 @@ pub trait EventStore: Send + Sync {
 
 - **Engine workers**: add processes → Kafka rebalances partitions automatically.
   Scale to match CPU core count, not table count.
-- **Outbox Relay**: scale horizontally; `SKIP LOCKED` coordinates concurrent readers.
 - **Tables**: add/remove with no Kafka changes. New `table_id` hashes into an
   existing partition; worker lazy-inits `TableState` on first command.
 - **Partitions**: 2048 handles thousands of tables at blackjack pace. Increase only
@@ -252,15 +225,12 @@ pub trait EventStore: Send + Sync {
 **Positive**
 - Engine workers never touch Kafka as a producer — simpler, easier to test.
 - Transactional outbox closes the dual-write gap: a committed event is always
-  eventually published, regardless of crashes.
-- Outbox Relay can be scaled and deployed independently of engine workers.
-- `SKIP LOCKED` makes relay horizontal scaling safe without a distributed lock.
+  eventually published to Kafka regardless of crashes.
 - Pure `GameEngine::handle()` needs no infra in tests.
+- One topic per direction regardless of table count — clean Kafka topology.
 
 **Negative / Trade-offs**
-- Two services (engine + relay) instead of one; more operational units.
-- End-to-end latency = PG commit + relay poll cycle (mitigated by `LISTEN/NOTIFY`
-  keeping relay wakeup under ~1 ms on the same host).
+- End-to-end latency includes the outbox round-trip through PostgreSQL.
 - `rdkafka` native (C) dependency via librdkafka.
 - 2048 partitions must be provisioned upfront.
 
@@ -271,6 +241,5 @@ pub trait EventStore: Send + Sync {
 - **Snapshot store**: Redis or a `game_snapshots` PostgreSQL table?
 - **Command rejections**: inline WebSocket response via correlation ID, or a
   `blackjack.command-rejections` Kafka topic?
-- **Player balance**: PostgreSQL projection updated by the relay, or part of
-  `TableState` managed by the engine?
+- **Player balance**: PostgreSQL projection or part of `TableState`?
 - **Auth**: JWT on WebSocket upgrade, or session token?
