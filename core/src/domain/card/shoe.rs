@@ -16,6 +16,26 @@ impl Shoe {
         Shoe { decks }
     }
 
+    /// Returns all 208 cards (4 decks) in a random order, ready for dealing.
+    ///
+    /// Unlike `random()` which shuffles at the deck level, this shuffles individual
+    /// cards so every card position is uniformly random.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bj_core::domain::Shoe;
+    ///
+    /// let cards = Shoe::shuffled();
+    /// assert_eq!(cards.len(), 52 * 4);
+    /// ```
+    pub fn shuffled() -> Vec<Card> {
+        let mut rng = rand::rng();
+        let mut cards = Self::default().into_cards();
+        cards.shuffle(&mut rng);
+        cards
+    }
+
     /// Converts the `Shoe` instance into a vector of `Card` instances.
     ///
     /// This function takes ownership of the `Shoe` instance and extracts all the
