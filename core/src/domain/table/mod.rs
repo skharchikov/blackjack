@@ -6,15 +6,15 @@ use uuid::Uuid;
 #[sqlx(transparent)]
 pub struct TableId(pub Uuid);
 
-impl TableId {
-    pub fn new() -> Self {
+impl Default for TableId {
+    fn default() -> Self {
         Self(Uuid::now_v7())
     }
 }
 
-impl Default for TableId {
-    fn default() -> Self {
-        Self::new()
+impl TableId {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
