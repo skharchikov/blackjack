@@ -64,12 +64,11 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                                     "conn={conn_id} authenticated user='{}' player_id={}",
                                     username, pid
                                 );
-                                let msg = ServerMessage::AuthOk {
-                                    player_id: pid.to_string(),
-                                };
-                                if send_msg(&mut socket, &msg).await.is_err() {
+                                if send_msg(&mut socket, &ServerMessage::AuthOk { player_id: pid.to_string() }).await.is_err() {
                                     return;
                                 }
+                                let balance = state.wallet.balance(pid).await.unwrap_or(0);
+                                let _ = send_msg(&mut socket, &ServerMessage::Balance { amount: balance }).await;
                                 break (pid, username);
                             }
                             Err(e) => {
@@ -292,10 +291,15 @@ async fn handle_client_msg(
             }
             let tx = event_fwd_tx.clone();
             let tid_str = tid.to_string();
+            let wallet = state.wallet.clone();
             let handle = tokio::spawn(async move {
                 loop {
                     match rx.recv().await {
                         Ok(event) => {
+                            let is_finished = matches!(
+                                event.payload,
+                                bj_core::domain::engine::event::payload::EventPayload::GameFinished { .. }
+                            );
                             let dto = GameEventDto {
                                 game_id: event.game_id,
                                 seq: event.event_seq_id.0,
@@ -308,6 +312,12 @@ async fn handle_client_msg(
                             if let Ok(json) = serde_json::to_string(&msg) {
                                 if tx.send(json).await.is_err() {
                                     break;
+                                }
+                            }
+                            if is_finished {
+                                let balance = wallet.balance(player_id).await.unwrap_or(0);
+                                if let Ok(json) = serde_json::to_string(&ServerMessage::Balance { amount: balance }) {
+                                    let _ = tx.send(json).await;
                                 }
                             }
                         }

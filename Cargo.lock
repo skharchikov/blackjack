@@ -379,7 +379,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "throbber-widgets-tui",
  "tokio",
  "tokio-tungstenite 0.26.2",
  "tracing",
@@ -3492,15 +3491,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "throbber-widgets-tui"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1e6941f74491a80911cb8821cb1f55f7e13bca867b28a2b14e5a1daaf691eb3"
-dependencies = [
- "ratatui",
 ]
 
 [[package]]

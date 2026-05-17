@@ -109,7 +109,9 @@ mod tests {
         let mut state = empty_state();
         let pid = PlayerId::new();
         // Manually seat the player
-        state.players.push(crate::domain::player::PlayerState::new(pid));
+        state
+            .players
+            .push(crate::domain::player::PlayerState::new(pid));
         let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
         assert!(events.is_empty());
     }
@@ -128,7 +130,9 @@ mod tests {
         let mut state = empty_state();
         let s = settings(1);
         let pid1 = PlayerId::new();
-        state.players.push(crate::domain::player::PlayerState::new(pid1));
+        state
+            .players
+            .push(crate::domain::player::PlayerState::new(pid1));
         // Seats full but observer capacity not reached
         let pid2 = PlayerId::new();
         let events = GameEngine::handle(&state, &s, &cmd(pid2)).unwrap();
@@ -139,7 +143,12 @@ mod tests {
     #[test]
     fn join_rejected_when_observers_full() {
         let mut state = empty_state();
-        let s = TableSettings { min_bet: 10, max_bet: 1000, max_players: 5, max_observers: 2 };
+        let s = TableSettings {
+            min_bet: 10,
+            max_bet: 1000,
+            max_players: 5,
+            max_observers: 2,
+        };
         state.observers.push(PlayerId::new());
         state.observers.push(PlayerId::new());
         let err = GameEngine::handle(&state, &s, &cmd(PlayerId::new())).unwrap_err();

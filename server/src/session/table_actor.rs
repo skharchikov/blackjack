@@ -227,7 +227,10 @@ async fn handle_game_finished(
 ) {
     for player in &state.players {
         wallet.set_balance(player.player_id, player.balance).await;
-        info!("game={} player={} balance synced to {}", state.game_id, player.player_id, player.balance);
+        info!(
+            "game={} player={} balance synced to {}",
+            state.game_id, player.player_id, player.balance
+        );
     }
     *round_dl = Some(Box::pin(tokio::time::sleep(delay)));
 }

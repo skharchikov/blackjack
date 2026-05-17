@@ -11,7 +11,9 @@ impl UiHand {
         let mut total: u16 = 0;
         let mut aces = 0u16;
         for card in &self.cards {
-            if card.face_down { continue; }
+            if card.face_down {
+                continue;
+            }
             let Some(c) = card.card else { continue };
             match c.rank {
                 Rank::Ace => {
@@ -47,17 +49,26 @@ pub struct UiCard {
 
 impl UiCard {
     pub fn visible(card: Card) -> Self {
-        Self { card: Some(card), face_down: false }
+        Self {
+            card: Some(card),
+            face_down: false,
+        }
     }
 
     /// Known card stored but rendered face-down (dealer hole card).
     pub fn face_down(card: Card) -> Self {
-        Self { card: Some(card), face_down: true }
+        Self {
+            card: Some(card),
+            face_down: true,
+        }
     }
 
     /// Truly unknown hidden card (fallback).
     pub fn hidden() -> Self {
-        Self { card: None, face_down: true }
+        Self {
+            card: None,
+            face_down: true,
+        }
     }
 
     pub fn reveal(&mut self) {

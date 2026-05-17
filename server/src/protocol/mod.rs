@@ -83,4 +83,7 @@ pub enum ServerMessage {
         request_id: u64,
         reason: String,
     },
+    Balance {
+        amount: u32,
+    },
 }

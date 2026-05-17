@@ -120,7 +120,10 @@ mod tests {
         let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
         // DealerHoleCardRevealed + PhaseChanged
         assert_eq!(events.len(), 2);
-        assert!(matches!(events[0], EventPayload::DealerHoleCardRevealed { .. }));
+        assert!(matches!(
+            events[0],
+            EventPayload::DealerHoleCardRevealed { .. }
+        ));
         assert!(matches!(
             events[1],
             EventPayload::PhaseChanged {
@@ -137,7 +140,10 @@ mod tests {
         let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
         // DealerHoleCardRevealed + DealerCardDealt + PhaseChanged
         assert_eq!(events.len(), 3);
-        assert!(matches!(events[0], EventPayload::DealerHoleCardRevealed { .. }));
+        assert!(matches!(
+            events[0],
+            EventPayload::DealerHoleCardRevealed { .. }
+        ));
         assert!(matches!(events[1], EventPayload::DealerCardDealt { .. }));
     }
 
@@ -148,7 +154,10 @@ mod tests {
         let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
         // DealerHoleCardRevealed + DealerCardDealt + DealerBust + PhaseChanged
         assert_eq!(events.len(), 4);
-        assert!(matches!(events[0], EventPayload::DealerHoleCardRevealed { .. }));
+        assert!(matches!(
+            events[0],
+            EventPayload::DealerHoleCardRevealed { .. }
+        ));
         assert!(matches!(events[2], EventPayload::DealerBust { .. }));
     }
 

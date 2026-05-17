@@ -51,19 +51,13 @@ pub fn split_table_view(area: Rect) -> TableLayout {
     // Left column: board (main) + history (fixed 10 lines at bottom)
     let left = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(0),
-            Constraint::Length(10),
-        ])
+        .constraints([Constraint::Min(0), Constraint::Length(10)])
         .split(columns[0]);
 
     // Right column: observers (top) + waiting list (bottom)
     let right = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(50),
-            Constraint::Percentage(50),
-        ])
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(columns[1]);
 
     TableLayout {

@@ -253,7 +253,6 @@ fn handle_ws_message(app: &mut App, json: String) {
                     app.table_min_bet,
                     app.table_max_bet,
                 );
-                refresh_header_balance(app);
             }
         }
         "Event" => {
@@ -263,6 +262,11 @@ fn handle_ws_message(app: &mut App, json: String) {
                 if let Ok(payload) = serde_json::from_value::<EventPayload>(payload_val.clone()) {
                     app.event_queue.push_back((seq, payload));
                 }
+            }
+        }
+        "Balance" => {
+            if let Some(amount) = v["amount"].as_u64() {
+                app.ui.header.my_balance = Some(amount as u32);
             }
         }
         "CommandError" => {
@@ -694,8 +698,6 @@ fn apply_event_payload(
     if let Some(new_phase) = phase_change {
         sync_ui_chrome(app, server_phase_to_game_phase(&new_phase));
     }
-    // Keep header balance current after bet or payout events.
-    refresh_header_balance(app);
 }
 
 fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
@@ -807,17 +809,6 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
     }
 }
 
-fn refresh_header_balance(app: &mut App) {
-    if let crate::state::Screen::Table(ref table) = app.ui.screen {
-        let my_id = &app.player_id;
-        let balance = table
-            .players
-            .iter()
-            .find(|p| &p.player_id == my_id)
-            .map(|p| p.balance);
-        app.ui.header.my_balance = balance;
-    }
-}
 
 fn server_phase_to_game_phase(
     phase: &bj_core::domain::engine::phase::Phase,

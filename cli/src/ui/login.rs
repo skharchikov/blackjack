@@ -124,7 +124,10 @@ fn render_login_form(frame: &mut Frame, area: Rect, login: &LoginState) {
 
     // Status
     let (status_text, status_color) = match &login.status {
-        LoginStatus::Idle => ("Enter to login · first time? account created automatically", Color::DarkGray),
+        LoginStatus::Idle => (
+            "Enter to login · first time? account created automatically",
+            Color::DarkGray,
+        ),
         LoginStatus::Connecting => ("Connecting...", Color::Yellow),
         LoginStatus::Error(msg) => (msg.as_str(), Color::Red),
     };

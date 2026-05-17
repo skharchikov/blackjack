@@ -156,8 +156,7 @@ mod tests {
     #[test]
     fn leave_unknown_player() {
         let state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
-        let err =
-            GameEngine::handle(&state, &settings(), &leave_cmd(PlayerId::new())).unwrap_err();
+        let err = GameEngine::handle(&state, &settings(), &leave_cmd(PlayerId::new())).unwrap_err();
         assert!(matches!(err, CommandError::PlayerNotFound(_)));
     }
 

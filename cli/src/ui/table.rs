@@ -132,7 +132,10 @@ fn render_players(frame: &mut Frame, area: Rect, ui: &UiState) {
             "  (no players at table)".to_string()
         } else {
             let names: Vec<&str> = table.observers.iter().map(|o| o.name.as_str()).collect();
-            format!("  {} observing — press [T] to take a seat", names.join(", "))
+            format!(
+                "  {} observing — press [T] to take a seat",
+                names.join(", ")
+            )
         };
         let widget = Paragraph::new(msg)
             .block(
@@ -242,8 +245,14 @@ fn render_hand_cards(
             render_hidden_card(frame, card_area);
         } else {
             let c = card.card.unwrap();
-            let style = if busted { Style::default().fg(Color::Red) } else { Style::default() };
-            CardWidget::new(&c).style(style).render(card_area, frame.buffer_mut());
+            let style = if busted {
+                Style::default().fg(Color::Red)
+            } else {
+                Style::default()
+            };
+            CardWidget::new(&c)
+                .style(style)
+                .render(card_area, frame.buffer_mut());
         }
     }
 }

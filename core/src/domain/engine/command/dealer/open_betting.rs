@@ -19,8 +19,7 @@ impl CommandHandler for OpenBetting {
             Phase::WaitingForBets => Ok(vec![]),
             Phase::Finished => {
                 let mut events = vec![];
-                let seats_available =
-                    settings.max_players.saturating_sub(state.players.len());
+                let seats_available = settings.max_players.saturating_sub(state.players.len());
                 for &pid in state.waiting.iter().take(seats_available) {
                     events.push(EventPayload::PlayerJoined { player: pid });
                 }
