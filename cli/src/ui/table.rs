@@ -38,14 +38,14 @@ fn render_board(frame: &mut Frame, area: Rect, ui: &UiState) {
     let has_betting = ui.betting.is_some();
     let constraints: Vec<Constraint> = if has_betting {
         vec![
-            Constraint::Length(3),              // betting bar
+            Constraint::Length(3),               // betting bar
             Constraint::Length(CARD_HEIGHT + 2), // dealer
-            Constraint::Min(0),                 // players
+            Constraint::Min(0),                  // players
         ]
     } else {
         vec![
             Constraint::Length(CARD_HEIGHT + 2), // dealer
-            Constraint::Min(0),                 // players
+            Constraint::Min(0),                  // players
         ]
     };
 
@@ -66,7 +66,9 @@ fn render_board(frame: &mut Frame, area: Rect, ui: &UiState) {
 }
 
 fn render_betting_bar(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let Some(ref betting) = ui.betting else { return };
+    let Some(ref betting) = ui.betting else {
+        return;
+    };
     let text = if betting.confirmed {
         format!(
             "Bet confirmed: {} chips  (waiting for round to start)",
@@ -93,7 +95,9 @@ fn render_betting_bar(frame: &mut Frame, area: Rect, ui: &UiState) {
 }
 
 fn render_dealer(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let Screen::Table(ref table) = ui.screen else { return };
+    let Screen::Table(ref table) = ui.screen else {
+        return;
+    };
 
     let val_str = table
         .dealer
@@ -114,7 +118,9 @@ fn render_dealer(frame: &mut Frame, area: Rect, ui: &UiState) {
 }
 
 fn render_players(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let Screen::Table(ref table) = ui.screen else { return };
+    let Screen::Table(ref table) = ui.screen else {
+        return;
+    };
 
     if table.players.is_empty() {
         let widget = Paragraph::new("  (no players at table)")
@@ -165,10 +171,7 @@ fn render_player_row(
 
     let is_my_turn = player.active && matches!(phase, GamePhase::PlayerTurn);
     let arrow = if player.active { "▶ " } else { "  " };
-    let bet_part = player
-        .bet
-        .map(|b| format!("  bet:{b}"))
-        .unwrap_or_default();
+    let bet_part = player.bet.map(|b| format!("  bet:{b}")).unwrap_or_default();
     let val_part = if player.hand_value > 0 {
         if player.is_bust {
             "  BUST".to_string()
@@ -224,16 +227,12 @@ fn render_hand_cards(
         }
         let card_area = Rect::new(x, area.y, CARD_WIDTH, CARD_HEIGHT.min(area.height));
 
-        match card.0 {
-            Some(c) => {
-                let style = if busted {
-                    Style::default().fg(Color::Red)
-                } else {
-                    Style::default()
-                };
-                CardWidget::new(&c).style(style).render(card_area, frame.buffer_mut());
-            }
-            None => render_hidden_card(frame, card_area),
+        if card.face_down || card.card.is_none() {
+            render_hidden_card(frame, card_area);
+        } else {
+            let c = card.card.unwrap();
+            let style = if busted { Style::default().fg(Color::Red) } else { Style::default() };
+            CardWidget::new(&c).style(style).render(card_area, frame.buffer_mut());
         }
     }
 }

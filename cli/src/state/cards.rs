@@ -11,7 +11,8 @@ impl UiHand {
         let mut total: u16 = 0;
         let mut aces = 0u16;
         for card in &self.cards {
-            let Some(c) = card.0 else { continue };
+            if card.face_down { continue; }
+            let Some(c) = card.card else { continue };
             match c.rank {
                 Rank::Ace => {
                     aces += 1;
@@ -36,21 +37,38 @@ impl UiHand {
     }
 }
 
-/// `None` inner = face-down (hidden) card.
+/// A playing card in the UI.
+/// `face_down = true` means it renders as hidden even though we know the card.
 #[derive(Debug, Clone, Copy)]
-pub struct UiCard(pub Option<Card>);
+pub struct UiCard {
+    pub card: Option<Card>,
+    pub face_down: bool,
+}
 
 impl UiCard {
     pub fn visible(card: Card) -> Self {
-        Self(Some(card))
+        Self { card: Some(card), face_down: false }
     }
 
+    /// Known card stored but rendered face-down (dealer hole card).
+    pub fn face_down(card: Card) -> Self {
+        Self { card: Some(card), face_down: true }
+    }
+
+    /// Truly unknown hidden card (fallback).
     pub fn hidden() -> Self {
-        Self(None)
+        Self { card: None, face_down: true }
+    }
+
+    pub fn reveal(&mut self) {
+        self.face_down = false;
     }
 
     pub fn short_display(&self) -> String {
-        let Some(c) = self.0 else {
+        if self.face_down {
+            return "??".into();
+        }
+        let Some(c) = self.card else {
             return "??".into();
         };
         let suit_sym = match c.suit {

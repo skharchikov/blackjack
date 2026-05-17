@@ -304,7 +304,7 @@ fn table_state_from_snapshot(
         .iter()
         .map(|opt| match opt {
             Some(c) => UiCard::visible(*c),
-            None => UiCard::hidden(),
+            None => UiCard::hidden(), // hole card hidden during PlayerTurn/InitialDealing
         })
         .collect();
     let dealer_value = {
@@ -443,13 +443,15 @@ fn apply_event_payload(
                 ));
             }
             EventPayload::DealerCardDealt { card, .. } => {
-                table.dealer.cards.push(UiCard::visible(card));
+                // Index 1 is the hole card — keep face-down until DealerTurn
+                let is_hole = table.dealer.cards.len() == 1
+                    && matches!(table.phase, GamePhase::Dealing | GamePhase::PlayerTurn | GamePhase::WaitingForBets);
+                let ui_card = if is_hole { UiCard::face_down(card) } else { UiCard::visible(card) };
+                table.dealer.cards.push(ui_card);
                 let v = table.dealer.compute_value();
                 table.dealer.value = if v > 0 { Some(v.to_string()) } else { None };
-                table.log(format!(
-                    "#{seq} dealer dealt {}",
-                    UiCard::visible(card).short_display()
-                ));
+                let display = if is_hole { "??".to_string() } else { UiCard::visible(card).short_display() };
+                table.log(format!("#{seq} dealer dealt {}", display));
             }
             EventPayload::PlayerDecisionTaken { player, action } => {
                 let pid = player.to_string();
@@ -492,6 +494,14 @@ fn apply_event_payload(
                 let new_phase = server_phase_to_game_phase(&to);
                 table.phase = new_phase;
                 table.log(format!("#{seq} phase → {:?}", to));
+                // Reveal dealer hole card when dealer's turn begins
+                if matches!(to, Phase::DealerTurn) {
+                    for c in &mut table.dealer.cards {
+                        c.reveal();
+                    }
+                    let v = table.dealer.compute_value();
+                    table.dealer.value = if v > 0 { Some(v.to_string()) } else { None };
+                }
 
                 let active_pid = if let Phase::PlayerTurn(pid) = &to {
                     Some(pid.to_string())

@@ -30,9 +30,18 @@ impl UiState {
             },
             footer: FooterState {
                 hints: vec![
-                    FooterHint { key: "tab", label: "switch field" },
-                    FooterHint { key: "enter", label: "login" },
-                    FooterHint { key: "esc", label: "quit" },
+                    FooterHint {
+                        key: "tab",
+                        label: "switch field",
+                    },
+                    FooterHint {
+                        key: "enter",
+                        label: "login",
+                    },
+                    FooterHint {
+                        key: "esc",
+                        label: "quit",
+                    },
                 ],
             },
             betting: None,
@@ -52,9 +61,18 @@ impl UiState {
             },
             footer: FooterState {
                 hints: vec![
-                    FooterHint { key: "↑↓", label: "select" },
-                    FooterHint { key: "enter", label: "join" },
-                    FooterHint { key: "q", label: "quit" },
+                    FooterHint {
+                        key: "↑↓",
+                        label: "select",
+                    },
+                    FooterHint {
+                        key: "enter",
+                        label: "join",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             },
             betting: None,
@@ -70,10 +88,22 @@ impl UiState {
             GamePhase::WaitingForBets | GamePhase::Betting => (
                 FooterState {
                     hints: vec![
-                        FooterHint { key: "←→", label: "bet" },
-                        FooterHint { key: "enter", label: "confirm" },
-                        FooterHint { key: "l", label: "leave" },
-                        FooterHint { key: "q", label: "quit" },
+                        FooterHint {
+                            key: "←→",
+                            label: "bet",
+                        },
+                        FooterHint {
+                            key: "enter",
+                            label: "confirm",
+                        },
+                        FooterHint {
+                            key: "l",
+                            label: "leave",
+                        },
+                        FooterHint {
+                            key: "q",
+                            label: "quit",
+                        },
                     ],
                 },
                 Some(BettingState {
@@ -87,10 +117,22 @@ impl UiState {
             GamePhase::PlayerTurn => (
                 FooterState {
                     hints: vec![
-                        FooterHint { key: "h", label: "hit" },
-                        FooterHint { key: "s", label: "stand" },
-                        FooterHint { key: "l", label: "leave" },
-                        FooterHint { key: "q", label: "quit" },
+                        FooterHint {
+                            key: "h",
+                            label: "hit",
+                        },
+                        FooterHint {
+                            key: "s",
+                            label: "stand",
+                        },
+                        FooterHint {
+                            key: "l",
+                            label: "leave",
+                        },
+                        FooterHint {
+                            key: "q",
+                            label: "quit",
+                        },
                     ],
                 },
                 None,
@@ -98,8 +140,14 @@ impl UiState {
             _ => (
                 FooterState {
                     hints: vec![
-                        FooterHint { key: "l", label: "leave" },
-                        FooterHint { key: "q", label: "quit" },
+                        FooterHint {
+                            key: "l",
+                            label: "leave",
+                        },
+                        FooterHint {
+                            key: "q",
+                            label: "quit",
+                        },
                     ],
                 },
                 None,
