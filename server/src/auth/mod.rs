@@ -45,6 +45,23 @@ impl InMemoryAuthenticator {
             users: RwLock::new(HashMap::new()),
         }
     }
+
+    /// Pre-register a user and return their PlayerId. Idempotent: returns existing id if username taken.
+    pub fn seed_user(&self, username: &str, password: &str) -> PlayerId {
+        let mut users = self.users.write().unwrap();
+        if let Some(record) = users.get(username) {
+            return record.player_id;
+        }
+        let player_id = PlayerId(Ulid::new());
+        users.insert(
+            username.to_string(),
+            UserRecord {
+                password: Password::new(password.to_string()),
+                player_id,
+            },
+        );
+        player_id
+    }
 }
 
 #[async_trait]

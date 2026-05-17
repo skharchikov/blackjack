@@ -1,3 +1,4 @@
+use server::auth::InMemoryAuthenticator;
 use server::config::Settings;
 use server::session::in_memory::InMemoryGameSession;
 use server::wallet::in_memory::InMemoryWallet;
@@ -6,6 +7,13 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+const SEED_ACCOUNTS: &[(&str, &str)] = &[
+    ("admin", "famly1234"),
+    ("qa", "famly1234"),
+    ("dev", "famly1234"),
+];
+const SEED_BALANCE: u32 = 1000;
 
 #[tokio::main]
 async fn main() {
@@ -20,11 +28,20 @@ async fn main() {
     let config = Settings::load().expect("Failed to load configuration");
     info!("Loaded configuration: {:?}", config);
 
-    let wallet: Arc<dyn server::wallet::Wallet> = Arc::new(InMemoryWallet::new());
-    let session = InMemoryGameSession::new(wallet.clone());
+    let wallet = Arc::new(InMemoryWallet::new());
+    let auth = Arc::new(InMemoryAuthenticator::new());
+
+    for (username, password) in SEED_ACCOUNTS {
+        let pid = auth.seed_user(username, password);
+        wallet.seed(pid, SEED_BALANCE);
+        info!("Seeded account '{}' with {} chips", username, SEED_BALANCE);
+    }
+
+    let wallet_dyn: Arc<dyn server::wallet::Wallet> = wallet;
+    let session = InMemoryGameSession::new(wallet_dyn.clone());
     let session: Arc<dyn server::session::GameSession> = session;
 
-    let state: AppState = Arc::new(App::new(session, wallet));
+    let state: AppState = Arc::new(App::new(session, wallet_dyn, auth));
     let app = create_router(state);
 
     let listener = TcpListener::bind(format!(

@@ -21,12 +21,16 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(session: Arc<dyn GameSession>, wallet: Arc<dyn Wallet>) -> Self {
+    pub fn new(
+        session: Arc<dyn GameSession>,
+        wallet: Arc<dyn Wallet>,
+        auth: Arc<InMemoryAuthenticator>,
+    ) -> Self {
         Self {
             connections: AtomicU64::new(0),
             session,
             wallet,
-            auth: Arc::new(InMemoryAuthenticator::new()),
+            auth,
         }
     }
 }
