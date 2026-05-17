@@ -31,7 +31,12 @@ pub fn render_player_turn_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
     let block = Block::default()
         .title(Line::from(vec![
             Span::styled(" ▶ ", Style::default().fg(COLOR_YELLOW)),
-            Span::styled("YOUR TURN", Style::default().fg(COLOR_YELLOW).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "YOUR TURN",
+                Style::default()
+                    .fg(COLOR_YELLOW)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" ", Style::default()),
         ]))
         .borders(Borders::ALL)
@@ -46,8 +51,6 @@ pub fn render_player_turn_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
         .constraints([
             Constraint::Length(1), // hand info
             Constraint::Length(1), // spacer
-            Constraint::Length(1), // timer
-            Constraint::Length(1), // spacer
             Constraint::Length(1), // buttons
             Constraint::Min(0),
         ])
@@ -55,18 +58,19 @@ pub fn render_player_turn_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
 
     // Hand value line
     let hand_line = build_hand_line(table);
-    frame.render_widget(Paragraph::new(hand_line).alignment(Alignment::Center), chunks[0]);
-
-    // Timer line
-    let timer_line = build_timer_line(ui);
-    frame.render_widget(Paragraph::new(timer_line).alignment(Alignment::Center), chunks[2]);
+    frame.render_widget(
+        Paragraph::new(hand_line).alignment(Alignment::Center),
+        chunks[0],
+    );
 
     // Buttons
     let buttons = Line::from(vec![
         Span::raw("  "),
         Span::styled(
             "[ H ] Hit",
-            Style::default().fg(COLOR_GREEN).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(COLOR_GREEN)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::raw("          "),
         Span::styled(
@@ -75,13 +79,19 @@ pub fn render_player_turn_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
         ),
         Span::raw("  "),
     ]);
-    frame.render_widget(Paragraph::new(buttons).alignment(Alignment::Center), chunks[4]);
+    frame.render_widget(
+        Paragraph::new(buttons).alignment(Alignment::Center),
+        chunks[2],
+    );
 }
 
 fn build_hand_line(table: &TableState) -> Line<'static> {
     let me = table.players.iter().find(|p| p.active);
     let Some(p) = me else {
-        return Line::from(vec![Span::styled("Your hand: —", Style::default().fg(COLOR_COMMENT))]);
+        return Line::from(vec![Span::styled(
+            "Your hand: —",
+            Style::default().fg(COLOR_COMMENT),
+        )]);
     };
 
     let cards_str = p
@@ -102,29 +112,17 @@ fn build_hand_line(table: &TableState) -> Line<'static> {
 
     Line::from(vec![
         Span::styled("Hand: ", Style::default().fg(COLOR_COMMENT)),
-        Span::styled(cards_str, Style::default().fg(COLOR_CYAN).add_modifier(Modifier::BOLD)),
-        Span::styled(value_str, Style::default().fg(COLOR_YELLOW).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            cards_str,
+            Style::default().fg(COLOR_CYAN).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            value_str,
+            Style::default()
+                .fg(COLOR_YELLOW)
+                .add_modifier(Modifier::BOLD),
+        ),
     ])
-}
-
-fn build_timer_line(ui: &UiState) -> Line<'static> {
-    let Some(deadline) = ui.header.phase_deadline else {
-        return Line::raw("");
-    };
-    let secs = deadline
-        .saturating_duration_since(std::time::Instant::now())
-        .as_secs();
-    let color = if secs <= 5 {
-        COLOR_RED
-    } else if secs <= 10 {
-        COLOR_YELLOW
-    } else {
-        COLOR_COMMENT
-    };
-    Line::from(vec![Span::styled(
-        format!("⏱  {secs}s remaining"),
-        Style::default().fg(color),
-    )])
 }
 
 fn centered_popup(width: u16, height: u16, area: Rect) -> Rect {

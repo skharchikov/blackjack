@@ -154,14 +154,22 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
         let (mut ws, _) = match connect_async(&ws_url).await {
             Ok(v) => v,
             Err(e) => {
-                let _ = tx_app.send(AppEvent::AuthFailed(format!("Cannot connect: {e}"))).await;
+                let _ = tx_app
+                    .send(AppEvent::AuthFailed(format!("Cannot connect: {e}")))
+                    .await;
                 return;
             }
         };
 
         let auth = serde_json::json!({"type": "Auth", "username": username, "password": password});
-        if ws.send(Message::Text(auth.to_string().into())).await.is_err() {
-            let _ = tx_app.send(AppEvent::AuthFailed("Connection lost".into())).await;
+        if ws
+            .send(Message::Text(auth.to_string().into()))
+            .await
+            .is_err()
+        {
+            let _ = tx_app
+                .send(AppEvent::AuthFailed("Connection lost".into()))
+                .await;
             return;
         }
 
@@ -176,7 +184,8 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
                                 break pid;
                             }
                             Some("AuthError") => {
-                                let reason = v["reason"].as_str().unwrap_or("auth failed").to_string();
+                                let reason =
+                                    v["reason"].as_str().unwrap_or("auth failed").to_string();
                                 let _ = tx_app.send(AppEvent::AuthFailed(reason)).await;
                                 return;
                             }
@@ -185,13 +194,19 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
                     }
                 }
                 _ => {
-                    let _ = tx_app.send(AppEvent::AuthFailed("Connection lost".into())).await;
+                    let _ = tx_app
+                        .send(AppEvent::AuthFailed("Connection lost".into()))
+                        .await;
                     return;
                 }
             }
         };
 
-        let _ = tx_app.send(AppEvent::WsConnected { player_id: confirmed_player_id }).await;
+        let _ = tx_app
+            .send(AppEvent::WsConnected {
+                player_id: confirmed_player_id,
+            })
+            .await;
 
         // Forward loop — JoinTable and other commands arrive via ws_cmd_rx
         loop {
@@ -421,10 +436,6 @@ fn apply_event_payload(
         EventPayload::PhaseChanged { to, .. } => Some(to.clone()),
         _ => None,
     };
-    // Track if it's our own bet confirmation to start the round-start countdown
-    let own_bet_confirmed = matches!(&payload,
-        EventPayload::PlayerPlacedBet { player, .. } if player.to_string() == app.player_id
-    );
     let my_player_id = app.player_id.clone();
     let my_username = app.username.clone();
 
@@ -436,12 +447,19 @@ fn apply_event_payload(
             EventPayload::ObserverJoined { player } => {
                 let pid = player.to_string();
                 if !table.observers.iter().any(|o| o.player_id == pid) {
-                    let name = if pid == my_player_id { my_username.clone() } else { short_id(&pid) };
+                    let name = if pid == my_player_id {
+                        my_username.clone()
+                    } else {
+                        short_id(&pid)
+                    };
                     table.observers.push(PlayerUiState {
                         player_id: pid.clone(),
                         name,
                         active: false,
-                        hand: UiHand { cards: vec![], value: None },
+                        hand: UiHand {
+                            cards: vec![],
+                            value: None,
+                        },
                         hand_value: 0,
                         is_bust: false,
                         balance: 0,
@@ -466,12 +484,19 @@ fn apply_event_payload(
                 let pid = player.to_string();
                 table.observers.retain(|o| o.player_id != pid);
                 if !table.waiting.iter().any(|w| w.player_id == pid) {
-                    let name = if pid == my_player_id { my_username.clone() } else { short_id(&pid) };
+                    let name = if pid == my_player_id {
+                        my_username.clone()
+                    } else {
+                        short_id(&pid)
+                    };
                     table.waiting.push(PlayerUiState {
                         player_id: pid.clone(),
                         name,
                         active: false,
-                        hand: UiHand { cards: vec![], value: None },
+                        hand: UiHand {
+                            cards: vec![],
+                            value: None,
+                        },
                         hand_value: 0,
                         is_bust: false,
                         balance: 0,
@@ -487,7 +512,10 @@ fn apply_event_payload(
             EventPayload::PlayerRemovedFromWaitingList { player } => {
                 let pid = player.to_string();
                 table.waiting.retain(|w| w.player_id != pid);
-                table.log(format!("#{seq} {} removed from waiting list", short_id(&pid)));
+                table.log(format!(
+                    "#{seq} {} removed from waiting list",
+                    short_id(&pid)
+                ));
             }
             EventPayload::PlayerJoined { player } => {
                 let pid = player.to_string();
@@ -498,7 +526,11 @@ fn apply_event_payload(
                     table.is_observer = false;
                 }
                 if !table.players.iter().any(|p| p.player_id == pid) {
-                    let name = if pid == my_player_id { my_username.clone() } else { short_id(&pid) };
+                    let name = if pid == my_player_id {
+                        my_username.clone()
+                    } else {
+                        short_id(&pid)
+                    };
                     table.players.push(PlayerUiState {
                         player_id: pid.clone(),
                         name,
@@ -563,7 +595,10 @@ fn apply_event_payload(
                 table.dealer.cards.push(UiCard::visible(card));
                 let v = table.dealer.compute_value();
                 table.dealer.value = if v > 0 { Some(v.to_string()) } else { None };
-                table.log(format!("#{seq} dealer dealt {}", UiCard::visible(card).short_display()));
+                table.log(format!(
+                    "#{seq} dealer dealt {}",
+                    UiCard::visible(card).short_display()
+                ));
             }
             EventPayload::DealerHoleCardDealt { .. } => {
                 table.dealer.cards.push(UiCard::hidden());
@@ -575,7 +610,10 @@ fn apply_event_payload(
                 }
                 let v = table.dealer.compute_value();
                 table.dealer.value = if v > 0 { Some(v.to_string()) } else { None };
-                table.log(format!("#{seq} dealer hole card revealed: {}", UiCard::visible(card).short_display()));
+                table.log(format!(
+                    "#{seq} dealer hole card revealed: {}",
+                    UiCard::visible(card).short_display()
+                ));
             }
             EventPayload::PlayerDecisionTaken { player, action } => {
                 let pid = player.to_string();
@@ -656,24 +694,13 @@ fn apply_event_payload(
     if let Some(new_phase) = phase_change {
         sync_ui_chrome(app, server_phase_to_game_phase(&new_phase));
     }
-    // Start round-start countdown only when our own bet is confirmed.
-    if own_bet_confirmed {
-        use std::time::{Duration, Instant};
-        app.ui.header.phase_deadline =
-            Some(Instant::now() + Duration::from_secs(BETTING_TIMEOUT_SECS));
-    }
     // Keep header balance current after bet or payout events.
     refresh_header_balance(app);
 }
 
-/// Timeouts matching the server's table_actor constants.
-const BETTING_TIMEOUT_SECS: u64 = 30;
-const PLAYER_TURN_TIMEOUT_SECS: u64 = 30;
-
 fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
     use crate::state::ui_state::{FooterHint, FooterState};
     use crate::state::{table::GamePhase, BettingState};
-    use std::time::{Duration, Instant};
 
     let min_bet = app.table_min_bet;
     let max_bet = app.table_max_bet;
@@ -688,13 +715,21 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
         app.ui.betting = None;
         app.ui.footer = FooterState {
             hints: vec![
-                FooterHint { key: "t", label: "take seat" },
-                FooterHint { key: "l", label: "leave" },
-                FooterHint { key: "q", label: "quit" },
+                FooterHint {
+                    key: "t",
+                    label: "take seat",
+                },
+                FooterHint {
+                    key: "l",
+                    label: "leave",
+                },
+                FooterHint {
+                    key: "q",
+                    label: "quit",
+                },
             ],
         };
         app.ui.header.subtitle = format!("Table – {} (observing)", phase);
-        app.ui.header.phase_deadline = None;
         return;
     }
 
@@ -709,39 +744,65 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
             });
             app.ui.footer = FooterState {
                 hints: vec![
-                    FooterHint { key: "←→", label: "bet" },
-                    FooterHint { key: "enter", label: "confirm" },
-                    FooterHint { key: "l", label: "leave" },
-                    FooterHint { key: "q", label: "quit" },
+                    FooterHint {
+                        key: "←→",
+                        label: "bet",
+                    },
+                    FooterHint {
+                        key: "enter",
+                        label: "confirm",
+                    },
+                    FooterHint {
+                        key: "l",
+                        label: "leave",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
-            app.ui.header.phase_deadline = None; // set on PlayerPlacedBet for own player
         }
         GamePhase::PlayerTurn => {
             app.ui.betting = None;
             app.ui.footer = FooterState {
                 hints: vec![
-                    FooterHint { key: "h", label: "hit" },
-                    FooterHint { key: "s", label: "stand" },
-                    FooterHint { key: "l", label: "leave" },
-                    FooterHint { key: "q", label: "quit" },
+                    FooterHint {
+                        key: "h",
+                        label: "hit",
+                    },
+                    FooterHint {
+                        key: "s",
+                        label: "stand",
+                    },
+                    FooterHint {
+                        key: "l",
+                        label: "leave",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
-            app.ui.header.phase_deadline =
-                Some(Instant::now() + Duration::from_secs(PLAYER_TURN_TIMEOUT_SECS));
         }
         _ => {
             app.ui.betting = None;
             app.ui.footer = FooterState {
                 hints: vec![
-                    FooterHint { key: "l", label: "leave" },
-                    FooterHint { key: "q", label: "quit" },
+                    FooterHint {
+                        key: "l",
+                        label: "leave",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
-            app.ui.header.phase_deadline = None;
         }
     }
 }
@@ -749,7 +810,9 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
 fn refresh_header_balance(app: &mut App) {
     if let crate::state::Screen::Table(ref table) = app.ui.screen {
         let my_id = &app.player_id;
-        let balance = table.players.iter()
+        let balance = table
+            .players
+            .iter()
             .find(|p| &p.player_id == my_id)
             .map(|p| p.balance);
         app.ui.header.my_balance = balance;

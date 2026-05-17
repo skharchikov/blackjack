@@ -12,7 +12,6 @@ const COLOR_ORANGE: Color = Color::Rgb(255, 158, 100);
 const COLOR_CYAN: Color = Color::Rgb(125, 207, 255);
 const COLOR_COMMENT: Color = Color::Rgb(86, 95, 137);
 const COLOR_GREEN: Color = Color::Rgb(158, 206, 106);
-const COLOR_YELLOW: Color = Color::Rgb(224, 175, 104);
 
 pub fn render_header(frame: &mut Frame, area: Rect, ui: &UiState) {
     let block = Block::default()
@@ -29,7 +28,9 @@ pub fn render_header(frame: &mut Frame, area: Rect, ui: &UiState) {
     let title_line = Line::from(vec![
         Span::styled(
             ui.header.title.clone(),
-            Style::default().fg(COLOR_ORANGE).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(COLOR_ORANGE)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(" — ", Style::default().fg(COLOR_COMMENT)),
         Span::styled(ui.header.subtitle.clone(), Style::default().fg(COLOR_CYAN)),
@@ -50,23 +51,6 @@ fn build_right_line(ui: &UiState) -> Line<'static> {
         spans.push(Span::styled(
             format!("💰 {balance}"),
             Style::default().fg(COLOR_GREEN),
-        ));
-    }
-
-    if let Some(deadline) = ui.header.phase_deadline {
-        let secs = deadline
-            .saturating_duration_since(std::time::Instant::now())
-            .as_secs();
-        let color = if secs <= 5 {
-            Color::Red
-        } else if secs <= 10 {
-            COLOR_YELLOW
-        } else {
-            COLOR_COMMENT
-        };
-        spans.push(Span::styled(
-            format!("  ⏱ {secs}s"),
-            Style::default().fg(color),
         ));
     }
 
