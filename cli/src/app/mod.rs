@@ -754,7 +754,7 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
                     },
                     FooterHint {
                         key: "l",
-                        label: "leave",
+                        label: "leave seat",
                     },
                     FooterHint {
                         key: "q",
@@ -778,7 +778,7 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
                     },
                     FooterHint {
                         key: "l",
-                        label: "leave",
+                        label: "leave seat",
                     },
                     FooterHint {
                         key: "q",
@@ -794,7 +794,7 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
                 hints: vec![
                     FooterHint {
                         key: "l",
-                        label: "leave",
+                        label: "leave seat",
                     },
                     FooterHint {
                         key: "q",

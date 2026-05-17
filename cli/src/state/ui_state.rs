@@ -100,7 +100,7 @@ impl UiState {
                         },
                         FooterHint {
                             key: "l",
-                            label: "leave",
+                            label: "leave seat",
                         },
                         FooterHint {
                             key: "q",
@@ -129,7 +129,7 @@ impl UiState {
                         },
                         FooterHint {
                             key: "l",
-                            label: "leave",
+                            label: "leave seat",
                         },
                         FooterHint {
                             key: "q",
@@ -144,7 +144,7 @@ impl UiState {
                     hints: vec![
                         FooterHint {
                             key: "l",
-                            label: "leave",
+                            label: "leave seat",
                         },
                         FooterHint {
                             key: "q",
