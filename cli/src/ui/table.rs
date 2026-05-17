@@ -21,7 +21,7 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     render_observers(frame, layout.observers);
     render_waiting_list(frame, layout.waiting_list);
     render_board(frame, layout.board, ui);
-    render_history(frame, layout.history);
+    render_history(frame, layout.history, ui);
 }
 
 fn render_board(frame: &mut Frame, area: Rect, ui: &UiState) {

@@ -9,6 +9,7 @@ pub struct TableState {
     pub event_seq: u64,
     pub dealer: UiHand,
     pub players: Vec<PlayerUiState>,
+    pub event_log: Vec<String>,
 }
 
 impl TableState {
@@ -22,6 +23,15 @@ impl TableState {
                 value: None,
             },
             players: vec![],
+            event_log: vec![],
+        }
+    }
+
+    pub fn log(&mut self, msg: impl Into<String>) {
+        self.event_log.push(msg.into());
+        // Keep last 200 entries
+        if self.event_log.len() > 200 {
+            self.event_log.remove(0);
         }
     }
 }

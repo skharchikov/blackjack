@@ -318,9 +318,9 @@ fn table_state_from_snapshot(
         if v > 0 { Some(v.to_string()) } else { None }
     };
 
-    let _ = my_player_id; // used for active player comparison above
+    let _ = my_player_id;
 
-    TableState {
+    let mut state = TableState {
         game_id: snap.game_id.to_string(),
         phase,
         event_seq: 0,
@@ -329,7 +329,29 @@ fn table_state_from_snapshot(
             value: dealer_value,
         },
         players,
+        event_log: vec!["— snapshot —".into()],
+    };
+
+    // Seed log with current table state so history isn't blank on join
+    for p in &state.players {
+        if let Some(bet) = p.bet {
+            state.event_log.push(format!("{} bet {}", p.name, bet));
+        }
     }
+    if !state.dealer.cards.is_empty() {
+        state.event_log.push(format!(
+            "dealer: {}",
+            state
+                .dealer
+                .cards
+                .iter()
+                .map(|c| c.short_display())
+                .collect::<Vec<_>>()
+                .join(" ")
+        ));
+    }
+
+    state
 }
 
 fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::payload::EventPayload, seq: u64) {
@@ -366,9 +388,11 @@ fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::p
                         status: "waiting".into(),
                     });
                 }
+                table.log(format!("#{seq} {} joined", short_id(&pid)));
             }
             EventPayload::PlayerLeft { player } => {
                 let pid = player.to_string();
+                table.log(format!("#{seq} {} left", short_id(&pid)));
                 table.players.retain(|p| p.player_id != pid);
             }
             EventPayload::PlayerPlacedBet { player, amount } => {
@@ -378,6 +402,7 @@ fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::p
                     p.balance = p.balance.saturating_sub(amount);
                     p.status = "bet placed".into();
                 }
+                table.log(format!("#{seq} {} bet {}", short_id(&pid), amount));
             }
             EventPayload::GameStarted => {
                 for p in &mut table.players {
@@ -390,25 +415,37 @@ fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::p
                 table.dealer.cards.clear();
                 table.dealer.value = None;
                 table.phase = GamePhase::Dealing;
+                table.log(format!("#{seq} — game started"));
             }
             EventPayload::PlayerCardDealt { player, card } => {
                 let pid = player.to_string();
+                let mut hand_value = 0u8;
                 if let Some(p) = table.players.iter_mut().find(|p| p.player_id == pid) {
                     p.hand.cards.push(UiCard::visible(card));
                     p.hand_value = p.hand.compute_value();
                     p.hand.value = Some(p.hand_value.to_string());
+                    hand_value = p.hand_value;
                 }
+                table.log(format!(
+                    "#{seq} {} dealt {} (={})",
+                    short_id(&pid),
+                    UiCard::visible(card).short_display(),
+                    hand_value
+                ));
             }
             EventPayload::DealerCardDealt { card, .. } => {
                 table.dealer.cards.push(UiCard::visible(card));
                 let v = table.dealer.compute_value();
                 table.dealer.value = if v > 0 { Some(v.to_string()) } else { None };
+                table.log(format!("#{seq} dealer dealt {}", UiCard::visible(card).short_display()));
             }
             EventPayload::PlayerDecisionTaken { player, action } => {
                 let pid = player.to_string();
+                let action_str = format!("{:?}", action).to_lowercase();
                 if let Some(p) = table.players.iter_mut().find(|p| p.player_id == pid) {
-                    p.status = format!("{:?}", action).to_lowercase();
+                    p.status = action_str.clone();
                 }
+                table.log(format!("#{seq} {} → {}", short_id(&pid), action_str));
             }
             EventPayload::PlayerBust { player } => {
                 let pid = player.to_string();
@@ -416,23 +453,33 @@ fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::p
                     p.is_bust = true;
                     p.status = "BUST".into();
                 }
+                table.log(format!("#{seq} {} BUST", short_id(&pid)));
             }
-            EventPayload::DealerBust { .. } => {}
+            EventPayload::DealerBust { .. } => {
+                table.log(format!("#{seq} dealer BUST"));
+            }
             EventPayload::GameFinished { result } => {
                 table.phase = GamePhase::Finished;
                 for pr in &result.player_results {
                     let pid = pr.player.to_string();
+                    let payout = pr.payout.total();
                     if let Some(p) = table.players.iter_mut().find(|p| p.player_id == pid) {
-                        let payout = pr.payout.total();
                         p.balance += payout;
                         p.bet = None;
                         p.status = format!("{:?} +{}", pr.outcome, payout);
                     }
+                    table.log(format!(
+                        "#{seq} {} {:?} payout:{}",
+                        short_id(&pid),
+                        pr.outcome,
+                        payout
+                    ));
                 }
             }
             EventPayload::PhaseChanged { to, .. } => {
                 let new_phase = server_phase_to_game_phase(&to);
                 table.phase = new_phase;
+                table.log(format!("#{seq} phase → {:?}", to));
 
                 let active_pid = if let Phase::PlayerTurn(pid) = &to {
                     Some(pid.to_string())
