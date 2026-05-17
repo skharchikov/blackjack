@@ -1,3 +1,5 @@
+use bj_core::domain::{Card, Rank};
+
 #[derive(Debug, Clone)]
 pub struct UiHand {
     pub cards: Vec<UiCard>,
@@ -9,21 +11,21 @@ impl UiHand {
         let mut total: u16 = 0;
         let mut aces = 0u16;
         for card in &self.cards {
-            match card.rank.as_str() {
-                "Ace" => {
+            let Some(c) = card.0 else { continue };
+            match c.rank {
+                Rank::Ace => {
                     aces += 1;
                     total += 11;
                 }
-                "King" | "Queen" | "Jack" | "Ten" => total += 10,
-                "Nine" => total += 9,
-                "Eight" => total += 8,
-                "Seven" => total += 7,
-                "Six" => total += 6,
-                "Five" => total += 5,
-                "Four" => total += 4,
-                "Three" => total += 3,
-                "Two" => total += 2,
-                _ => {} // hidden or unknown
+                Rank::King | Rank::Queen | Rank::Jack | Rank::Ten => total += 10,
+                Rank::Nine => total += 9,
+                Rank::Eight => total += 8,
+                Rank::Seven => total += 7,
+                Rank::Six => total += 6,
+                Rank::Five => total += 5,
+                Rank::Four => total += 4,
+                Rank::Three => total += 3,
+                Rank::Two => total += 2,
             }
         }
         while total > 21 && aces > 0 {
@@ -34,43 +36,43 @@ impl UiHand {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct UiCard {
-    pub rank: String,
-    pub suit: String,
-}
+/// `None` inner = face-down (hidden) card.
+#[derive(Debug, Clone, Copy)]
+pub struct UiCard(pub Option<Card>);
 
 impl UiCard {
-    pub fn hidden() -> Self {
-        Self {
-            rank: "?".into(),
-            suit: "?".into(),
-        }
+    pub fn visible(card: Card) -> Self {
+        Self(Some(card))
     }
 
-    pub fn display(&self) -> String {
-        let suit_sym = match self.suit.as_str() {
-            "Hearts" => "♥",
-            "Spades" => "♠",
-            "Diamonds" => "♦",
-            "Clubs" => "♣",
-            _ => "?",
+    pub fn hidden() -> Self {
+        Self(None)
+    }
+
+    pub fn short_display(&self) -> String {
+        let Some(c) = self.0 else {
+            return "??".into();
         };
-        let rank_str = match self.rank.as_str() {
-            "Ace" => "A",
-            "King" => "K",
-            "Queen" => "Q",
-            "Jack" => "J",
-            "Ten" => "10",
-            "Nine" => "9",
-            "Eight" => "8",
-            "Seven" => "7",
-            "Six" => "6",
-            "Five" => "5",
-            "Four" => "4",
-            "Three" => "3",
-            "Two" => "2",
-            _ => "?",
+        let suit_sym = match c.suit {
+            bj_core::domain::Suit::Hearts => "♥",
+            bj_core::domain::Suit::Spades => "♠",
+            bj_core::domain::Suit::Diamonds => "♦",
+            bj_core::domain::Suit::Clubs => "♣",
+        };
+        let rank_str = match c.rank {
+            Rank::Ace => "A",
+            Rank::King => "K",
+            Rank::Queen => "Q",
+            Rank::Jack => "J",
+            Rank::Ten => "10",
+            Rank::Nine => "9",
+            Rank::Eight => "8",
+            Rank::Seven => "7",
+            Rank::Six => "6",
+            Rank::Five => "5",
+            Rank::Four => "4",
+            Rank::Three => "3",
+            Rank::Two => "2",
         };
         format!("{}{}", rank_str, suit_sym)
     }

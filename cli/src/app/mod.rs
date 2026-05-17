@@ -273,10 +273,7 @@ fn table_state_from_snapshot(
             let cards: Vec<UiCard> = p
                 .cards
                 .iter()
-                .map(|c| UiCard {
-                    rank: format!("{:?}", c.rank),
-                    suit: format!("{:?}", c.suit),
-                })
+                .map(|c| UiCard::visible(*c))
                 .collect();
             let hand = UiHand {
                 value: Some(p.hand_value.to_string()),
@@ -308,10 +305,7 @@ fn table_state_from_snapshot(
         .cards
         .iter()
         .map(|opt| match opt {
-            Some(c) => UiCard {
-                rank: format!("{:?}", c.rank),
-                suit: format!("{:?}", c.suit),
-            },
+            Some(c) => UiCard::visible(*c),
             None => UiCard::hidden(),
         })
         .collect();
@@ -400,20 +394,14 @@ fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::p
             EventPayload::PlayerCardDealt { player, card } => {
                 let pid = player.to_string();
                 if let Some(p) = table.players.iter_mut().find(|p| p.player_id == pid) {
-                    p.hand.cards.push(UiCard {
-                        rank: format!("{:?}", card.rank),
-                        suit: format!("{:?}", card.suit),
-                    });
+                    p.hand.cards.push(UiCard::visible(card));
                     p.hand_value = p.hand.compute_value();
                     p.hand.value = Some(p.hand_value.to_string());
                 }
             }
             EventPayload::DealerCardDealt { card, .. } => {
-                table.dealer.cards.push(UiCard {
-                    rank: format!("{:?}", card.rank),
-                    suit: format!("{:?}", card.suit),
-                });
-                let v = table.dealer.hand_value();
+                table.dealer.cards.push(UiCard::visible(card));
+                let v = table.dealer.compute_value();
                 table.dealer.value = if v > 0 { Some(v.to_string()) } else { None };
             }
             EventPayload::PlayerDecisionTaken { player, action } => {
@@ -546,14 +534,4 @@ fn server_phase_to_game_phase(
 
 fn short_id(id: &str) -> String {
     id.chars().take(8).collect()
-}
-
-trait HandValueExt {
-    fn hand_value(&self) -> u8;
-}
-
-impl HandValueExt for crate::state::cards::UiHand {
-    fn hand_value(&self) -> u8 {
-        self.compute_value()
-    }
 }

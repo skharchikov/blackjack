@@ -7,14 +7,17 @@ use ratatui::{
 };
 
 use super::{
-    history::render_history, layout::split_table_view, observers::render_observers,
-    theme::TOKIO_NIGHT_BLUE, waiting_list::render_waiting_list,
+    card::{CardWidget, CARD_HEIGHT, CARD_WIDTH},
+    history::render_history,
+    layout::split_table_view,
+    observers::render_observers,
+    theme::TOKIO_NIGHT_BLUE,
+    waiting_list::render_waiting_list,
 };
 use crate::state::{table::GamePhase, Screen, UiState};
 
 pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     let layout = split_table_view(area);
-
     render_observers(frame, layout.observers);
     render_waiting_list(frame, layout.waiting_list);
     render_board(frame, layout.board, ui);
@@ -22,9 +25,7 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
 }
 
 fn render_board(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let Screen::Table(_) = ui.screen else {
-        return;
-    };
+    let Screen::Table(_) = ui.screen else { return };
 
     let block = Block::default()
         .title(" Board ")
@@ -34,18 +35,17 @@ fn render_board(frame: &mut Frame, area: Rect, ui: &UiState) {
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    // Split inner: betting bar (if active) | dealer area | players area
     let has_betting = ui.betting.is_some();
-    let constraints = if has_betting {
+    let constraints: Vec<Constraint> = if has_betting {
         vec![
-            Constraint::Length(3), // betting bar
-            Constraint::Length(4), // dealer
-            Constraint::Min(0),    // players
+            Constraint::Length(3),              // betting bar
+            Constraint::Length(CARD_HEIGHT + 2), // dealer
+            Constraint::Min(0),                 // players
         ]
     } else {
         vec![
-            Constraint::Length(4), // dealer
-            Constraint::Min(0),    // players
+            Constraint::Length(CARD_HEIGHT + 2), // dealer
+            Constraint::Min(0),                 // players
         ]
     };
 
@@ -66,20 +66,22 @@ fn render_board(frame: &mut Frame, area: Rect, ui: &UiState) {
 }
 
 fn render_betting_bar(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let Some(ref betting) = ui.betting else {
-        return;
-    };
-
-    let status = if betting.confirmed {
-        format!("Bet confirmed: {} chips  (waiting for round to start)", betting.current_bet)
+    let Some(ref betting) = ui.betting else { return };
+    let text = if betting.confirmed {
+        format!(
+            "Bet confirmed: {} chips  (waiting for round to start)",
+            betting.current_bet
+        )
     } else {
         format!(
-            "Bet: {} chips   [← -{}  → +{}]   range: {}–{}",
-            betting.current_bet, betting.step, betting.step, betting.min_bet, betting.max_bet
+            "Bet: {}  [← -{step}  → +{step}]   range: {}–{}",
+            betting.current_bet,
+            betting.min_bet,
+            betting.max_bet,
+            step = betting.step,
         )
     };
-
-    let widget = Paragraph::new(status)
+    let widget = Paragraph::new(text)
         .block(
             Block::default()
                 .title(" Bet ")
@@ -91,33 +93,28 @@ fn render_betting_bar(frame: &mut Frame, area: Rect, ui: &UiState) {
 }
 
 fn render_dealer(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let Screen::Table(ref table) = ui.screen else {
-        return;
-    };
+    let Screen::Table(ref table) = ui.screen else { return };
 
-    let cards_str = if table.dealer.cards.is_empty() {
-        "  (no cards yet)".to_string()
-    } else {
-        let hand: Vec<String> = table.dealer.cards.iter().map(|c| c.display()).collect();
-        let val = table.dealer.value.as_deref().unwrap_or("?");
-        format!("  {} = {}", hand.join("  "), val)
-    };
+    let val_str = table
+        .dealer
+        .value
+        .as_deref()
+        .map(|v| format!(" = {v}"))
+        .unwrap_or_default();
+    let title = format!(" Dealer{val_str} ");
 
-    let widget = Paragraph::new(cards_str)
-        .block(
-            Block::default()
-                .title(" Dealer ")
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan)),
-        )
-        .style(Style::default().fg(Color::White));
-    frame.render_widget(widget, area);
+    let block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Cyan));
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    render_hand_cards(frame, inner, &table.dealer.cards, false);
 }
 
 fn render_players(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let Screen::Table(ref table) = ui.screen else {
-        return;
-    };
+    let Screen::Table(ref table) = ui.screen else { return };
 
     if table.players.is_empty() {
         let widget = Paragraph::new("  (no players at table)")
@@ -125,17 +122,19 @@ fn render_players(frame: &mut Frame, area: Rect, ui: &UiState) {
                 Block::default()
                     .title(" Players ")
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(TOKIO_NIGHT_BLUE)),
+                    .border_style(Style::default().fg(Color::DarkGray)),
             )
             .style(Style::default().fg(Color::DarkGray));
         frame.render_widget(widget, area);
         return;
     }
 
-    // One row per player
-    let n = table.players.len();
-    let constraints: Vec<Constraint> =
-        (0..n).map(|_| Constraint::Length(3)).collect();
+    let row_h = CARD_HEIGHT + 2; // cards + name line + border
+    let constraints: Vec<Constraint> = table
+        .players
+        .iter()
+        .map(|_| Constraint::Length(row_h))
+        .collect();
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -146,7 +145,7 @@ fn render_players(frame: &mut Frame, area: Rect, ui: &UiState) {
         if i >= chunks.len() {
             break;
         }
-        render_player_row(frame, chunks[i], player, ui);
+        render_player_row(frame, chunks[i], player, table.phase);
     }
 }
 
@@ -154,12 +153,8 @@ fn render_player_row(
     frame: &mut Frame,
     area: Rect,
     player: &crate::state::table::PlayerUiState,
-    ui: &UiState,
+    phase: GamePhase,
 ) {
-    let Screen::Table(ref table) = ui.screen else {
-        return;
-    };
-
     let border_color = if player.active {
         Color::Yellow
     } else if player.is_bust {
@@ -168,63 +163,98 @@ fn render_player_row(
         Color::DarkGray
     };
 
-    let active_marker = if player.active { "▶ " } else { "  " };
-    let bet_str = match player.bet {
-        Some(b) => format!("  bet:{}", b),
-        None => String::new(),
-    };
-    let balance_str = format!("  bal:{}", player.balance);
-
-    let cards_part = if player.hand.cards.is_empty() {
-        "(no cards)".to_string()
-    } else {
-        let hand: Vec<String> = player.hand.cards.iter().map(|c| c.display()).collect();
-        let val = if player.is_bust {
-            "BUST".to_string()
+    let is_my_turn = player.active && matches!(phase, GamePhase::PlayerTurn);
+    let arrow = if player.active { "▶ " } else { "  " };
+    let bet_part = player
+        .bet
+        .map(|b| format!("  bet:{b}"))
+        .unwrap_or_default();
+    let val_part = if player.hand_value > 0 {
+        if player.is_bust {
+            "  BUST".to_string()
         } else {
-            player.hand_value.to_string()
-        };
-        format!("{} = {}", hand.join("  "), val)
-    };
-
-    let status_part = if !player.status.is_empty() && player.status != "waiting" && player.status != "playing" && player.status != "bet placed" {
-        format!("  [{}]", player.status)
+            format!("  ={}", player.hand_value)
+        }
     } else {
         String::new()
     };
 
-    // Highlight "it's your turn" differently based on phase
-    let is_my_turn = player.active && matches!(table.phase, GamePhase::PlayerTurn);
-
     let title_style = if is_my_turn {
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::White)
     };
+    let title = Line::from(vec![Span::styled(
+        format!(" {}{}{}{} ", arrow, player.name, bet_part, val_part),
+        title_style,
+    )]);
 
-    let title = Line::from(vec![
-        Span::styled(
-            format!("{}{}{}{}", active_marker, player.name, bet_str, balance_str),
-            title_style,
-        ),
-    ]);
+    let block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(border_color));
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
 
-    let content = Line::from(vec![
-        Span::styled(
-            format!("  {}{}", cards_part, status_part),
-            Style::default().fg(if player.is_bust {
-                Color::Red
-            } else {
-                Color::White
-            }),
-        ),
-    ]);
-
-    let widget = Paragraph::new(content).block(
-        Block::default()
-            .title(title)
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(border_color)),
-    );
-    frame.render_widget(widget, area);
+    if player.hand.cards.is_empty() {
+        let waiting = if player.bet.is_some() {
+            "waiting for deal"
+        } else {
+            "place your bet"
+        };
+        let widget = Paragraph::new(waiting).style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(widget, inner);
+    } else {
+        render_hand_cards(frame, inner, &player.hand.cards, player.is_bust);
+    }
 }
+
+fn render_hand_cards(
+    frame: &mut Frame,
+    area: Rect,
+    cards: &[crate::state::cards::UiCard],
+    busted: bool,
+) {
+    for (i, card) in cards.iter().enumerate() {
+        let x = area.x + (i as u16) * (CARD_WIDTH + 1);
+        if x + CARD_WIDTH > area.x + area.width {
+            break;
+        }
+        let card_area = Rect::new(x, area.y, CARD_WIDTH, CARD_HEIGHT.min(area.height));
+
+        match card.0 {
+            Some(c) => {
+                let style = if busted {
+                    Style::default().fg(Color::Red)
+                } else {
+                    Style::default()
+                };
+                CardWidget::new(&c).style(style).render(card_area, frame.buffer_mut());
+            }
+            None => render_hidden_card(frame, card_area),
+        }
+    }
+}
+
+fn render_hidden_card(frame: &mut Frame, area: Rect) {
+    let lines = [
+        "╭──────╮",
+        "│??????│",
+        "│??????│",
+        "│??????│",
+        "╰──────╯",
+    ];
+    for (i, line) in lines.iter().enumerate() {
+        if area.y + i as u16 >= area.y + area.height {
+            break;
+        }
+        let row = Rect::new(area.x, area.y + i as u16, CARD_WIDTH, 1);
+        let span = ratatui::text::Span::styled(*line, Style::default().fg(Color::DarkGray));
+        span.render(row, frame.buffer_mut());
+    }
+}
+
+// Required to call span.render on a Rect
+use ratatui::widgets::Widget;
