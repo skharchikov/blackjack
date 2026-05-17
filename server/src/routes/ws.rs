@@ -64,11 +64,23 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                                     "conn={conn_id} authenticated user='{}' player_id={}",
                                     username, pid
                                 );
-                                if send_msg(&mut socket, &ServerMessage::AuthOk { player_id: pid.to_string() }).await.is_err() {
+                                if send_msg(
+                                    &mut socket,
+                                    &ServerMessage::AuthOk {
+                                        player_id: pid.to_string(),
+                                    },
+                                )
+                                .await
+                                .is_err()
+                                {
                                     return;
                                 }
                                 let balance = state.wallet.balance(pid).await.unwrap_or(0);
-                                let _ = send_msg(&mut socket, &ServerMessage::Balance { amount: balance }).await;
+                                let _ = send_msg(
+                                    &mut socket,
+                                    &ServerMessage::Balance { amount: balance },
+                                )
+                                .await;
                                 break (pid, username);
                             }
                             Err(e) => {
@@ -316,7 +328,9 @@ async fn handle_client_msg(
                             }
                             if is_finished {
                                 let balance = wallet.balance(player_id).await.unwrap_or(0);
-                                if let Ok(json) = serde_json::to_string(&ServerMessage::Balance { amount: balance }) {
+                                if let Ok(json) = serde_json::to_string(&ServerMessage::Balance {
+                                    amount: balance,
+                                }) {
                                     let _ = tx.send(json).await;
                                 }
                             }

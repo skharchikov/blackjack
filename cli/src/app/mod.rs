@@ -809,7 +809,6 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
     }
 }
 
-
 fn server_phase_to_game_phase(
     phase: &bj_core::domain::engine::phase::Phase,
 ) -> crate::state::table::GamePhase {

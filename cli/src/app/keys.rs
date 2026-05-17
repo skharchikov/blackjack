@@ -110,7 +110,8 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
         if is_observer {
             // Observer leaves the table entirely
             if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                let msg = serde_json::json!({"type": "LeaveTable", "table_id": tid, "request_id": rid});
+                let msg =
+                    serde_json::json!({"type": "LeaveTable", "table_id": tid, "request_id": rid});
                 let _ = ws_tx.try_send(msg.to_string());
             }
             app.ws_tx = None;
@@ -119,7 +120,8 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
         } else {
             // Seated/waiting player goes back to observer
             if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                let msg = serde_json::json!({"type": "LeaveSeat", "table_id": tid, "request_id": rid});
+                let msg =
+                    serde_json::json!({"type": "LeaveSeat", "table_id": tid, "request_id": rid});
                 let _ = ws_tx.try_send(msg.to_string());
             }
         }
@@ -131,7 +133,8 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
         if let KeyCode::Char('t') = key {
             let rid = app.next_request_id();
             if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                let msg = serde_json::json!({"type": "TakeSeat", "table_id": tid, "request_id": rid});
+                let msg =
+                    serde_json::json!({"type": "TakeSeat", "table_id": tid, "request_id": rid});
                 let _ = ws_tx.try_send(msg.to_string());
             }
         }
@@ -150,14 +153,16 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
             KeyCode::Char('h') => {
                 let rid = app.next_request_id();
                 if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                    let msg = serde_json::json!({"type": "Hit", "table_id": tid, "request_id": rid});
+                    let msg =
+                        serde_json::json!({"type": "Hit", "table_id": tid, "request_id": rid});
                     let _ = ws_tx.try_send(msg.to_string());
                 }
             }
             KeyCode::Char('s') => {
                 let rid = app.next_request_id();
                 if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                    let msg = serde_json::json!({"type": "Stand", "table_id": tid, "request_id": rid});
+                    let msg =
+                        serde_json::json!({"type": "Stand", "table_id": tid, "request_id": rid});
                     let _ = ws_tx.try_send(msg.to_string());
                 }
             }
