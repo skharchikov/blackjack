@@ -9,6 +9,8 @@ pub struct App {
     pub player_id: String,
     pub ws_tx: Option<mpsc::Sender<String>>,
     pub current_table_id: Option<String>,
+    pub table_min_bet: u32,
+    pub table_max_bet: u32,
 }
 
 impl App {
@@ -20,6 +22,8 @@ impl App {
             player_id: Ulid::new().to_string(),
             ws_tx: None,
             current_table_id: None,
+            table_min_bet: 10,
+            table_max_bet: 1_000,
         }
     }
 }

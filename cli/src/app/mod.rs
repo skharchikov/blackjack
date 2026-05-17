@@ -91,7 +91,7 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
                     }
                 }
                 AppEvent::WsConnected { player_id } => {
-                    tracing::info!("WS connected as {player_id}");
+                    app.player_id = player_id;
                 }
                 AppEvent::WsMessage(json) => {
                     handle_ws_message(&mut app, json);
@@ -146,25 +146,33 @@ pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
             return;
         }
 
-        // Wait for AuthOk
-        loop {
+        // Wait for AuthOk — capture server-assigned player_id
+        let confirmed_player_id = loop {
             match ws.next().await {
                 Some(Ok(Message::Text(t))) => {
-                    if t.contains("AuthOk") {
-                        let _ = tx_app
-                            .send(AppEvent::WsConnected {
-                                player_id: player_id.clone(),
-                            })
-                            .await;
-                        break;
+                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(&t) {
+                        if v["type"].as_str() == Some("AuthOk") {
+                            let pid = v["player_id"]
+                                .as_str()
+                                .unwrap_or(&player_id)
+                                .to_string();
+                            break pid;
+                        }
                     }
                 }
                 _ => return,
             }
-        }
+        };
+
+        let _ = tx_app
+            .send(AppEvent::WsConnected {
+                player_id: confirmed_player_id,
+            })
+            .await;
 
         // JoinTable
-        let join = serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": 1});
+        let join =
+            serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": 1});
         if ws
             .send(Message::Text(join.to_string().into()))
             .await
@@ -209,20 +217,343 @@ fn handle_ws_message(app: &mut App, json: String) {
             if let Some(tid) = v["table_id"].as_str() {
                 app.current_table_id = Some(tid.to_string());
             }
-            let phase = v["state"]["phase"].as_str().unwrap_or("");
-            app.ui = match phase {
-                "WaitingForBets" => crate::state::UiState::betting(),
-                _ => crate::state::UiState::table_view(),
-            };
+            use bj_core::domain::engine::snapshot::GameStateSnapshot;
+            if let Ok(snap) =
+                serde_json::from_value::<GameStateSnapshot>(v["state"].clone())
+            {
+                let table = table_state_from_snapshot(&snap, &app.player_id);
+                app.ui = crate::state::UiState::from_table_state(
+                    table,
+                    app.table_min_bet,
+                    app.table_max_bet,
+                );
+            }
         }
         "Event" => {
-            if let crate::state::Screen::Table(ref mut _table) = app.ui.screen {
-                tracing::debug!("game event: {}", &json[..json.len().min(120)]);
+            let seq = v["event"]["seq"].as_u64().unwrap_or(0);
+            if let Some(payload_val) = v.get("event").and_then(|e| e.get("payload")) {
+                use bj_core::domain::engine::event::payload::EventPayload;
+                if let Ok(payload) =
+                    serde_json::from_value::<EventPayload>(payload_val.clone())
+                {
+                    apply_event_payload(app, payload, seq);
+                }
             }
         }
         "CommandError" => {
             tracing::warn!("command error: {json}");
         }
         _ => {}
+    }
+}
+
+fn table_state_from_snapshot(
+    snap: &bj_core::domain::engine::snapshot::GameStateSnapshot,
+    my_player_id: &str,
+) -> crate::state::table::TableState {
+    use bj_core::domain::engine::phase::Phase;
+    use crate::state::{
+        cards::{UiCard, UiHand},
+        table::{PlayerUiState, TableState},
+    };
+
+    let phase = server_phase_to_game_phase(&snap.phase);
+    let active_pid = if let Phase::PlayerTurn(pid) = &snap.phase {
+        Some(pid.to_string())
+    } else {
+        None
+    };
+
+    let players = snap
+        .players
+        .iter()
+        .map(|p| {
+            let pid = p.player_id.to_string();
+            let is_active = active_pid.as_ref().map(|a| a == &pid).unwrap_or(false);
+            let cards: Vec<UiCard> = p
+                .cards
+                .iter()
+                .map(|c| UiCard {
+                    rank: format!("{:?}", c.rank),
+                    suit: format!("{:?}", c.suit),
+                })
+                .collect();
+            let hand = UiHand {
+                value: Some(p.hand_value.to_string()),
+                cards,
+            };
+            let status = if p.is_bust {
+                "BUST".into()
+            } else if p.bet.is_some() {
+                "bet placed".into()
+            } else {
+                "waiting".into()
+            };
+            PlayerUiState {
+                name: short_id(&pid),
+                active: is_active,
+                hand,
+                hand_value: p.hand_value,
+                is_bust: p.is_bust,
+                balance: p.balance,
+                bet: p.bet,
+                status,
+                player_id: pid,
+            }
+        })
+        .collect();
+
+    let dealer_cards: Vec<UiCard> = snap
+        .dealer
+        .cards
+        .iter()
+        .map(|opt| match opt {
+            Some(c) => UiCard {
+                rank: format!("{:?}", c.rank),
+                suit: format!("{:?}", c.suit),
+            },
+            None => UiCard::hidden(),
+        })
+        .collect();
+    let dealer_value = {
+        let hand = UiHand {
+            cards: dealer_cards.clone(),
+            value: None,
+        };
+        let v = hand.compute_value();
+        if v > 0 { Some(v.to_string()) } else { None }
+    };
+
+    let _ = my_player_id; // used for active player comparison above
+
+    TableState {
+        game_id: snap.game_id.to_string(),
+        phase,
+        event_seq: 0,
+        dealer: UiHand {
+            cards: dealer_cards,
+            value: dealer_value,
+        },
+        players,
+    }
+}
+
+fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::payload::EventPayload, seq: u64) {
+    use bj_core::domain::engine::event::payload::EventPayload;
+    use bj_core::domain::engine::phase::Phase;
+    use crate::state::{
+        cards::{UiCard, UiHand},
+        table::{GamePhase, PlayerUiState},
+    };
+
+    // Extract phase change before borrowing screen
+    let phase_change: Option<Phase> = match &payload {
+        EventPayload::PhaseChanged { to, .. } => Some(to.clone()),
+        _ => None,
+    };
+
+    // Apply payload to table state
+    if let crate::state::Screen::Table(ref mut table) = app.ui.screen {
+        table.event_seq = seq;
+
+        match payload {
+            EventPayload::PlayerJoined { player } => {
+                let pid = player.to_string();
+                if !table.players.iter().any(|p| p.player_id == pid) {
+                    table.players.push(PlayerUiState {
+                        player_id: pid.clone(),
+                        name: short_id(&pid),
+                        active: false,
+                        hand: UiHand { cards: vec![], value: None },
+                        hand_value: 0,
+                        is_bust: false,
+                        balance: 0,
+                        bet: None,
+                        status: "waiting".into(),
+                    });
+                }
+            }
+            EventPayload::PlayerLeft { player } => {
+                let pid = player.to_string();
+                table.players.retain(|p| p.player_id != pid);
+            }
+            EventPayload::PlayerPlacedBet { player, amount } => {
+                let pid = player.to_string();
+                if let Some(p) = table.players.iter_mut().find(|p| p.player_id == pid) {
+                    p.bet = Some(amount);
+                    p.balance = p.balance.saturating_sub(amount);
+                    p.status = "bet placed".into();
+                }
+            }
+            EventPayload::GameStarted => {
+                for p in &mut table.players {
+                    p.hand.cards.clear();
+                    p.hand.value = None;
+                    p.hand_value = 0;
+                    p.is_bust = false;
+                    p.status = "playing".into();
+                }
+                table.dealer.cards.clear();
+                table.dealer.value = None;
+                table.phase = GamePhase::Dealing;
+            }
+            EventPayload::PlayerCardDealt { player, card } => {
+                let pid = player.to_string();
+                if let Some(p) = table.players.iter_mut().find(|p| p.player_id == pid) {
+                    p.hand.cards.push(UiCard {
+                        rank: format!("{:?}", card.rank),
+                        suit: format!("{:?}", card.suit),
+                    });
+                    p.hand_value = p.hand.compute_value();
+                    p.hand.value = Some(p.hand_value.to_string());
+                }
+            }
+            EventPayload::DealerCardDealt { card, .. } => {
+                table.dealer.cards.push(UiCard {
+                    rank: format!("{:?}", card.rank),
+                    suit: format!("{:?}", card.suit),
+                });
+                let v = table.dealer.hand_value();
+                table.dealer.value = if v > 0 { Some(v.to_string()) } else { None };
+            }
+            EventPayload::PlayerDecisionTaken { player, action } => {
+                let pid = player.to_string();
+                if let Some(p) = table.players.iter_mut().find(|p| p.player_id == pid) {
+                    p.status = format!("{:?}", action).to_lowercase();
+                }
+            }
+            EventPayload::PlayerBust { player } => {
+                let pid = player.to_string();
+                if let Some(p) = table.players.iter_mut().find(|p| p.player_id == pid) {
+                    p.is_bust = true;
+                    p.status = "BUST".into();
+                }
+            }
+            EventPayload::DealerBust { .. } => {}
+            EventPayload::GameFinished { result } => {
+                table.phase = GamePhase::Finished;
+                for pr in &result.player_results {
+                    let pid = pr.player.to_string();
+                    if let Some(p) = table.players.iter_mut().find(|p| p.player_id == pid) {
+                        let payout = pr.payout.total();
+                        p.balance += payout;
+                        p.bet = None;
+                        p.status = format!("{:?} +{}", pr.outcome, payout);
+                    }
+                }
+            }
+            EventPayload::PhaseChanged { to, .. } => {
+                let new_phase = server_phase_to_game_phase(&to);
+                table.phase = new_phase;
+
+                let active_pid = if let Phase::PlayerTurn(pid) = &to {
+                    Some(pid.to_string())
+                } else {
+                    None
+                };
+                for p in &mut table.players {
+                    p.active = active_pid.as_ref().map(|id| id == &p.player_id).unwrap_or(false);
+                }
+
+                // New round: reset cards and bets
+                if matches!(to, Phase::WaitingForBets) {
+                    for p in &mut table.players {
+                        p.hand.cards.clear();
+                        p.hand.value = None;
+                        p.hand_value = 0;
+                        p.is_bust = false;
+                        p.bet = None;
+                        p.status = "waiting".into();
+                    }
+                    table.dealer.cards.clear();
+                    table.dealer.value = None;
+                }
+            }
+        }
+    }
+
+    // After borrow on screen is dropped, sync UI chrome based on phase change
+    if let Some(new_phase) = phase_change {
+        sync_ui_chrome(app, server_phase_to_game_phase(&new_phase));
+    }
+}
+
+fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
+    use crate::state::{table::GamePhase, BettingState};
+    use crate::state::ui_state::{FooterHint, FooterState};
+
+    let min_bet = app.table_min_bet;
+    let max_bet = app.table_max_bet;
+
+    match phase {
+        GamePhase::WaitingForBets | GamePhase::Betting => {
+            app.ui.betting = Some(BettingState {
+                min_bet: min_bet as u64,
+                max_bet: max_bet as u64,
+                current_bet: min_bet as u64,
+                step: (min_bet as u64).max(5),
+                confirmed: false,
+            });
+            app.ui.footer = FooterState {
+                hints: vec![
+                    FooterHint { key: "←→", label: "bet" },
+                    FooterHint { key: "enter", label: "confirm" },
+                    FooterHint { key: "l", label: "leave" },
+                    FooterHint { key: "q", label: "quit" },
+                ],
+            };
+            app.ui.header.subtitle = format!("Table – {}", phase);
+        }
+        GamePhase::PlayerTurn => {
+            app.ui.betting = None;
+            app.ui.footer = FooterState {
+                hints: vec![
+                    FooterHint { key: "h", label: "hit" },
+                    FooterHint { key: "s", label: "stand" },
+                    FooterHint { key: "l", label: "leave" },
+                    FooterHint { key: "q", label: "quit" },
+                ],
+            };
+            app.ui.header.subtitle = format!("Table – {}", phase);
+        }
+        _ => {
+            app.ui.betting = None;
+            app.ui.footer = FooterState {
+                hints: vec![
+                    FooterHint { key: "l", label: "leave" },
+                    FooterHint { key: "q", label: "quit" },
+                ],
+            };
+            app.ui.header.subtitle = format!("Table – {}", phase);
+        }
+    }
+}
+
+fn server_phase_to_game_phase(
+    phase: &bj_core::domain::engine::phase::Phase,
+) -> crate::state::table::GamePhase {
+    use bj_core::domain::engine::phase::Phase;
+    use crate::state::table::GamePhase;
+    match phase {
+        Phase::WaitingForBets => GamePhase::Betting,
+        Phase::InitialDealing => GamePhase::Dealing,
+        Phase::PlayerTurn(_) => GamePhase::PlayerTurn,
+        Phase::DealerTurn => GamePhase::DealerTurn,
+        Phase::Payouts => GamePhase::Resolving,
+        Phase::Finished => GamePhase::Finished,
+    }
+}
+
+fn short_id(id: &str) -> String {
+    id.chars().take(8).collect()
+}
+
+trait HandValueExt {
+    fn hand_value(&self) -> u8;
+}
+
+impl HandValueExt for crate::state::cards::UiHand {
+    fn hand_value(&self) -> u8 {
+        self.compute_value()
     }
 }

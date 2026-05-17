@@ -81,6 +81,8 @@ fn handle_lobby_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
             if let Some(table) = lobby.tables.get(lobby.selected) {
                 if table.is_joinable {
                     let table_id = table.id.clone();
+                    app.table_min_bet = table.settings.min_bet;
+                    app.table_max_bet = table.settings.max_bet;
                     crate::app::spawn_ws(app, table_id, tx);
                 }
             }

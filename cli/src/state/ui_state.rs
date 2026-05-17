@@ -1,7 +1,7 @@
 use crate::state::{
     lobby::{LobbyState, LobbyStatus},
     login::LoginState,
-    table::TableState,
+    table::{GamePhase, TableState},
     BettingState,
 };
 
@@ -30,18 +30,9 @@ impl UiState {
             },
             footer: FooterState {
                 hints: vec![
-                    FooterHint {
-                        key: "tab",
-                        label: "switch field",
-                    },
-                    FooterHint {
-                        key: "enter",
-                        label: "login",
-                    },
-                    FooterHint {
-                        key: "esc",
-                        label: "quit",
-                    },
+                    FooterHint { key: "tab", label: "switch field" },
+                    FooterHint { key: "enter", label: "login" },
+                    FooterHint { key: "esc", label: "quit" },
                 ],
             },
             betting: None,
@@ -61,114 +52,94 @@ impl UiState {
             },
             footer: FooterState {
                 hints: vec![
-                    FooterHint {
-                        key: "↑↓",
-                        label: "select",
-                    },
-                    FooterHint {
-                        key: "enter",
-                        label: "join",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
+                    FooterHint { key: "↑↓", label: "select" },
+                    FooterHint { key: "enter", label: "join" },
+                    FooterHint { key: "q", label: "quit" },
                 ],
             },
             betting: None,
         }
     }
 
-    pub fn betting() -> Self {
-        use crate::state::table::GamePhase;
-        use crate::state::UiHand;
+    /// Build table view from a snapshot. Phase determines betting widget and footer.
+    pub fn from_table_state(table: TableState, min_bet: u32, max_bet: u32) -> Self {
+        let phase = table.phase;
+        let subtitle = format!("Table – {}", phase);
+
+        let (footer, betting) = match phase {
+            GamePhase::WaitingForBets | GamePhase::Betting => (
+                FooterState {
+                    hints: vec![
+                        FooterHint { key: "←→", label: "bet" },
+                        FooterHint { key: "enter", label: "confirm" },
+                        FooterHint { key: "l", label: "leave" },
+                        FooterHint { key: "q", label: "quit" },
+                    ],
+                },
+                Some(BettingState {
+                    min_bet: min_bet as u64,
+                    max_bet: max_bet as u64,
+                    current_bet: min_bet as u64,
+                    step: (min_bet as u64).max(5),
+                    confirmed: false,
+                }),
+            ),
+            GamePhase::PlayerTurn => (
+                FooterState {
+                    hints: vec![
+                        FooterHint { key: "h", label: "hit" },
+                        FooterHint { key: "s", label: "stand" },
+                        FooterHint { key: "l", label: "leave" },
+                        FooterHint { key: "q", label: "quit" },
+                    ],
+                },
+                None,
+            ),
+            _ => (
+                FooterState {
+                    hints: vec![
+                        FooterHint { key: "l", label: "leave" },
+                        FooterHint { key: "q", label: "quit" },
+                    ],
+                },
+                None,
+            ),
+        };
 
         Self {
-            screen: Screen::Table(TableState {
-                game_id: 1,
-                phase: GamePhase::Betting,
-                event_id: 0,
-                dealer: UiHand {
-                    cards: vec![],
-                    value: None,
-                },
-                players: vec![],
-            }),
+            screen: Screen::Table(table),
             header: HeaderState {
                 title: "Blackjack".into(),
-                subtitle: "Place your bet".into(),
+                subtitle,
             },
-            footer: FooterState {
-                hints: vec![
-                    FooterHint {
-                        key: "←→",
-                        label: "bet",
-                    },
-                    FooterHint {
-                        key: "enter",
-                        label: "confirm",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
-                ],
-            },
-            betting: Some(BettingState {
-                min_bet: 10,
-                max_bet: 1_000,
-                current_bet: 50,
-                step: 10,
-                confirmed: false,
-            }),
+            footer,
+            betting,
         }
+    }
+
+    // Legacy constructors kept for initial snapshot before table settings are known
+    pub fn betting() -> Self {
+        Self::from_table_state(
+            {
+                let mut t = TableState::empty();
+                t.phase = GamePhase::Betting;
+                t
+            },
+            10,
+            1_000,
+        )
     }
 
     pub fn table_view() -> Self {
-        use crate::state::table::GamePhase;
-        use crate::state::UiHand;
-
-        Self {
-            screen: Screen::Table(TableState {
-                game_id: 1,
-                phase: GamePhase::PlayerTurn,
-                event_id: 0,
-                dealer: UiHand {
-                    cards: vec![],
-                    value: None,
-                },
-                players: vec![],
-            }),
-            header: HeaderState {
-                title: "Blackjack".into(),
-                subtitle: "Table #1".into(),
+        Self::from_table_state(
+            {
+                let mut t = TableState::empty();
+                t.phase = GamePhase::PlayerTurn;
+                t
             },
-            footer: FooterState {
-                hints: vec![
-                    FooterHint {
-                        key: "h",
-                        label: "hit",
-                    },
-                    FooterHint {
-                        key: "s",
-                        label: "stand",
-                    },
-                    FooterHint {
-                        key: "d",
-                        label: "double",
-                    },
-                    FooterHint {
-                        key: "l",
-                        label: "leave",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
-                ],
-            },
-            betting: None,
-        }
+            10,
+            1_000,
+        )
     }
 }
 
