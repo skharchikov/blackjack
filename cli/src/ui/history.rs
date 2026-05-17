@@ -41,7 +41,7 @@ pub fn render_history(frame: &mut Frame, area: Rect, ui: &UiState) {
                 Color::Red
             } else if entry.contains("Blackjack") || entry.contains("Won") {
                 Color::Green
-            } else if entry.contains("snapshot") || entry.contains("phase") {
+            } else if entry.contains("snapshot") || entry.contains("phase →") {
                 Color::DarkGray
             } else {
                 Color::White
@@ -50,6 +50,6 @@ pub fn render_history(frame: &mut Frame, area: Rect, ui: &UiState) {
         })
         .collect();
 
-    let widget = Paragraph::new(lines);
+    let widget = Paragraph::new(lines).wrap(ratatui::widgets::Wrap { trim: false });
     frame.render_widget(widget, inner);
 }
