@@ -25,13 +25,12 @@ pub fn split_screen(area: Rect) -> ScreenLayout {
 
 /// Layout for the Blackjack Table View
 ///
-/// ┌──────────┬────────────────────────────────────────┐
-/// │          │              Board                     │
-/// │ Observers│                                        │
-/// │          ├────────────────────────────────────────┤
-/// ├──────────┤              History                   │
-/// │ Waiting  │                                        │
-/// └──────────┴────────────────────────────────────────┘
+/// ┌────────────────────────────────────────┬──────────┐
+/// │              Board                     │ Observers│
+/// │                                        ├──────────┤
+/// ├────────────────────────────────────────┤ Waiting  │
+/// │  History (10 lines)                    │          │
+/// └────────────────────────────────────────┴──────────┘
 pub struct TableLayout {
     pub observers: Rect,
     pub waiting_list: Rect,
@@ -40,37 +39,37 @@ pub struct TableLayout {
 }
 
 pub fn split_table_view(area: Rect) -> TableLayout {
-    // Split into left sidebar (15%) and right content (85%)
+    // Split into left content (85%) and right sidebar (15%)
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(15), // left: observers + waiting list
-            Constraint::Percentage(85), // right: board + history
+            Constraint::Percentage(85), // left: board + history
+            Constraint::Percentage(15), // right: observers + waiting list
         ])
         .split(area);
 
-    // Left column: observers (top) + waiting list (bottom)
+    // Left column: board (main) + history (fixed 10 lines at bottom)
     let left = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(50),
-            Constraint::Percentage(50),
-        ])
-        .split(columns[0]);
-
-    // Right column: board (main) + history (fixed 10 lines at bottom)
-    let right = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0),
             Constraint::Length(10),
         ])
+        .split(columns[0]);
+
+    // Right column: observers (top) + waiting list (bottom)
+    let right = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(50),
+            Constraint::Percentage(50),
+        ])
         .split(columns[1]);
 
     TableLayout {
-        observers: left[0],
-        waiting_list: left[1],
-        board: right[0],
-        history: right[1],
+        board: left[0],
+        history: left[1],
+        observers: right[0],
+        waiting_list: right[1],
     }
 }

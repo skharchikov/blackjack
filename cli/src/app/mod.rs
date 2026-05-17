@@ -65,6 +65,15 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
                 AppEvent::Key(key) => handle_key(&mut app, key, &tx),
                 AppEvent::Tick => {
                     tick_count += 1;
+
+                    // Drain one queued event every 2 ticks (~500ms per card)
+                    app.anim_tick += 1;
+                    if app.anim_tick % 2 == 0 {
+                        if let Some((seq, payload)) = app.event_queue.pop_front() {
+                            apply_event_payload(&mut app, payload, seq);
+                        }
+                    }
+
                     // Poll lobby every ~3s (12 ticks × 250ms)
                     if tick_count % 12 == 0 {
                         if let crate::state::Screen::Lobby(_) = &app.ui.screen {
@@ -152,10 +161,7 @@ pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
                 Some(Ok(Message::Text(t))) => {
                     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&t) {
                         if v["type"].as_str() == Some("AuthOk") {
-                            let pid = v["player_id"]
-                                .as_str()
-                                .unwrap_or(&player_id)
-                                .to_string();
+                            let pid = v["player_id"].as_str().unwrap_or(&player_id).to_string();
                             break pid;
                         }
                     }
@@ -171,8 +177,7 @@ pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
             .await;
 
         // JoinTable
-        let join =
-            serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": 1});
+        let join = serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": 1});
         if ws
             .send(Message::Text(join.to_string().into()))
             .await
@@ -214,13 +219,12 @@ fn handle_ws_message(app: &mut App, json: String) {
 
     match msg_type {
         "Snapshot" => {
+            app.event_queue.clear();
             if let Some(tid) = v["table_id"].as_str() {
                 app.current_table_id = Some(tid.to_string());
             }
             use bj_core::domain::engine::snapshot::GameStateSnapshot;
-            if let Ok(snap) =
-                serde_json::from_value::<GameStateSnapshot>(v["state"].clone())
-            {
+            if let Ok(snap) = serde_json::from_value::<GameStateSnapshot>(v["state"].clone()) {
                 let table = table_state_from_snapshot(&snap, &app.player_id);
                 app.ui = crate::state::UiState::from_table_state(
                     table,
@@ -233,10 +237,8 @@ fn handle_ws_message(app: &mut App, json: String) {
             let seq = v["event"]["seq"].as_u64().unwrap_or(0);
             if let Some(payload_val) = v.get("event").and_then(|e| e.get("payload")) {
                 use bj_core::domain::engine::event::payload::EventPayload;
-                if let Ok(payload) =
-                    serde_json::from_value::<EventPayload>(payload_val.clone())
-                {
-                    apply_event_payload(app, payload, seq);
+                if let Ok(payload) = serde_json::from_value::<EventPayload>(payload_val.clone()) {
+                    app.event_queue.push_back((seq, payload));
                 }
             }
         }
@@ -251,11 +253,11 @@ fn table_state_from_snapshot(
     snap: &bj_core::domain::engine::snapshot::GameStateSnapshot,
     my_player_id: &str,
 ) -> crate::state::table::TableState {
-    use bj_core::domain::engine::phase::Phase;
     use crate::state::{
         cards::{UiCard, UiHand},
         table::{PlayerUiState, TableState},
     };
+    use bj_core::domain::engine::phase::Phase;
 
     let phase = server_phase_to_game_phase(&snap.phase);
     let active_pid = if let Phase::PlayerTurn(pid) = &snap.phase {
@@ -270,11 +272,7 @@ fn table_state_from_snapshot(
         .map(|p| {
             let pid = p.player_id.to_string();
             let is_active = active_pid.as_ref().map(|a| a == &pid).unwrap_or(false);
-            let cards: Vec<UiCard> = p
-                .cards
-                .iter()
-                .map(|c| UiCard::visible(*c))
-                .collect();
+            let cards: Vec<UiCard> = p.cards.iter().map(|c| UiCard::visible(*c)).collect();
             let hand = UiHand {
                 value: Some(p.hand_value.to_string()),
                 cards,
@@ -315,7 +313,11 @@ fn table_state_from_snapshot(
             value: None,
         };
         let v = hand.compute_value();
-        if v > 0 { Some(v.to_string()) } else { None }
+        if v > 0 {
+            Some(v.to_string())
+        } else {
+            None
+        }
     };
 
     let _ = my_player_id;
@@ -354,13 +356,17 @@ fn table_state_from_snapshot(
     state
 }
 
-fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::payload::EventPayload, seq: u64) {
-    use bj_core::domain::engine::event::payload::EventPayload;
-    use bj_core::domain::engine::phase::Phase;
+fn apply_event_payload(
+    app: &mut App,
+    payload: bj_core::domain::engine::event::payload::EventPayload,
+    seq: u64,
+) {
     use crate::state::{
         cards::{UiCard, UiHand},
         table::{GamePhase, PlayerUiState},
     };
+    use bj_core::domain::engine::event::payload::EventPayload;
+    use bj_core::domain::engine::phase::Phase;
 
     // Extract phase change before borrowing screen
     let phase_change: Option<Phase> = match &payload {
@@ -380,7 +386,10 @@ fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::p
                         player_id: pid.clone(),
                         name: short_id(&pid),
                         active: false,
-                        hand: UiHand { cards: vec![], value: None },
+                        hand: UiHand {
+                            cards: vec![],
+                            value: None,
+                        },
                         hand_value: 0,
                         is_bust: false,
                         balance: 0,
@@ -437,7 +446,10 @@ fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::p
                 table.dealer.cards.push(UiCard::visible(card));
                 let v = table.dealer.compute_value();
                 table.dealer.value = if v > 0 { Some(v.to_string()) } else { None };
-                table.log(format!("#{seq} dealer dealt {}", UiCard::visible(card).short_display()));
+                table.log(format!(
+                    "#{seq} dealer dealt {}",
+                    UiCard::visible(card).short_display()
+                ));
             }
             EventPayload::PlayerDecisionTaken { player, action } => {
                 let pid = player.to_string();
@@ -487,7 +499,10 @@ fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::p
                     None
                 };
                 for p in &mut table.players {
-                    p.active = active_pid.as_ref().map(|id| id == &p.player_id).unwrap_or(false);
+                    p.active = active_pid
+                        .as_ref()
+                        .map(|id| id == &p.player_id)
+                        .unwrap_or(false);
                 }
 
                 // New round: reset cards and bets
@@ -514,8 +529,8 @@ fn apply_event_payload(app: &mut App, payload: bj_core::domain::engine::event::p
 }
 
 fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
-    use crate::state::{table::GamePhase, BettingState};
     use crate::state::ui_state::{FooterHint, FooterState};
+    use crate::state::{table::GamePhase, BettingState};
 
     let min_bet = app.table_min_bet;
     let max_bet = app.table_max_bet;
@@ -531,10 +546,22 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
             });
             app.ui.footer = FooterState {
                 hints: vec![
-                    FooterHint { key: "←→", label: "bet" },
-                    FooterHint { key: "enter", label: "confirm" },
-                    FooterHint { key: "l", label: "leave" },
-                    FooterHint { key: "q", label: "quit" },
+                    FooterHint {
+                        key: "←→",
+                        label: "bet",
+                    },
+                    FooterHint {
+                        key: "enter",
+                        label: "confirm",
+                    },
+                    FooterHint {
+                        key: "l",
+                        label: "leave",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
@@ -543,10 +570,22 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
             app.ui.betting = None;
             app.ui.footer = FooterState {
                 hints: vec![
-                    FooterHint { key: "h", label: "hit" },
-                    FooterHint { key: "s", label: "stand" },
-                    FooterHint { key: "l", label: "leave" },
-                    FooterHint { key: "q", label: "quit" },
+                    FooterHint {
+                        key: "h",
+                        label: "hit",
+                    },
+                    FooterHint {
+                        key: "s",
+                        label: "stand",
+                    },
+                    FooterHint {
+                        key: "l",
+                        label: "leave",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
@@ -555,8 +594,14 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
             app.ui.betting = None;
             app.ui.footer = FooterState {
                 hints: vec![
-                    FooterHint { key: "l", label: "leave" },
-                    FooterHint { key: "q", label: "quit" },
+                    FooterHint {
+                        key: "l",
+                        label: "leave",
+                    },
+                    FooterHint {
+                        key: "q",
+                        label: "quit",
+                    },
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
@@ -567,8 +612,8 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
 fn server_phase_to_game_phase(
     phase: &bj_core::domain::engine::phase::Phase,
 ) -> crate::state::table::GamePhase {
-    use bj_core::domain::engine::phase::Phase;
     use crate::state::table::GamePhase;
+    use bj_core::domain::engine::phase::Phase;
     match phase {
         Phase::WaitingForBets => GamePhase::Betting,
         Phase::InitialDealing => GamePhase::Dealing,

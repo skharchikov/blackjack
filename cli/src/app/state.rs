@@ -1,3 +1,6 @@
+use std::collections::VecDeque;
+
+use bj_core::domain::engine::event::payload::EventPayload;
 use crate::state::UiState;
 use tokio::sync::mpsc;
 use ulid::Ulid;
@@ -11,6 +14,10 @@ pub struct App {
     pub current_table_id: Option<String>,
     pub table_min_bet: u32,
     pub table_max_bet: u32,
+    /// Events waiting to be applied one-by-one for animation.
+    pub event_queue: VecDeque<(u64, EventPayload)>,
+    /// Tick counter used to pace event application.
+    pub anim_tick: u64,
 }
 
 impl App {
@@ -24,6 +31,8 @@ impl App {
             current_table_id: None,
             table_min_bet: 10,
             table_max_bet: 1_000,
+            event_queue: VecDeque::new(),
+            anim_tick: 0,
         }
     }
 }
