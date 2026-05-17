@@ -1,11 +1,11 @@
-use bj_core::domain::Table;
-use color_eyre::eyre::{eyre, Report};
+use color_eyre::eyre::Report;
 use sqlx::PgPool;
 use thiserror::Error;
 
+// TODO(Task 15): Replace with TableActor / InMemoryGameSession — this is a temporary stub.
 #[async_trait::async_trait]
 pub trait TableStore: Send + Sync {
-    async fn list_tables(&self) -> Result<Vec<Table>, TableStoreError>;
+    async fn list_tables(&self) -> Result<Vec<()>, TableStoreError>;
 }
 
 #[derive(Debug, Error)]
@@ -26,12 +26,8 @@ impl PostgresTableStore {
 
 #[async_trait::async_trait]
 impl TableStore for PostgresTableStore {
-    async fn list_tables(&self) -> Result<Vec<Table>, TableStoreError> {
-        let tables = sqlx::query_as::<_, Table>(r#"SELECT id, name, status, settings FROM tables"#)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| TableStoreError::UnexpectedError(eyre!(e)))?;
-
-        Ok(tables)
+    async fn list_tables(&self) -> Result<Vec<()>, TableStoreError> {
+        let _ = &self.pool;
+        todo!("replaced in Task 15")
     }
 }
