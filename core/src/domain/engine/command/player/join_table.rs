@@ -16,7 +16,7 @@ impl CommandHandler for JoinTable {
     fn handle(
         &self,
         state: &GameState,
-        _settings: &TableSettings,
+        settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
         // Idempotent: already anywhere at this table
         if state.players.iter().any(|p| p.player_id == self.player_id)
@@ -24,6 +24,9 @@ impl CommandHandler for JoinTable {
             || state.waiting.contains(&self.player_id)
         {
             return Ok(vec![]);
+        }
+        if state.observers.len() >= settings.max_observers {
+            return Err(CommandError::ObserversFull);
         }
         Ok(vec![EventPayload::ObserverJoined {
             player: self.player_id,
@@ -126,10 +129,20 @@ mod tests {
         let s = settings(1);
         let pid1 = PlayerId::new();
         state.players.push(crate::domain::player::PlayerState::new(pid1));
-        // Table is full but join should still work (becomes observer)
+        // Seats full but observer capacity not reached
         let pid2 = PlayerId::new();
         let events = GameEngine::handle(&state, &s, &cmd(pid2)).unwrap();
         assert_eq!(events.len(), 1);
         assert!(matches!(events[0], EventPayload::ObserverJoined { .. }));
+    }
+
+    #[test]
+    fn join_rejected_when_observers_full() {
+        let mut state = empty_state();
+        let s = TableSettings { min_bet: 10, max_bet: 1000, max_players: 5, max_observers: 2 };
+        state.observers.push(PlayerId::new());
+        state.observers.push(PlayerId::new());
+        let err = GameEngine::handle(&state, &s, &cmd(PlayerId::new())).unwrap_err();
+        assert_eq!(err, CommandError::ObserversFull);
     }
 }

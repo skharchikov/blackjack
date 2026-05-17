@@ -21,6 +21,8 @@ pub enum CommandError {
     ShoeEmpty,
     #[error("table is full")]
     TableFull,
+    #[error("observer capacity reached")]
+    ObserversFull,
     #[error("no players have placed bets")]
     NoBettors,
 }
