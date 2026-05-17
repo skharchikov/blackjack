@@ -1,7 +1,7 @@
 use crossterm::event::KeyCode;
 use tokio::sync::mpsc;
 
-use crate::state::{GamePhase, LoginField, LoginStatus, Screen, UiState};
+use crate::state::{GamePhase, LoginField, LoginStatus, Screen};
 
 use super::event::AppEvent;
 use super::state::App;
@@ -24,7 +24,7 @@ pub fn handle_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     }
 }
 
-fn handle_login_key(app: &mut App, key: KeyCode, _tx: &mpsc::Sender<AppEvent>) {
+fn handle_login_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     let Screen::Login(ref mut login) = app.ui.screen else {
         return;
     };
@@ -53,7 +53,7 @@ fn handle_login_key(app: &mut App, key: KeyCode, _tx: &mpsc::Sender<AppEvent>) {
                 app.username = login.username.clone();
                 app.password = login.password.clone();
                 login.status = LoginStatus::Connecting;
-                app.ui = UiState::lobby();
+                crate::app::spawn_ws(app, tx);
             }
         }
         KeyCode::Esc => {
@@ -63,7 +63,7 @@ fn handle_login_key(app: &mut App, key: KeyCode, _tx: &mpsc::Sender<AppEvent>) {
     }
 }
 
-fn handle_lobby_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
+fn handle_lobby_key(app: &mut App, key: KeyCode, _tx: &mpsc::Sender<AppEvent>) {
     let Screen::Lobby(ref mut lobby) = app.ui.screen else {
         return;
     };
@@ -85,7 +85,11 @@ fn handle_lobby_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
                     let table_id = table.id.clone();
                     app.table_min_bet = table.settings.min_bet;
                     app.table_max_bet = table.settings.max_bet;
-                    crate::app::spawn_ws(app, table_id, tx);
+                    app.current_table_id = Some(table_id.clone());
+                    if let Some(ref ws_tx) = app.ws_tx {
+                        let join = serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": 1});
+                        let _ = ws_tx.try_send(join.to_string());
+                    }
                 }
             }
         }

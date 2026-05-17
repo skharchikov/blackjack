@@ -11,5 +11,6 @@ pub enum AppEvent {
     WsMessage(String),
     WsConnected { player_id: String },
     WsDisconnected,
+    AuthFailed(String),
     ServerError(String),
 }

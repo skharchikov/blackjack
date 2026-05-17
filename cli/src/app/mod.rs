@@ -100,6 +100,7 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
                 }
                 AppEvent::WsConnected { player_id } => {
                     app.player_id = player_id;
+                    app.ui = crate::state::UiState::lobby();
                 }
                 AppEvent::WsMessage(json) => {
                     handle_ws_message(&mut app, json);
@@ -107,7 +108,11 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
                 AppEvent::WsDisconnected => {
                     app.ws_tx = None;
                     app.current_table_id = None;
-                    app.ui = crate::state::UiState::lobby();
+                    set_login_error(&mut app, "Disconnected from server");
+                }
+                AppEvent::AuthFailed(reason) => {
+                    app.ws_tx = None;
+                    set_login_error(&mut app, &reason);
                 }
                 AppEvent::ServerError(e) => {
                     tracing::error!("server error: {e}");
@@ -124,7 +129,16 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     Ok(())
 }
 
-pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
+fn set_login_error(app: &mut App, msg: &str) {
+    use crate::state::{LoginField, LoginState, LoginStatus, Screen};
+    let mut login = LoginState::default();
+    login.username = app.username.clone();
+    login.active_field = LoginField::Password;
+    login.status = LoginStatus::Error(msg.to_string());
+    app.ui.screen = Screen::Login(login);
+}
+
+pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
     let ws_url = format!("{}/ws", app.server_url.replace("http", "ws"));
     let username = app.username.clone();
     let password = app.password.clone();
@@ -140,18 +154,14 @@ pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
         let (mut ws, _) = match connect_async(&ws_url).await {
             Ok(v) => v,
             Err(e) => {
-                let _ = tx_app.send(AppEvent::ServerError(e.to_string())).await;
+                let _ = tx_app.send(AppEvent::AuthFailed(format!("Cannot connect: {e}"))).await;
                 return;
             }
         };
 
-        // Auth — server returns the stable PlayerId for this username
         let auth = serde_json::json!({"type": "Auth", "username": username, "password": password});
-        if ws
-            .send(Message::Text(auth.to_string().into()))
-            .await
-            .is_err()
-        {
+        if ws.send(Message::Text(auth.to_string().into())).await.is_err() {
+            let _ = tx_app.send(AppEvent::AuthFailed("Connection lost".into())).await;
             return;
         }
 
@@ -166,35 +176,24 @@ pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
                                 break pid;
                             }
                             Some("AuthError") => {
-                                let reason = v["reason"].as_str().unwrap_or("auth error").to_string();
-                                let _ = tx_app.send(AppEvent::ServerError(reason)).await;
+                                let reason = v["reason"].as_str().unwrap_or("auth failed").to_string();
+                                let _ = tx_app.send(AppEvent::AuthFailed(reason)).await;
                                 return;
                             }
                             _ => {}
                         }
                     }
                 }
-                _ => return,
+                _ => {
+                    let _ = tx_app.send(AppEvent::AuthFailed("Connection lost".into())).await;
+                    return;
+                }
             }
         };
 
-        let _ = tx_app
-            .send(AppEvent::WsConnected {
-                player_id: confirmed_player_id,
-            })
-            .await;
+        let _ = tx_app.send(AppEvent::WsConnected { player_id: confirmed_player_id }).await;
 
-        // JoinTable
-        let join = serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": 1});
-        if ws
-            .send(Message::Text(join.to_string().into()))
-            .await
-            .is_err()
-        {
-            return;
-        }
-
-        // Forward loop
+        // Forward loop — JoinTable and other commands arrive via ws_cmd_rx
         loop {
             tokio::select! {
                 Some(cmd) = ws_cmd_rx.recv() => {
