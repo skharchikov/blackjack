@@ -212,8 +212,7 @@ async fn update_summary(
         Phase::Finished => "Finished".to_string(),
     };
     let player_count = state.players.len();
-    let is_joinable =
-        matches!(state.phase, Phase::WaitingForBets) && player_count < settings.max_players;
+    let is_joinable = state.observers.len() < settings.max_observers;
     let mut s = summary.write().await;
     s.player_count = player_count;
     s.phase = phase_str;

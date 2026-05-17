@@ -128,7 +128,13 @@ fn render_players(frame: &mut Frame, area: Rect, ui: &UiState) {
     };
 
     if table.players.is_empty() {
-        let widget = Paragraph::new("  (no players at table)")
+        let msg = if table.observers.is_empty() {
+            "  (no players at table)".to_string()
+        } else {
+            let names: Vec<&str> = table.observers.iter().map(|o| o.name.as_str()).collect();
+            format!("  {} observing — press [T] to take a seat", names.join(", "))
+        };
+        let widget = Paragraph::new(msg)
             .block(
                 Block::default()
                     .title(" Players ")
