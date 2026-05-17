@@ -115,10 +115,8 @@ fn rank_template(rank: Rank) -> &'static str {
 
 fn suit_color(suit: Suit) -> Color {
     match suit {
-        Suit::Clubs => Color::Black,
-        Suit::Diamonds => Color::Red,
-        Suit::Hearts => Color::Red,
-        Suit::Spades => Color::Black,
+        Suit::Clubs | Suit::Spades => Color::White,
+        Suit::Diamonds | Suit::Hearts => Color::Red,
     }
 }
 
