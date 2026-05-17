@@ -5,7 +5,6 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
-use throbber_widgets_tui::{Throbber, ThrobberState, BRAILLE_SIX_DOUBLE};
 
 use crate::state::UiState;
 
@@ -15,35 +14,18 @@ const COLOR_COMMENT: Color = Color::Rgb(86, 95, 137);
 const COLOR_GREEN: Color = Color::Rgb(158, 206, 106);
 const COLOR_YELLOW: Color = Color::Rgb(224, 175, 104);
 
-pub fn render_header(
-    frame: &mut Frame,
-    area: Rect,
-    ui: &UiState,
-    throbber_state: &mut ThrobberState,
-) {
+pub fn render_header(frame: &mut Frame, area: Rect, ui: &UiState) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(COLOR_COMMENT));
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    // [spinner(2)] [title + phase(Min)] [balance + timer(28)]
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(2),
-            Constraint::Min(0),
-            Constraint::Length(28),
-        ])
+        .constraints([Constraint::Min(0), Constraint::Length(28)])
         .split(inner);
 
-    // Spinner only (no label so we control title styling separately)
-    let throbber = Throbber::default()
-        .style(Style::default().fg(COLOR_CYAN))
-        .throbber_set(BRAILLE_SIX_DOUBLE);
-    frame.render_stateful_widget(throbber, chunks[0], throbber_state);
-
-    // Styled title + phase
     let title_line = Line::from(vec![
         Span::styled(
             ui.header.title.clone(),
@@ -52,13 +34,12 @@ pub fn render_header(
         Span::styled(" — ", Style::default().fg(COLOR_COMMENT)),
         Span::styled(ui.header.subtitle.clone(), Style::default().fg(COLOR_CYAN)),
     ]);
-    frame.render_widget(Paragraph::new(title_line), chunks[1]);
+    frame.render_widget(Paragraph::new(title_line), chunks[0]);
 
-    // Right: balance + countdown
     let right_line = build_right_line(ui);
     frame.render_widget(
         Paragraph::new(right_line).alignment(Alignment::Right),
-        chunks[2],
+        chunks[1],
     );
 }
 

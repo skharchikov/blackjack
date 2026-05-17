@@ -58,15 +58,13 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     let mut tick_count: u64 = 0;
 
     loop {
-        terminal.draw(|f| render(f, &app.ui, &mut app.throbber_state))?;
+        terminal.draw(|f| render(f, &app.ui))?;
 
         if let Some(event) = rx.recv().await {
             match event {
                 AppEvent::Key(key) => handle_key(&mut app, key, &tx),
                 AppEvent::Tick => {
                     tick_count += 1;
-                    app.throbber_state.calc_next();
-
                     // Drain one queued event every 2 ticks (~500ms per card)
                     app.anim_tick += 1;
                     if app.anim_tick % 2 == 0 {
