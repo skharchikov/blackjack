@@ -5,9 +5,17 @@ use axum::{
     },
     response::IntoResponse,
 };
+use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
-use crate::{AppState, ServerMessage};
+use crate::AppState;
+
+// TODO(Task 17): Replace with proper ClientMessage/ServerMessage wire types.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+enum ServerMessage {
+    Pong,
+}
 
 #[utoipa::path(
     get,
@@ -16,18 +24,13 @@ use crate::{AppState, ServerMessage};
         (status = 101, description = "WebSocket upgrade")
     )
 )]
-pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, state))
+pub async fn ws_handler(ws: WebSocketUpgrade, State(_state): State<AppState>) -> impl IntoResponse {
+    ws.on_upgrade(handle_socket)
 }
 
 /// Handle an individual WebSocket connection.
-async fn handle_socket(mut socket: WebSocket, state: AppState) {
-    let conn_id = state
-        .connections
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        + 1;
-
-    info!("Connection {} established", conn_id);
+async fn handle_socket(mut socket: WebSocket) {
+    info!("WebSocket connection established");
 
     while let Some(msg) = socket.recv().await {
         let msg = match msg {
@@ -45,9 +48,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                     break;
                 }
             }
-            Message::Text(_) => {
-                // Ignore other text messages
-            }
+            Message::Text(_) => {}
             Message::Ping(data) => {
                 if let Err(e) = socket.send(Message::Pong(data)).await {
                     error!("Failed to send pong frame: {}", e);
@@ -55,14 +56,14 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                 }
             }
             Message::Close(_) => {
-                info!("Connection {} closed", conn_id);
+                info!("WebSocket connection closed");
                 break;
             }
             _ => {}
         }
     }
 
-    info!("Connection {} terminated", conn_id);
+    info!("WebSocket connection terminated");
 }
 
 /// Send a server message over the WebSocket.

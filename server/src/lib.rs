@@ -1,33 +1,22 @@
 pub mod config;
 pub mod routes;
+pub mod session;
 pub mod store;
+pub mod wallet;
 
-use serde::{Deserialize, Serialize};
-use std::sync::atomic::AtomicU64;
+use session::GameSession;
 use std::sync::Arc;
+use wallet::Wallet;
 
-/// Shared application state accessible from all handlers.
 pub type AppState = Arc<App>;
-pub type TableStore = Box<dyn store::TableStore>;
 
-/// Application state.
 pub struct App {
-    pub connections: AtomicU64,
-    pub table_store: TableStore,
+    pub session: Arc<dyn GameSession>,
+    pub wallet: Arc<dyn Wallet>,
 }
 
 impl App {
-    pub fn new(table_store: impl store::TableStore + 'static) -> Self {
-        Self {
-            connections: AtomicU64::new(0),
-            table_store: Box::new(table_store),
-        }
+    pub fn new(session: Arc<dyn GameSession>, wallet: Arc<dyn Wallet>) -> Self {
+        Self { session, wallet }
     }
-}
-
-/// Messages sent from server to client.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum ServerMessage {
-    Pong,
 }
