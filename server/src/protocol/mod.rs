@@ -13,6 +13,10 @@ pub enum ClientMessage {
         table_id: String,
         request_id: u64,
     },
+    LeaveSeat {
+        table_id: String,
+        request_id: u64,
+    },
     LeaveTable {
         table_id: String,
         request_id: u64,

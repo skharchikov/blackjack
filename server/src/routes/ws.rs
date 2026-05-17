@@ -15,7 +15,9 @@ use crate::{
     AppState,
 };
 use bj_core::domain::{
-    engine::command::player::{Hit, JoinTable, LeaveTable, PlaceBet, PlayerAction, Stand, TakeSeat},
+    engine::command::player::{
+        Hit, JoinTable, LeaveSeat, LeaveTable, PlaceBet, PlayerAction, Stand, TakeSeat,
+    },
     engine::snapshot::GameEventDto,
     TableId,
 };
@@ -45,7 +47,8 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             Some(Ok(Message::Text(text))) => {
                 match serde_json::from_str::<ClientMessage>(&text) {
                     Ok(ClientMessage::Auth { username, password }) => {
-                        match state.auth
+                        match state
+                            .auth
                             .authenticate(&AuthPayload {
                                 username: username.clone(),
                                 password: Password::new(password),
@@ -57,7 +60,10 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                                 if state.wallet.balance(pid).await.is_err() {
                                     let _ = state.wallet.credit(pid, 1000).await;
                                 }
-                                info!("conn={conn_id} authenticated user='{}' player_id={}", username, pid);
+                                info!(
+                                    "conn={conn_id} authenticated user='{}' player_id={}",
+                                    username, pid
+                                );
                                 let msg = ServerMessage::AuthOk {
                                     player_id: pid.to_string(),
                                 };
@@ -159,7 +165,10 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             )
             .await
         {
-            warn!("conn={conn_id} user='{}' leave-table on disconnect failed: {e}", authed_username);
+            warn!(
+                "conn={conn_id} user='{}' leave-table on disconnect failed: {e}",
+                authed_username
+            );
         }
     }
     info!("conn={conn_id} user='{}' session ended", authed_username);
@@ -392,6 +401,21 @@ async fn handle_client_msg(
                 &table_id,
                 request_id,
                 PlayerAction::Stand(Stand { player_id }),
+            )
+            .await?;
+        }
+
+        ClientMessage::LeaveSeat {
+            table_id,
+            request_id,
+        } => {
+            send_player_cmd(
+                socket,
+                state,
+                player_id,
+                &table_id,
+                request_id,
+                PlayerAction::LeaveSeat(LeaveSeat { player_id }),
             )
             .await?;
         }

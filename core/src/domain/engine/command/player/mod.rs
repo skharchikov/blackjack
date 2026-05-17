@@ -1,5 +1,6 @@
 pub mod hit;
 pub mod join_table;
+pub mod leave_seat;
 pub mod leave_table;
 pub mod place_bet;
 pub mod stand;
@@ -7,6 +8,7 @@ pub mod take_seat;
 
 pub use hit::Hit;
 pub use join_table::JoinTable;
+pub use leave_seat::LeaveSeat;
 pub use leave_table::LeaveTable;
 pub use place_bet::PlaceBet;
 pub use stand::Stand;
@@ -29,6 +31,7 @@ pub struct PlayerCommand {
 #[derive(Debug, Clone)]
 pub enum PlayerAction {
     JoinTable(JoinTable),
+    LeaveSeat(LeaveSeat),
     LeaveTable(LeaveTable),
     PlaceBet(PlaceBet),
     Hit(Hit),
@@ -44,6 +47,7 @@ impl CommandHandler for PlayerAction {
     ) -> Result<Vec<EventPayload>, CommandError> {
         match self {
             Self::JoinTable(h) => h.handle(state, settings),
+            Self::LeaveSeat(h) => h.handle(state, settings),
             Self::LeaveTable(h) => h.handle(state, settings),
             Self::PlaceBet(h) => h.handle(state, settings),
             Self::Hit(h) => h.handle(state, settings),
