@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
-use bj_core::domain::engine::event::payload::EventPayload;
 use crate::state::UiState;
+use bj_core::domain::engine::event::payload::EventPayload;
 use tokio::sync::mpsc;
 use ulid::Ulid;
 
@@ -18,6 +18,7 @@ pub struct App {
     pub table_max_bet: u32,
     pub event_queue: VecDeque<(u64, EventPayload)>,
     pub anim_tick: u64,
+    next_request_id: u64,
 }
 
 impl App {
@@ -35,6 +36,15 @@ impl App {
             table_max_bet: 1_000,
             event_queue: VecDeque::new(),
             anim_tick: 0,
+            next_request_id: 1,
         }
+    }
+}
+
+impl App {
+    pub fn next_request_id(&mut self) -> u64 {
+        let id = self.next_request_id;
+        self.next_request_id += 1;
+        id
     }
 }

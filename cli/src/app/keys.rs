@@ -86,8 +86,9 @@ fn handle_lobby_key(app: &mut App, key: KeyCode, _tx: &mpsc::Sender<AppEvent>) {
                     app.table_min_bet = table.settings.min_bet;
                     app.table_max_bet = table.settings.max_bet;
                     app.current_table_id = Some(table_id.clone());
+                    let rid = app.next_request_id();
                     if let Some(ref ws_tx) = app.ws_tx {
-                        let join = serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": 1});
+                        let join = serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": rid});
                         let _ = ws_tx.try_send(join.to_string());
                     }
                 }
@@ -105,10 +106,11 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     let is_observer = table.is_observer;
 
     if let KeyCode::Char('l') = key {
+        let rid = app.next_request_id();
         if is_observer {
             // Observer leaves the table entirely
             if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                let msg = serde_json::json!({"type": "LeaveTable", "table_id": tid, "request_id": 99});
+                let msg = serde_json::json!({"type": "LeaveTable", "table_id": tid, "request_id": rid});
                 let _ = ws_tx.try_send(msg.to_string());
             }
             app.ws_tx = None;
@@ -117,7 +119,7 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
         } else {
             // Seated/waiting player goes back to observer
             if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                let msg = serde_json::json!({"type": "LeaveSeat", "table_id": tid, "request_id": 99});
+                let msg = serde_json::json!({"type": "LeaveSeat", "table_id": tid, "request_id": rid});
                 let _ = ws_tx.try_send(msg.to_string());
             }
         }
@@ -127,8 +129,9 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     // Observer: request a seat
     if is_observer {
         if let KeyCode::Char('t') = key {
+            let rid = app.next_request_id();
             if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                let msg = serde_json::json!({"type": "TakeSeat", "table_id": tid, "request_id": 5});
+                let msg = serde_json::json!({"type": "TakeSeat", "table_id": tid, "request_id": rid});
                 let _ = ws_tx.try_send(msg.to_string());
             }
         }
@@ -145,15 +148,16 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     if phase == GamePhase::PlayerTurn {
         match key {
             KeyCode::Char('h') => {
+                let rid = app.next_request_id();
                 if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                    let msg = serde_json::json!({"type": "Hit", "table_id": tid, "request_id": 2});
+                    let msg = serde_json::json!({"type": "Hit", "table_id": tid, "request_id": rid});
                     let _ = ws_tx.try_send(msg.to_string());
                 }
             }
             KeyCode::Char('s') => {
+                let rid = app.next_request_id();
                 if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                    let msg =
-                        serde_json::json!({"type": "Stand", "table_id": tid, "request_id": 3});
+                    let msg = serde_json::json!({"type": "Stand", "table_id": tid, "request_id": rid});
                     let _ = ws_tx.try_send(msg.to_string());
                 }
             }
@@ -183,8 +187,10 @@ fn handle_betting_key(app: &mut App, key: KeyCode) {
         KeyCode::Enter => {
             let amount = betting.current_bet;
             betting.confirmed = true;
+            let _ = betting;
+            let rid = app.next_request_id();
             if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                let msg = serde_json::json!({"type": "PlaceBet", "table_id": tid, "request_id": 10, "amount": amount});
+                let msg = serde_json::json!({"type": "PlaceBet", "table_id": tid, "request_id": rid, "amount": amount});
                 let _ = ws_tx.try_send(msg.to_string());
             }
         }
