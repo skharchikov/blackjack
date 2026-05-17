@@ -23,6 +23,7 @@ use bj_core::domain::{
 };
 use std::{sync::Arc, time::Duration};
 use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
+use tracing::{info, warn};
 
 pub enum TableCommand {
     Execute {
@@ -66,14 +67,17 @@ pub async fn run_table_actor(
             cmd = cmd_rx.recv() => {
                 let Some(cmd) = cmd else { break };
                 match cmd {
-                    TableCommand::Execute { player_id: _, request_id, action, reply } => {
+                    TableCommand::Execute { player_id, request_id, action, reply } => {
                         let game_cmd = GameCommand::Player(PlayerCommand {
                             game_id: state.game_id,
                             command_id: CommandId(request_id.0),
                             action,
                         });
                         match GameEngine::handle(&state, &settings, &game_cmd) {
-                            Err(e) => { let _ = reply.send(Err(SessionError::CommandRejected(e.to_string()))); }
+                            Err(e) => {
+                                warn!("table={_table_id} player={player_id} command rejected: {e}");
+                                let _ = reply.send(Err(SessionError::CommandRejected(e.to_string())));
+                            }
                             Ok(events) => {
                                 apply_and_broadcast(&mut state, &events, &event_tx, &mut seq);
                                 // Load wallet balance for any player that just joined
@@ -102,13 +106,16 @@ pub async fn run_table_actor(
                             command_id: CommandId(0),
                             action,
                         });
-                        if let Ok(events) = GameEngine::handle(&state, &settings, &game_cmd) {
-                            apply_and_broadcast(&mut state, &events, &event_tx, &mut seq);
-                            update_summary(&summary, &state, &settings).await;
-                            if matches!(state.phase, Phase::Finished) {
-                                handle_game_finished(&state, &wallet, &mut round_dl, round_delay).await;
+                        match GameEngine::handle(&state, &settings, &game_cmd) {
+                            Err(e) => warn!("table={_table_id} dealer command rejected: {e}"),
+                            Ok(events) => {
+                                apply_and_broadcast(&mut state, &events, &event_tx, &mut seq);
+                                update_summary(&summary, &state, &settings).await;
+                                if matches!(state.phase, Phase::Finished) {
+                                    handle_game_finished(&state, &wallet, &mut round_dl, round_delay).await;
+                                }
+                                reset_player_timer(&state, &mut player_dl, player_turn_timeout);
                             }
-                            reset_player_timer(&state, &mut player_dl, player_turn_timeout);
                         }
                         maybe_advance_dealer(&mut state, &settings, &event_tx, &mut seq, &summary, &wallet, &mut round_dl, round_delay, &mut player_dl, player_turn_timeout).await;
                     }
@@ -221,6 +228,7 @@ async fn handle_game_finished(
 ) {
     for player in &state.players {
         wallet.set_balance(player.player_id, player.balance).await;
+        info!("game={} player={} balance synced to {}", state.game_id, player.player_id, player.balance);
     }
     *round_dl = Some(Box::pin(tokio::time::sleep(delay)));
 }

@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
 };
 use tokio::sync::mpsc;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::{
     auth::{AuthPayload, Authenticator, Password},
@@ -32,11 +32,14 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
     info!("WS connection {conn_id} opened");
 
     // Auth phase
-    let player_id = loop {
+    let (player_id, authed_username) = loop {
         match socket.recv().await {
-            None => return,
+            None => {
+                info!("conn={conn_id} disconnected before auth");
+                return;
+            }
             Some(Err(e)) => {
-                error!("recv error: {e}");
+                error!("conn={conn_id} recv error before auth: {e}");
                 return;
             }
             Some(Ok(Message::Text(text))) => {
@@ -44,7 +47,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                     Ok(ClientMessage::Auth { username, password }) => {
                         match state.auth
                             .authenticate(&AuthPayload {
-                                username,
+                                username: username.clone(),
                                 password: Password::new(password),
                             })
                             .await
@@ -54,15 +57,17 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                                 if state.wallet.balance(pid).await.is_err() {
                                     let _ = state.wallet.credit(pid, 1000).await;
                                 }
+                                info!("conn={conn_id} authenticated user='{}' player_id={}", username, pid);
                                 let msg = ServerMessage::AuthOk {
                                     player_id: pid.to_string(),
                                 };
                                 if send_msg(&mut socket, &msg).await.is_err() {
                                     return;
                                 }
-                                break pid;
+                                break (pid, username);
                             }
                             Err(e) => {
+                                warn!("conn={conn_id} auth failed user='{}': {e}", username);
                                 let _ = send_msg(
                                     &mut socket,
                                     &ServerMessage::AuthError {
@@ -75,6 +80,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                         }
                     }
                     _ => {
+                        warn!("conn={conn_id} sent non-Auth message before authenticating");
                         let _ = send_msg(
                             &mut socket,
                             &ServerMessage::AuthError {
@@ -96,15 +102,29 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
     loop {
         tokio::select! {
             Some(json) = event_fwd_rx.recv() => {
-                if socket.send(Message::Text(json.into())).await.is_err() { break; }
+                if socket.send(Message::Text(json.into())).await.is_err() {
+                    error!("conn={conn_id} user='{}' send failed (event forward)", authed_username);
+                    break;
+                }
             }
             msg = socket.recv() => {
                 match msg {
-                    None | Some(Err(_)) => break,
-                    Some(Ok(Message::Close(_))) => break,
+                    None => {
+                        info!("conn={conn_id} user='{}' disconnected", authed_username);
+                        break;
+                    }
+                    Some(Err(e)) => {
+                        error!("conn={conn_id} user='{}' recv error: {e}", authed_username);
+                        break;
+                    }
+                    Some(Ok(Message::Close(_))) => {
+                        info!("conn={conn_id} user='{}' sent close frame", authed_username);
+                        break;
+                    }
                     Some(Ok(Message::Text(text))) => {
                         match serde_json::from_str::<ClientMessage>(&text) {
                             Err(e) => {
+                                warn!("conn={conn_id} user='{}' parse error: {e}", authed_username);
                                 let _ = send_msg(&mut socket, &ServerMessage::CommandError {
                                     request_id: 0,
                                     reason: format!("parse error: {e}"),
@@ -129,7 +149,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         h.abort();
     }
     if let Some(tid) = current_table {
-        let _ = state
+        if let Err(e) = state
             .session
             .send_command(
                 tid,
@@ -137,9 +157,12 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                 RequestId(0),
                 PlayerAction::LeaveTable(LeaveTable { player_id }),
             )
-            .await;
+            .await
+        {
+            warn!("conn={conn_id} user='{}' leave-table on disconnect failed: {e}", authed_username);
+        }
     }
-    info!("WS connection {conn_id} closed");
+    info!("conn={conn_id} user='{}' session ended", authed_username);
 }
 
 async fn handle_client_msg(
@@ -198,6 +221,7 @@ async fn handle_client_msg(
                 )
                 .await
             {
+                warn!("player={player_id} join table={tid} rejected: {e}");
                 let _ = send_msg(
                     socket,
                     &ServerMessage::CommandError {
@@ -208,11 +232,13 @@ async fn handle_client_msg(
                 .await;
                 return Ok(());
             }
+            info!("player={player_id} joined table={tid}");
 
             // Subscribe FIRST to avoid missing events between snapshot and subscribe
             let mut rx = match state.session.subscribe(tid).await {
                 Ok(rx) => rx,
                 Err(e) => {
+                    error!("player={player_id} subscribe table={tid} failed: {e}");
                     let _ = send_msg(
                         socket,
                         &ServerMessage::CommandError {
@@ -238,6 +264,7 @@ async fn handle_client_msg(
                     .await;
                 }
                 Err(e) => {
+                    error!("player={player_id} snapshot table={tid} failed: {e}");
                     let _ = send_msg(
                         socket,
                         &ServerMessage::CommandError {
@@ -275,7 +302,8 @@ async fn handle_client_msg(
                                 }
                             }
                         }
-                        Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                            warn!("table={tid_str} event forwarder lagged by {n} messages");
                             let err = ServerMessage::CommandError {
                                 request_id: 0,
                                 reason: "event stream lagged, please rejoin".into(),
@@ -285,7 +313,10 @@ async fn handle_client_msg(
                             }
                             break;
                         }
-                        Err(_) => break,
+                        Err(e) => {
+                            error!("table={tid_str} event forwarder recv error: {e}");
+                            break;
+                        }
                     }
                 }
             });
@@ -299,7 +330,7 @@ async fn handle_client_msg(
             request_id,
         } => {
             if let Ok(tid) = table_id.parse::<TableId>() {
-                let _ = state
+                if let Err(e) = state
                     .session
                     .send_command(
                         tid,
@@ -307,7 +338,12 @@ async fn handle_client_msg(
                         RequestId(request_id),
                         PlayerAction::LeaveTable(LeaveTable { player_id }),
                     )
-                    .await;
+                    .await
+                {
+                    warn!("player={player_id} leave table={tid} failed: {e}");
+                } else {
+                    info!("player={player_id} left table={tid}");
+                }
                 if let Some(h) = fwd_abort.take() {
                     h.abort();
                 }
@@ -417,6 +453,7 @@ async fn send_player_cmd(
                     let _ = send_msg(socket, &ServerMessage::CommandAck { request_id }).await;
                 }
                 Err(e) => {
+                    warn!("player={player_id} command rejected on table={tid}: {e}");
                     let _ = send_msg(
                         socket,
                         &ServerMessage::CommandError {
