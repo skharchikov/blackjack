@@ -214,11 +214,14 @@ async fn update_summary(
 }
 
 async fn handle_game_finished(
-    _state: &GameState,
-    _wallet: &Arc<dyn Wallet>,
+    state: &GameState,
+    wallet: &Arc<dyn Wallet>,
     round_dl: &mut Option<std::pin::Pin<Box<tokio::time::Sleep>>>,
     delay: Duration,
 ) {
+    for player in &state.players {
+        wallet.set_balance(player.player_id, player.balance).await;
+    }
     *round_dl = Some(Box::pin(tokio::time::sleep(delay)));
 }
 

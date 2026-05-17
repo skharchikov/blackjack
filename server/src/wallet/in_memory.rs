@@ -55,4 +55,8 @@ impl Wallet for InMemoryWallet {
         *entry += amount;
         Ok(*entry)
     }
+
+    async fn set_balance(&self, player: PlayerId, amount: u32) {
+        self.balances.insert(player, amount);
+    }
 }

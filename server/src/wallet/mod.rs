@@ -17,4 +17,5 @@ pub trait Wallet: Send + Sync {
     async fn balance(&self, player: PlayerId) -> Result<u32, WalletError>;
     async fn debit(&self, player: PlayerId, amount: u32) -> Result<u32, WalletError>;
     async fn credit(&self, player: PlayerId, amount: u32) -> Result<u32, WalletError>;
+    async fn set_balance(&self, player: PlayerId, amount: u32);
 }
