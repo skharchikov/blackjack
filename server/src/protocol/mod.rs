@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type")]
 pub enum ClientMessage {
     Auth {
-        player_id: String,
+        username: String,
+        password: String,
     },
     JoinTable {
         table_id: String,

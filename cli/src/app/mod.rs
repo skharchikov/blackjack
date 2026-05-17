@@ -128,7 +128,8 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
 
 pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
     let ws_url = format!("{}/ws", app.server_url.replace("http", "ws"));
-    let player_id = app.player_id.clone();
+    let username = app.username.clone();
+    let password = app.password.clone();
     let tx_app = tx.clone();
     let (ws_cmd_tx, mut ws_cmd_rx) = mpsc::channel::<String>(32);
     app.ws_tx = Some(ws_cmd_tx);
@@ -146,8 +147,8 @@ pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
             }
         };
 
-        // Auth
-        let auth = serde_json::json!({"type": "Auth", "player_id": player_id});
+        // Auth — server returns the stable PlayerId for this username
+        let auth = serde_json::json!({"type": "Auth", "username": username, "password": password});
         if ws
             .send(Message::Text(auth.to_string().into()))
             .await
@@ -156,14 +157,22 @@ pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
             return;
         }
 
-        // Wait for AuthOk — capture server-assigned player_id
+        // Wait for AuthOk/AuthError
         let confirmed_player_id = loop {
             match ws.next().await {
                 Some(Ok(Message::Text(t))) => {
                     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&t) {
-                        if v["type"].as_str() == Some("AuthOk") {
-                            let pid = v["player_id"].as_str().unwrap_or(&player_id).to_string();
-                            break pid;
+                        match v["type"].as_str() {
+                            Some("AuthOk") => {
+                                let pid = v["player_id"].as_str().unwrap_or("").to_string();
+                                break pid;
+                            }
+                            Some("AuthError") => {
+                                let reason = v["reason"].as_str().unwrap_or("auth error").to_string();
+                                let _ = tx_app.send(AppEvent::ServerError(reason)).await;
+                                return;
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -322,7 +331,10 @@ fn table_state_from_snapshot(
         }
     };
 
-    let _ = my_player_id;
+    let is_my_turn = active_pid
+        .as_ref()
+        .map(|pid| pid == my_player_id)
+        .unwrap_or(false);
 
     let mut state = TableState {
         game_id: snap.game_id.to_string(),
@@ -334,6 +346,7 @@ fn table_state_from_snapshot(
         },
         players,
         event_log: vec!["— snapshot —".into()],
+        is_my_turn,
     };
 
     // Seed log with current table state so history isn't blank on join
@@ -379,6 +392,7 @@ fn apply_event_payload(
     let own_bet_confirmed = matches!(&payload,
         EventPayload::PlayerPlacedBet { player, .. } if player.to_string() == app.player_id
     );
+    let my_player_id = app.player_id.clone();
 
     // Apply payload to table state
     if let crate::state::Screen::Table(ref mut table) = app.ui.screen {
@@ -513,6 +527,10 @@ fn apply_event_payload(
                 } else {
                     None
                 };
+                table.is_my_turn = active_pid
+                    .as_ref()
+                    .map(|pid| pid == &my_player_id)
+                    .unwrap_or(false);
                 for p in &mut table.players {
                     p.active = active_pid
                         .as_ref()

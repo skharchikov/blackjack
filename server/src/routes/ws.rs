@@ -9,7 +9,7 @@ use tokio::sync::mpsc;
 use tracing::{error, info};
 
 use crate::{
-    auth::{AuthPayload, Authenticator, TrustedPlayerIdAuthenticator},
+    auth::{AuthPayload, Authenticator, Password},
     protocol::{ClientMessage, ServerMessage},
     session::RequestId,
     AppState,
@@ -41,11 +41,11 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             }
             Some(Ok(Message::Text(text))) => {
                 match serde_json::from_str::<ClientMessage>(&text) {
-                    Ok(ClientMessage::Auth { player_id }) => {
-                        let auth = TrustedPlayerIdAuthenticator;
-                        match auth
+                    Ok(ClientMessage::Auth { username, password }) => {
+                        match state.auth
                             .authenticate(&AuthPayload {
-                                player_id_str: player_id,
+                                username,
+                                password: Password::new(password),
                             })
                             .await
                         {

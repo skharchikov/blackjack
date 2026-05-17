@@ -50,6 +50,8 @@ fn handle_login_key(app: &mut App, key: KeyCode, _tx: &mpsc::Sender<AppEvent>) {
         },
         KeyCode::Enter => {
             if !login.username.is_empty() && !login.password.is_empty() {
+                app.username = login.username.clone();
+                app.password = login.password.clone();
                 login.status = LoginStatus::Connecting;
                 app.ui = UiState::lobby();
             }
