@@ -124,10 +124,17 @@ impl InMemoryGameSession {
 #[async_trait]
 impl GameSession for InMemoryGameSession {
     async fn list_tables(&self) -> Vec<TableSummary> {
-        let mut out = Vec::new();
-        for r in self.tables.iter() {
-            out.push(r.value().summary.read().await.clone());
+        // Collect Arc handles first, then drop the DashMap guard before awaiting
+        let summaries: Vec<Arc<RwLock<TableSummary>>> = self
+            .tables
+            .iter()
+            .map(|r| r.value().summary.clone())
+            .collect();
+        let mut out = Vec::with_capacity(summaries.len());
+        for s in summaries {
+            out.push(s.read().await.clone());
         }
+        out.sort_by(|a, b| a.name.cmp(&b.name));
         out
     }
 
@@ -136,13 +143,15 @@ impl GameSession for InMemoryGameSession {
         table_id: TableId,
         player: PlayerId,
     ) -> Result<GameStateSnapshot, SessionError> {
-        let handle = self
+        // Clone the sender out of the guard before awaiting
+        let cmd_tx = self
             .tables
             .get(&table_id)
-            .ok_or(SessionError::TableNotFound)?;
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        handle
+            .ok_or(SessionError::TableNotFound)?
             .cmd_tx
+            .clone();
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        cmd_tx
             .send(TableCommand::Snapshot {
                 requesting_player: player,
                 reply: tx,
@@ -159,13 +168,15 @@ impl GameSession for InMemoryGameSession {
         request_id: RequestId,
         action: PlayerAction,
     ) -> Result<CommandAck, SessionError> {
-        let handle = self
+        // Clone the sender out of the guard before awaiting
+        let cmd_tx = self
             .tables
             .get(&table_id)
-            .ok_or(SessionError::TableNotFound)?;
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        handle
+            .ok_or(SessionError::TableNotFound)?
             .cmd_tx
+            .clone();
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        cmd_tx
             .send(TableCommand::Execute {
                 player_id,
                 request_id,
@@ -181,10 +192,13 @@ impl GameSession for InMemoryGameSession {
         &self,
         table_id: TableId,
     ) -> Result<broadcast::Receiver<GameEvent>, SessionError> {
-        let handle = self
+        // Clone the sender out of the guard before awaiting
+        let event_tx = self
             .tables
             .get(&table_id)
-            .ok_or(SessionError::TableNotFound)?;
-        Ok(handle.event_tx.subscribe())
+            .ok_or(SessionError::TableNotFound)?
+            .event_tx
+            .clone();
+        Ok(event_tx.subscribe())
     }
 }

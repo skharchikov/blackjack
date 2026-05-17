@@ -76,6 +76,16 @@ pub async fn run_table_actor(
                             Err(e) => { let _ = reply.send(Err(SessionError::CommandRejected(e.to_string()))); }
                             Ok(events) => {
                                 apply_and_broadcast(&mut state, &events, &event_tx, &mut seq);
+                                // Load wallet balance for any player that just joined
+                                for payload in &events {
+                                    if let bj_core::domain::engine::event::payload::EventPayload::PlayerJoined { player } = payload {
+                                        if let Ok(balance) = wallet.balance(*player).await {
+                                            if let Some(ps) = state.players.iter_mut().find(|p| p.player_id == *player) {
+                                                ps.balance = balance;
+                                            }
+                                        }
+                                    }
+                                }
                                 update_summary(&summary, &state, &settings).await;
                                 if matches!(state.phase, Phase::Finished) {
                                     handle_game_finished(&state, &wallet, &mut round_dl, round_delay).await;
@@ -131,7 +141,7 @@ pub async fn run_table_actor(
                         maybe_advance_dealer(&mut state, &settings, &event_tx, &mut seq, &summary, &wallet, &mut round_dl, round_delay, &mut player_dl, player_turn_timeout).await;
                     }
                 }
-                player_dl = None;
+                reset_player_timer(&state, &mut player_dl, player_turn_timeout);
             }
 
             // New round delay
@@ -147,6 +157,16 @@ pub async fn run_table_actor(
                 let dealer_id = state.dealer.dealer_id;
                 let shoe = Shoe::shuffled();
                 state = GameState::new_with_balance(GameId::new(), shoe, players, dealer_id);
+                // Broadcast new round notification so subscribed clients know the round reset
+                seq += 1;
+                let _ = event_tx.send(GameEvent {
+                    game_id: state.game_id,
+                    event_seq_id: EventSeqId(seq),
+                    payload: bj_core::domain::engine::event::payload::EventPayload::PhaseChanged {
+                        from: bj_core::domain::engine::phase::Phase::Finished,
+                        to: bj_core::domain::engine::phase::Phase::WaitingForBets,
+                    },
+                });
                 fire_dealer(&mut state, &settings, DealerAction::OpenBetting(OpenBetting), &event_tx, &mut seq, &summary, &wallet, &mut round_dl, round_delay, &mut player_dl, player_turn_timeout).await;
                 betting_dl.as_mut().reset(tokio::time::Instant::now() + betting_timeout);
             }
@@ -176,7 +196,14 @@ async fn update_summary(
     state: &GameState,
     settings: &TableSettings,
 ) {
-    let phase_str = format!("{:?}", state.phase);
+    let phase_str = match &state.phase {
+        Phase::WaitingForBets => "WaitingForBets".to_string(),
+        Phase::InitialDealing => "InitialDealing".to_string(),
+        Phase::PlayerTurn(_) => "PlayerTurn".to_string(),
+        Phase::DealerTurn => "DealerTurn".to_string(),
+        Phase::Payouts => "Payouts".to_string(),
+        Phase::Finished => "Finished".to_string(),
+    };
     let player_count = state.players.len();
     let is_joinable =
         matches!(state.phase, Phase::WaitingForBets) && player_count < settings.max_players;
@@ -187,14 +214,11 @@ async fn update_summary(
 }
 
 async fn handle_game_finished(
-    state: &GameState,
-    wallet: &Arc<dyn Wallet>,
+    _state: &GameState,
+    _wallet: &Arc<dyn Wallet>,
     round_dl: &mut Option<std::pin::Pin<Box<tokio::time::Sleep>>>,
     delay: Duration,
 ) {
-    for p in &state.players {
-        let _ = wallet.credit(p.player_id, p.balance).await;
-    }
     *round_dl = Some(Box::pin(tokio::time::sleep(delay)));
 }
 

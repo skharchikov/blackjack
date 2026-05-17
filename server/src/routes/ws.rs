@@ -50,8 +50,10 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                             .await
                         {
                             Ok(pid) => {
-                                // Give new player 1000 starting chips
-                                let _ = state.wallet.credit(pid, 1000).await;
+                                // Only seed chips for new players (wallet returns Err if player unknown)
+                                if state.wallet.balance(pid).await.is_err() {
+                                    let _ = state.wallet.credit(pid, 1000).await;
+                                }
                                 let msg = ServerMessage::AuthOk {
                                     player_id: pid.to_string(),
                                 };
@@ -168,7 +170,25 @@ async fn handle_client_msg(
                     return Ok(());
                 }
             };
-            let _ = state
+
+            // Leave old table before joining a new one
+            if let Some(old_tid) = current_table.take() {
+                if let Some(h) = fwd_abort.take() {
+                    h.abort();
+                }
+                let _ = state
+                    .session
+                    .send_command(
+                        old_tid,
+                        player_id,
+                        RequestId(0),
+                        PlayerAction::LeaveTable(LeaveTable { player_id }),
+                    )
+                    .await;
+            }
+
+            // Reject join if the table refuses it
+            if let Err(e) = state
                 .session
                 .send_command(
                     tid,
@@ -176,8 +196,36 @@ async fn handle_client_msg(
                     RequestId(request_id),
                     PlayerAction::JoinTable(JoinTable { player_id }),
                 )
+                .await
+            {
+                let _ = send_msg(
+                    socket,
+                    &ServerMessage::CommandError {
+                        request_id,
+                        reason: e.to_string(),
+                    },
+                )
                 .await;
+                return Ok(());
+            }
 
+            // Subscribe FIRST to avoid missing events between snapshot and subscribe
+            let mut rx = match state.session.subscribe(tid).await {
+                Ok(rx) => rx,
+                Err(e) => {
+                    let _ = send_msg(
+                        socket,
+                        &ServerMessage::CommandError {
+                            request_id,
+                            reason: e.to_string(),
+                        },
+                    )
+                    .await;
+                    return Ok(());
+                }
+            };
+
+            // Then snapshot
             match state.session.snapshot(tid, player_id).await {
                 Ok(snap) => {
                     let _ = send_msg(
@@ -202,52 +250,48 @@ async fn handle_client_msg(
                 }
             }
 
-            match state.session.subscribe(tid).await {
-                Ok(mut rx) => {
-                    if let Some(h) = fwd_abort.take() {
-                        h.abort();
-                    }
-                    let tx = event_fwd_tx.clone();
-                    let tid_str = tid.to_string();
-                    let handle = tokio::spawn(async move {
-                        loop {
-                            match rx.recv().await {
-                                Ok(event) => {
-                                    let dto = GameEventDto {
-                                        game_id: event.game_id,
-                                        seq: event.event_seq_id.0,
-                                        payload: event.payload,
-                                    };
-                                    let msg = ServerMessage::Event {
-                                        table_id: tid_str.clone(),
-                                        event: dto,
-                                    };
-                                    if let Ok(json) = serde_json::to_string(&msg) {
-                                        if tx.send(json).await.is_err() {
-                                            break;
-                                        }
-                                    }
+            // Start forwarder with the already-subscribed receiver
+            if let Some(h) = fwd_abort.take() {
+                h.abort();
+            }
+            let tx = event_fwd_tx.clone();
+            let tid_str = tid.to_string();
+            let handle = tokio::spawn(async move {
+                loop {
+                    match rx.recv().await {
+                        Ok(event) => {
+                            let dto = GameEventDto {
+                                game_id: event.game_id,
+                                seq: event.event_seq_id.0,
+                                payload: event.payload,
+                            };
+                            let msg = ServerMessage::Event {
+                                table_id: tid_str.clone(),
+                                event: dto,
+                            };
+                            if let Ok(json) = serde_json::to_string(&msg) {
+                                if tx.send(json).await.is_err() {
+                                    break;
                                 }
-                                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => break,
-                                Err(_) => break,
                             }
                         }
-                    });
-                    *fwd_abort = Some(handle);
-                    *current_table = Some(tid);
-                    let _ = send_msg(socket, &ServerMessage::CommandAck { request_id }).await;
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                            let err = ServerMessage::CommandError {
+                                request_id: 0,
+                                reason: "event stream lagged, please rejoin".into(),
+                            };
+                            if let Ok(json) = serde_json::to_string(&err) {
+                                let _ = tx.send(json).await;
+                            }
+                            break;
+                        }
+                        Err(_) => break,
+                    }
                 }
-                Err(e) => {
-                    let _ = send_msg(
-                        socket,
-                        &ServerMessage::CommandError {
-                            request_id,
-                            reason: e.to_string(),
-                        },
-                    )
-                    .await;
-                }
-            }
+            });
+            *fwd_abort = Some(handle);
+            *current_table = Some(tid);
+            let _ = send_msg(socket, &ServerMessage::CommandAck { request_id }).await;
         }
 
         ClientMessage::LeaveTable {
@@ -316,10 +360,19 @@ async fn handle_client_msg(
             .await?;
         }
 
-        ClientMessage::DealerOpenBetting { .. }
-        | ClientMessage::DealerDealCards { .. }
-        | ClientMessage::DealerPlayHand { .. }
-        | ClientMessage::DealerSettle { .. } => {}
+        ClientMessage::DealerOpenBetting { request_id, .. }
+        | ClientMessage::DealerDealCards { request_id, .. }
+        | ClientMessage::DealerPlayHand { request_id, .. }
+        | ClientMessage::DealerSettle { request_id, .. } => {
+            let _ = send_msg(
+                socket,
+                &ServerMessage::CommandError {
+                    request_id,
+                    reason: "dealer commands not supported via WS in this version".into(),
+                },
+            )
+            .await;
+        }
 
         ClientMessage::Auth { .. } => {
             let _ = send_msg(
