@@ -38,9 +38,15 @@ pub fn render_lobby(frame: &mut Frame, area: Rect, lobby: &LobbyState) {
 
             Row::new(vec![
                 Cell::from(table.name.clone()),
-                Cell::from(format!("${}-${}", table.min_bet, table.max_bet)),
-                Cell::from(format!("{}/{}", table.players, table.max_players)),
-                Cell::from(format!("{:?}", table.status)),
+                Cell::from(format!(
+                    "${}-${}",
+                    table.settings.min_bet, table.settings.max_bet
+                )),
+                Cell::from(format!(
+                    "{}/{}",
+                    table.player_count, table.settings.max_players
+                )),
+                Cell::from(if table.is_joinable { "Open" } else { "Full" }),
             ])
             .style(row_style)
             .height(1)

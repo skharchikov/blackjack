@@ -14,3 +14,9 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 indoc = "2"
 unicode-width = "0.2"
+reqwest = { version = "0.12", features = ["json"] }
+tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+ulid = { version = "1", features = ["serde"] }
+futures-util = "0.3"

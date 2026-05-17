@@ -1,14 +1,16 @@
 use crossterm::event::KeyCode;
+use tokio::sync::mpsc;
 
-use crate::state::{GamePhase, LobbyStatus, LoginField, LoginStatus, Screen, UiState};
+use crate::state::{GamePhase, LoginField, LoginStatus, Screen, UiState};
 
+use super::event::AppEvent;
 use super::state::App;
 
-pub fn handle_key(app: &mut App, key: KeyCode) {
+pub fn handle_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     if let KeyCode::Char('q') = key {
         // Don't quit on 'q' when typing in login fields
         if let Screen::Login(_) = &app.ui.screen {
-            handle_login_key(app, key);
+            handle_login_key(app, key, tx);
             return;
         }
         app.should_quit = true;
@@ -16,13 +18,13 @@ pub fn handle_key(app: &mut App, key: KeyCode) {
     }
 
     match &app.ui.screen {
-        Screen::Login(_) => handle_login_key(app, key),
-        Screen::Lobby(_) => handle_lobby_key(app, key),
-        Screen::Table(_) => handle_table_key(app, key),
+        Screen::Login(_) => handle_login_key(app, key, tx),
+        Screen::Lobby(_) => handle_lobby_key(app, key, tx),
+        Screen::Table(_) => handle_table_key(app, key, tx),
     }
 }
 
-fn handle_login_key(app: &mut App, key: KeyCode) {
+fn handle_login_key(app: &mut App, key: KeyCode, _tx: &mpsc::Sender<AppEvent>) {
     let Screen::Login(ref mut login) = app.ui.screen else {
         return;
     };
@@ -59,7 +61,7 @@ fn handle_login_key(app: &mut App, key: KeyCode) {
     }
 }
 
-fn handle_lobby_key(app: &mut App, key: KeyCode) {
+fn handle_lobby_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     let Screen::Lobby(ref mut lobby) = app.ui.screen else {
         return;
     };
@@ -76,21 +78,48 @@ fn handle_lobby_key(app: &mut App, key: KeyCode) {
             }
         }
         KeyCode::Enter => {
-            lobby.status = LobbyStatus::Connecting;
-            app.ui = UiState::betting();
+            if let Some(table) = lobby.tables.get(lobby.selected) {
+                let table_id = table.id.clone();
+                crate::app::spawn_ws(app, table_id, tx);
+            }
         }
         _ => {}
     }
 }
 
-fn handle_table_key(app: &mut App, key: KeyCode) {
+fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     let Screen::Table(ref table) = app.ui.screen else {
         return;
     };
 
     if table.phase == GamePhase::Betting {
         handle_betting_key(app, key);
+        return;
     }
+
+    // PlayerTurn actions
+    if table.phase == GamePhase::PlayerTurn {
+        match key {
+            KeyCode::Char('h') => {
+                if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
+                    let msg =
+                        serde_json::json!({"type": "Hit", "table_id": tid, "request_id": 2});
+                    let _ = ws_tx.try_send(msg.to_string());
+                }
+            }
+            KeyCode::Char('s') => {
+                if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
+                    let msg =
+                        serde_json::json!({"type": "Stand", "table_id": tid, "request_id": 3});
+                    let _ = ws_tx.try_send(msg.to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // suppress unused warning: tx is threaded through for future use
+    let _ = tx;
 }
 
 fn handle_betting_key(app: &mut App, key: KeyCode) {
