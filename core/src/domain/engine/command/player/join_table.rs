@@ -1,10 +1,7 @@
 use crate::domain::{
     engine::{
-        command::CommandHandler,
-        error::CommandError,
-        event::payload::EventPayload,
-        game_state::GameState,
-        phase::Phase,
+        command::CommandHandler, error::CommandError, event::payload::EventPayload,
+        game_state::GameState, phase::Phase,
     },
     player::PlayerId,
     table::TableSettings,
@@ -22,7 +19,9 @@ impl CommandHandler for JoinTable {
         settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
         if !matches!(state.phase, Phase::WaitingForBets) {
-            return Err(CommandError::WrongPhase { actual: state.phase.clone() });
+            return Err(CommandError::WrongPhase {
+                actual: state.phase.clone(),
+            });
         }
         if state.players.len() >= settings.max_players {
             return Err(CommandError::TableFull);
@@ -30,7 +29,9 @@ impl CommandHandler for JoinTable {
         if state.players.iter().any(|p| p.player_id == self.player_id) {
             return Ok(vec![]); // idempotent
         }
-        Ok(vec![EventPayload::PlayerJoined { player: self.player_id }])
+        Ok(vec![EventPayload::PlayerJoined {
+            player: self.player_id,
+        }])
     }
 }
 
@@ -40,7 +41,10 @@ mod tests {
     use crate::domain::{
         dealer::DealerId,
         engine::{
-            command::{player::{PlayerAction, PlayerCommand}, CommandId, GameCommand},
+            command::{
+                player::{PlayerAction, PlayerCommand},
+                CommandId, GameCommand,
+            },
             game_id::GameId,
             game_state::GameState,
             GameEngine,
@@ -49,7 +53,12 @@ mod tests {
     };
 
     fn settings(max_players: usize) -> TableSettings {
-        TableSettings { min_bet: 10, max_bet: 1000, max_players, max_observers: 10 }
+        TableSettings {
+            min_bet: 10,
+            max_bet: 1000,
+            max_players,
+            max_observers: 10,
+        }
     }
 
     fn empty_state() -> GameState {

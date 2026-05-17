@@ -1,26 +1,23 @@
-use std::sync::Arc;
-use async_trait::async_trait;
-use dashmap::DashMap;
-use tokio::sync::{broadcast, mpsc, RwLock};
-use ulid::Ulid;
-use bj_core::domain::{
-    engine::{
-        game_id::GameId,
-        game_state::GameState,
-        snapshot::GameStateSnapshot,
-        command::player::PlayerAction,
-        event::GameEvent,
-    },
-    DealerId, PlayerId, TableId, TableSettings, Shoe,
-};
 use crate::{
     session::{
-        CommandAck, GameSession, RequestId, SessionError,
         summary::TableSummary,
         table_actor::{run_table_actor, TableCommand},
+        CommandAck, GameSession, RequestId, SessionError,
     },
     wallet::Wallet,
 };
+use async_trait::async_trait;
+use bj_core::domain::{
+    engine::{
+        command::player::PlayerAction, event::GameEvent, game_id::GameId, game_state::GameState,
+        snapshot::GameStateSnapshot,
+    },
+    DealerId, PlayerId, Shoe, TableId, TableSettings,
+};
+use dashmap::DashMap;
+use std::sync::Arc;
+use tokio::sync::{broadcast, mpsc, RwLock};
+use ulid::Ulid;
 
 struct TableHandle {
     cmd_tx: mpsc::Sender<TableCommand>,
@@ -42,15 +39,30 @@ fn seeds() -> Vec<SeedTable> {
     vec![
         SeedTable {
             name: "Cool Kids #1",
-            settings: TableSettings { min_bet: 10, max_bet: 500, max_players: 5, max_observers: 10 },
+            settings: TableSettings {
+                min_bet: 10,
+                max_bet: 500,
+                max_players: 5,
+                max_observers: 10,
+            },
         },
         SeedTable {
             name: "Big Sharks #2",
-            settings: TableSettings { min_bet: 25, max_bet: 1000, max_players: 6, max_observers: 10 },
+            settings: TableSettings {
+                min_bet: 25,
+                max_bet: 1000,
+                max_players: 6,
+                max_observers: 10,
+            },
         },
         SeedTable {
             name: "Sopranos #3",
-            settings: TableSettings { min_bet: 100, max_bet: 5000, max_players: 4, max_observers: 10 },
+            settings: TableSettings {
+                min_bet: 100,
+                max_bet: 5000,
+                max_players: 4,
+                max_observers: 10,
+            },
         },
     ]
 }
@@ -89,11 +101,23 @@ impl InMemoryGameSession {
         let summary_clone = summary.clone();
         let event_tx_clone = event_tx.clone();
         tokio::spawn(run_table_actor(
-            table_id, settings, state, cmd_rx,
-            event_tx_clone, summary_clone, wallet,
+            table_id,
+            settings,
+            state,
+            cmd_rx,
+            event_tx_clone,
+            summary_clone,
+            wallet,
         ));
 
-        self.tables.insert(table_id, TableHandle { cmd_tx, event_tx, summary });
+        self.tables.insert(
+            table_id,
+            TableHandle {
+                cmd_tx,
+                event_tx,
+                summary,
+            },
+        );
     }
 }
 
@@ -107,11 +131,24 @@ impl GameSession for InMemoryGameSession {
         out
     }
 
-    async fn snapshot(&self, table_id: TableId, player: PlayerId) -> Result<GameStateSnapshot, SessionError> {
-        let handle = self.tables.get(&table_id).ok_or(SessionError::TableNotFound)?;
+    async fn snapshot(
+        &self,
+        table_id: TableId,
+        player: PlayerId,
+    ) -> Result<GameStateSnapshot, SessionError> {
+        let handle = self
+            .tables
+            .get(&table_id)
+            .ok_or(SessionError::TableNotFound)?;
         let (tx, rx) = tokio::sync::oneshot::channel();
-        handle.cmd_tx.send(TableCommand::Snapshot { requesting_player: player, reply: tx })
-            .await.map_err(|_| SessionError::Internal)?;
+        handle
+            .cmd_tx
+            .send(TableCommand::Snapshot {
+                requesting_player: player,
+                reply: tx,
+            })
+            .await
+            .map_err(|_| SessionError::Internal)?;
         rx.await.map_err(|_| SessionError::Internal)?
     }
 
@@ -122,15 +159,32 @@ impl GameSession for InMemoryGameSession {
         request_id: RequestId,
         action: PlayerAction,
     ) -> Result<CommandAck, SessionError> {
-        let handle = self.tables.get(&table_id).ok_or(SessionError::TableNotFound)?;
+        let handle = self
+            .tables
+            .get(&table_id)
+            .ok_or(SessionError::TableNotFound)?;
         let (tx, rx) = tokio::sync::oneshot::channel();
-        handle.cmd_tx.send(TableCommand::Execute { player_id, request_id, action, reply: tx })
-            .await.map_err(|_| SessionError::Internal)?;
+        handle
+            .cmd_tx
+            .send(TableCommand::Execute {
+                player_id,
+                request_id,
+                action,
+                reply: tx,
+            })
+            .await
+            .map_err(|_| SessionError::Internal)?;
         rx.await.map_err(|_| SessionError::Internal)?
     }
 
-    async fn subscribe(&self, table_id: TableId) -> Result<broadcast::Receiver<GameEvent>, SessionError> {
-        let handle = self.tables.get(&table_id).ok_or(SessionError::TableNotFound)?;
+    async fn subscribe(
+        &self,
+        table_id: TableId,
+    ) -> Result<broadcast::Receiver<GameEvent>, SessionError> {
+        let handle = self
+            .tables
+            .get(&table_id)
+            .ok_or(SessionError::TableNotFound)?;
         Ok(handle.event_tx.subscribe())
     }
 }

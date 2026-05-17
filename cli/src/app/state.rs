@@ -1,6 +1,6 @@
+use crate::state::UiState;
 use tokio::sync::mpsc;
 use ulid::Ulid;
-use crate::state::UiState;
 
 pub struct App {
     pub ui: UiState,

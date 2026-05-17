@@ -7,20 +7,28 @@ use utoipa::ToSchema;
 pub struct TableId(pub Ulid);
 
 impl TableId {
-    pub fn new() -> Self { Self(Ulid::new()) }
+    pub fn new() -> Self {
+        Self(Ulid::new())
+    }
 }
 
 impl Default for TableId {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl fmt::Display for TableId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 impl FromStr for TableId {
     type Err = ulid::DecodeError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> { Ok(Self(Ulid::from_string(s)?)) }
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(Ulid::from_string(s)?))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

@@ -20,6 +20,10 @@ pub struct App {
 
 impl App {
     pub fn new(session: Arc<dyn GameSession>, wallet: Arc<dyn Wallet>) -> Self {
-        Self { connections: AtomicU64::new(0), session, wallet }
+        Self {
+            connections: AtomicU64::new(0),
+            session,
+            wallet,
+        }
     }
 }

@@ -1,12 +1,16 @@
-use std::{sync::Arc, time::Duration};
-use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
+use crate::{
+    session::{summary::TableSummary, CommandAck, RequestId, SessionError},
+    wallet::Wallet,
+};
 use bj_core::domain::{
     engine::{
         command::{
-            CommandId, GameCommand,
-            dealer::{DealerAction, DealerCommand, DealInitialCards, OpenBetting, PlayHand, SettleRound},
-            system::{PlayerTimeout, SystemCommand},
+            dealer::{
+                DealInitialCards, DealerAction, DealerCommand, OpenBetting, PlayHand, SettleRound,
+            },
             player::{PlayerAction, PlayerCommand},
+            system::{PlayerTimeout, SystemCommand},
+            CommandId, GameCommand,
         },
         event::{EventSeqId, GameEvent},
         game_id::GameId,
@@ -15,12 +19,10 @@ use bj_core::domain::{
         snapshot::GameStateSnapshot,
         GameEngine,
     },
-    PlayerId, TableId, TableSettings, Shoe,
+    PlayerId, Shoe, TableId, TableSettings,
 };
-use crate::{
-    session::{CommandAck, RequestId, SessionError, summary::TableSummary},
-    wallet::Wallet,
-};
+use std::{sync::Arc, time::Duration};
+use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
 
 pub enum TableCommand {
     Execute {
@@ -30,9 +32,7 @@ pub enum TableCommand {
         reply: oneshot::Sender<Result<CommandAck, SessionError>>,
     },
     #[allow(dead_code)]
-    DealerExecute {
-        action: DealerAction,
-    },
+    DealerExecute { action: DealerAction },
     Snapshot {
         requesting_player: PlayerId,
         reply: oneshot::Sender<Result<GameStateSnapshot, SessionError>>,
@@ -171,11 +171,15 @@ fn apply_and_broadcast(
     }
 }
 
-async fn update_summary(summary: &Arc<RwLock<TableSummary>>, state: &GameState, settings: &TableSettings) {
+async fn update_summary(
+    summary: &Arc<RwLock<TableSummary>>,
+    state: &GameState,
+    settings: &TableSettings,
+) {
     let phase_str = format!("{:?}", state.phase);
     let player_count = state.players.len();
-    let is_joinable = matches!(state.phase, Phase::WaitingForBets)
-        && player_count < settings.max_players;
+    let is_joinable =
+        matches!(state.phase, Phase::WaitingForBets) && player_count < settings.max_players;
     let mut s = summary.write().await;
     s.player_count = player_count;
     s.phase = phase_str;
@@ -247,9 +251,35 @@ async fn maybe_advance_dealer(
     player_timeout: Duration,
 ) {
     if matches!(state.phase, Phase::DealerTurn) {
-        fire_dealer(state, settings, DealerAction::PlayHand(PlayHand), event_tx, seq, summary, wallet, round_dl, round_delay, player_dl, player_timeout).await;
+        fire_dealer(
+            state,
+            settings,
+            DealerAction::PlayHand(PlayHand),
+            event_tx,
+            seq,
+            summary,
+            wallet,
+            round_dl,
+            round_delay,
+            player_dl,
+            player_timeout,
+        )
+        .await;
     }
     if matches!(state.phase, Phase::Payouts) {
-        fire_dealer(state, settings, DealerAction::SettleRound(SettleRound), event_tx, seq, summary, wallet, round_dl, round_delay, player_dl, player_timeout).await;
+        fire_dealer(
+            state,
+            settings,
+            DealerAction::SettleRound(SettleRound),
+            event_tx,
+            seq,
+            summary,
+            wallet,
+            round_dl,
+            round_delay,
+            player_dl,
+            player_timeout,
+        )
+        .await;
     }
 }

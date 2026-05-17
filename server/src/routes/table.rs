@@ -1,5 +1,5 @@
+use crate::{session::summary::TableSummary, AppState};
 use axum::{extract::State, Json};
-use crate::{AppState, session::summary::TableSummary};
 
 #[utoipa::path(
     get,

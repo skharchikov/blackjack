@@ -102,8 +102,7 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
         match key {
             KeyCode::Char('h') => {
                 if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
-                    let msg =
-                        serde_json::json!({"type": "Hit", "table_id": tid, "request_id": 2});
+                    let msg = serde_json::json!({"type": "Hit", "table_id": tid, "request_id": 2});
                     let _ = ws_tx.try_send(msg.to_string());
                 }
             }

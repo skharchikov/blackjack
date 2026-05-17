@@ -1,10 +1,7 @@
 use crate::domain::{
     engine::{
-        command::CommandHandler,
-        error::CommandError,
-        event::payload::EventPayload,
-        game_state::GameState,
-        phase::Phase,
+        command::CommandHandler, error::CommandError, event::payload::EventPayload,
+        game_state::GameState, phase::Phase,
     },
     table::TableSettings,
 };
@@ -19,7 +16,9 @@ impl CommandHandler for DealInitialCards {
         _settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
         if !matches!(state.phase, Phase::WaitingForBets) {
-            return Err(CommandError::WrongPhase { actual: state.phase.clone() });
+            return Err(CommandError::WrongPhase {
+                actual: state.phase.clone(),
+            });
         }
         let bettors: Vec<_> = state.players.iter().filter(|p| p.bet.is_some()).collect();
         if bettors.is_empty() {
@@ -74,41 +73,55 @@ impl CommandHandler for DealInitialCards {
 mod tests {
     use super::*;
     use crate::domain::{
+        dealer::DealerId,
         engine::{
-            command::{CommandId, GameCommand, dealer::{DealerCommand, DealerAction}},
+            command::{
+                dealer::{DealerAction, DealerCommand},
+                CommandId, GameCommand,
+            },
             game_id::GameId,
             game_state::GameState,
             GameEngine,
         },
-        dealer::DealerId,
         player::PlayerId,
-        Card, DeckId, Rank, Suit,
         table::TableSettings,
+        Card, DeckId, Rank, Suit,
     };
 
     fn settings() -> TableSettings {
-        TableSettings { min_bet: 10, max_bet: 500, max_players: 5, max_observers: 10 }
+        TableSettings {
+            min_bet: 10,
+            max_bet: 500,
+            max_players: 5,
+            max_observers: 10,
+        }
     }
 
     fn card(rank: Rank) -> Card {
-        Card { deck_id: DeckId::One, rank, suit: Suit::Spades }
+        Card {
+            deck_id: DeckId::One,
+            rank,
+            suit: Suit::Spades,
+        }
     }
 
     fn cmd() -> GameCommand {
         GameCommand::Dealer(DealerCommand {
-            game_id: GameId::new(), command_id: CommandId(0),
+            game_id: GameId::new(),
+            command_id: CommandId(0),
             action: DealerAction::DealInitialCards(DealInitialCards),
         })
     }
 
     fn state_with_bet(pid: PlayerId) -> GameState {
         let shoe = vec![
-            card(Rank::King), card(Rank::Seven), // round 1: player, dealer
-            card(Rank::Ace),  card(Rank::Three), // round 2: player, dealer
+            card(Rank::King),
+            card(Rank::Seven), // round 1: player, dealer
+            card(Rank::Ace),
+            card(Rank::Three), // round 2: player, dealer
         ];
-        let mut state = GameState::new_with_balance(
-            GameId::new(), shoe, vec![(pid, 1000)], DealerId::new(),
-        );
+        let mut state =
+            GameState::new_with_balance(GameId::new(), shoe, vec![(pid, 1000)], DealerId::new());
         state.players[0].bet = Some(100);
         state
     }
@@ -137,13 +150,21 @@ mod tests {
         let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
         assert!(matches!(
             events.last().unwrap(),
-            EventPayload::PhaseChanged { to: Phase::PlayerTurn(_), .. }
+            EventPayload::PhaseChanged {
+                to: Phase::PlayerTurn(_),
+                ..
+            }
         ));
     }
 
     #[test]
     fn no_bettors_errors() {
-        let state = GameState::new(GameId::new(), crate::domain::Shoe::shuffled(), vec![], DealerId::new());
+        let state = GameState::new(
+            GameId::new(),
+            crate::domain::Shoe::shuffled(),
+            vec![],
+            DealerId::new(),
+        );
         assert!(matches!(
             GameEngine::handle(&state, &settings(), &cmd()),
             Err(CommandError::NoBettors)

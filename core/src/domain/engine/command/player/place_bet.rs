@@ -1,10 +1,7 @@
 use crate::domain::{
     engine::{
-        command::CommandHandler,
-        error::CommandError,
-        event::payload::EventPayload,
-        game_state::GameState,
-        phase::Phase,
+        command::CommandHandler, error::CommandError, event::payload::EventPayload,
+        game_state::GameState, phase::Phase,
     },
     player::PlayerId,
     table::TableSettings,
@@ -23,7 +20,9 @@ impl CommandHandler for PlaceBet {
         settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
         if !matches!(state.phase, Phase::WaitingForBets) {
-            return Err(CommandError::WrongPhase { actual: state.phase.clone() });
+            return Err(CommandError::WrongPhase {
+                actual: state.phase.clone(),
+            });
         }
         let player = state
             .players
@@ -34,10 +33,16 @@ impl CommandHandler for PlaceBet {
             return Err(CommandError::AlreadyPlacedBet);
         }
         if self.amount < settings.min_bet {
-            return Err(CommandError::BetBelowMinimum { min: settings.min_bet, amount: self.amount });
+            return Err(CommandError::BetBelowMinimum {
+                min: settings.min_bet,
+                amount: self.amount,
+            });
         }
         if self.amount > settings.max_bet {
-            return Err(CommandError::BetAboveMaximum { max: settings.max_bet, amount: self.amount });
+            return Err(CommandError::BetAboveMaximum {
+                max: settings.max_bet,
+                amount: self.amount,
+            });
         }
         if self.amount > player.balance {
             return Err(CommandError::InsufficientBalance {
@@ -56,32 +61,47 @@ impl CommandHandler for PlaceBet {
 mod tests {
     use super::*;
     use crate::domain::{
+        dealer::DealerId,
         engine::{
-            command::{CommandId, GameCommand, player::{PlayerCommand, PlayerAction}},
+            command::{
+                player::{PlayerAction, PlayerCommand},
+                CommandId, GameCommand,
+            },
             game_id::GameId,
             game_state::GameState,
             GameEngine,
         },
-        dealer::DealerId,
         player::PlayerId,
-        Shoe,
         table::TableSettings,
+        Shoe,
     };
 
     fn settings() -> TableSettings {
-        TableSettings { min_bet: 10, max_bet: 500, max_players: 5, max_observers: 10 }
+        TableSettings {
+            min_bet: 10,
+            max_bet: 500,
+            max_players: 5,
+            max_observers: 10,
+        }
     }
 
     fn state_with_player(pid: PlayerId, balance: u32) -> GameState {
         GameState::new_with_balance(
-            GameId::new(), Shoe::shuffled(), vec![(pid, balance)], DealerId::new(),
+            GameId::new(),
+            Shoe::shuffled(),
+            vec![(pid, balance)],
+            DealerId::new(),
         )
     }
 
     fn bet_cmd(pid: PlayerId, amount: u32) -> GameCommand {
         GameCommand::Player(PlayerCommand {
-            game_id: GameId::new(), command_id: CommandId(0),
-            action: PlayerAction::PlaceBet(PlaceBet { player_id: pid, amount }),
+            game_id: GameId::new(),
+            command_id: CommandId(0),
+            action: PlayerAction::PlaceBet(PlaceBet {
+                player_id: pid,
+                amount,
+            }),
         })
     }
 
@@ -90,7 +110,9 @@ mod tests {
         let pid = PlayerId::new();
         let state = state_with_player(pid, 1000);
         let events = GameEngine::handle(&state, &settings(), &bet_cmd(pid, 100)).unwrap();
-        assert!(matches!(events[0], EventPayload::PlayerPlacedBet { player, amount: 100 } if player == pid));
+        assert!(
+            matches!(events[0], EventPayload::PlayerPlacedBet { player, amount: 100 } if player == pid)
+        );
     }
 
     #[test]
@@ -120,7 +142,10 @@ mod tests {
         let state = state_with_player(pid, 1000);
         assert!(matches!(
             GameEngine::handle(&state, &settings(), &bet_cmd(pid, 600)),
-            Err(CommandError::BetAboveMaximum { max: 500, amount: 600 })
+            Err(CommandError::BetAboveMaximum {
+                max: 500,
+                amount: 600
+            })
         ));
     }
 
@@ -130,7 +155,10 @@ mod tests {
         let state = state_with_player(pid, 50);
         assert!(matches!(
             GameEngine::handle(&state, &settings(), &bet_cmd(pid, 100)),
-            Err(CommandError::InsufficientBalance { balance: 50, amount: 100 })
+            Err(CommandError::InsufficientBalance {
+                balance: 50,
+                amount: 100
+            })
         ));
     }
 
@@ -139,7 +167,9 @@ mod tests {
         let pid = PlayerId::new();
         let mut state = state_with_player(pid, 1000);
         let events = GameEngine::handle(&state, &settings(), &bet_cmd(pid, 100)).unwrap();
-        for e in &events { state.apply_event(e); }
+        for e in &events {
+            state.apply_event(e);
+        }
         assert!(matches!(
             GameEngine::handle(&state, &settings(), &bet_cmd(pid, 100)),
             Err(CommandError::AlreadyPlacedBet)

@@ -10,7 +10,9 @@ pub struct InMemoryWallet {
 
 impl InMemoryWallet {
     pub fn new() -> Self {
-        Self { balances: Arc::new(DashMap::new()) }
+        Self {
+            balances: Arc::new(DashMap::new()),
+        }
     }
 
     pub fn seed(&self, player: PlayerId, amount: u32) {
@@ -19,19 +21,30 @@ impl InMemoryWallet {
 }
 
 impl Default for InMemoryWallet {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[async_trait]
 impl Wallet for InMemoryWallet {
     async fn balance(&self, player: PlayerId) -> Result<u32, WalletError> {
-        self.balances.get(&player).map(|b| *b).ok_or(WalletError::PlayerNotFound)
+        self.balances
+            .get(&player)
+            .map(|b| *b)
+            .ok_or(WalletError::PlayerNotFound)
     }
 
     async fn debit(&self, player: PlayerId, amount: u32) -> Result<u32, WalletError> {
-        let mut entry = self.balances.get_mut(&player).ok_or(WalletError::PlayerNotFound)?;
+        let mut entry = self
+            .balances
+            .get_mut(&player)
+            .ok_or(WalletError::PlayerNotFound)?;
         if *entry < amount {
-            return Err(WalletError::InsufficientBalance { balance: *entry, amount });
+            return Err(WalletError::InsufficientBalance {
+                balance: *entry,
+                amount,
+            });
         }
         *entry -= amount;
         Ok(*entry)

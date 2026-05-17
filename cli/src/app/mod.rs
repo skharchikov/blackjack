@@ -72,9 +72,8 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
                             let tx2 = tx.clone();
                             tokio::spawn(async move {
                                 if let Ok(resp) = reqwest::get(&url).await {
-                                    if let Ok(list) = resp
-                                        .json::<Vec<crate::state::lobby::TableSummary>>()
-                                        .await
+                                    if let Ok(list) =
+                                        resp.json::<Vec<crate::state::lobby::TableSummary>>().await
                                     {
                                         let _ = tx2.send(AppEvent::LobbyRefreshed(list)).await;
                                     }
@@ -165,8 +164,7 @@ pub fn spawn_ws(app: &mut App, table_id: String, tx: &mpsc::Sender<AppEvent>) {
         }
 
         // JoinTable
-        let join =
-            serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": 1});
+        let join = serde_json::json!({"type": "JoinTable", "table_id": table_id, "request_id": 1});
         if ws
             .send(Message::Text(join.to_string().into()))
             .await

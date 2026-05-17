@@ -1,5 +1,5 @@
-use crossterm::event::KeyCode;
 use crate::state::lobby::TableSummary;
+use crossterm::event::KeyCode;
 
 /// All events that flow through the application's event channel.
 #[derive(Debug)]

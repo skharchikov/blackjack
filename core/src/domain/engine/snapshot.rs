@@ -2,12 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::{
     dealer::DealerId,
-    engine::{
-        event::payload::EventPayload,
-        game_id::GameId,
-        game_state::GameState,
-        phase::Phase,
-    },
+    engine::{event::payload::EventPayload, game_id::GameId, game_state::GameState, phase::Phase},
     player::PlayerId,
     Card,
 };
@@ -40,10 +35,7 @@ pub struct GameStateSnapshot {
 
 impl GameStateSnapshot {
     pub fn from_state(state: &GameState, requesting_player: PlayerId) -> Self {
-        let hide_hole = matches!(
-            state.phase,
-            Phase::InitialDealing | Phase::PlayerTurn(_)
-        );
+        let hide_hole = matches!(state.phase, Phase::InitialDealing | Phase::PlayerTurn(_));
 
         let players = state
             .players
@@ -64,9 +56,7 @@ impl GameStateSnapshot {
             .cards
             .iter()
             .enumerate()
-            .map(|(i, &c)| {
-                if hide_hole && i == 1 { None } else { Some(c) }
-            })
+            .map(|(i, &c)| if hide_hole && i == 1 { None } else { Some(c) })
             .collect();
 
         GameStateSnapshot {

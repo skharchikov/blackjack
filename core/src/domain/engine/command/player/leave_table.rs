@@ -1,8 +1,6 @@
 use crate::domain::{
     engine::{
-        command::CommandHandler,
-        error::CommandError,
-        event::payload::EventPayload,
+        command::CommandHandler, error::CommandError, event::payload::EventPayload,
         game_state::GameState,
     },
     player::PlayerId,
@@ -23,7 +21,9 @@ impl CommandHandler for LeaveTable {
         if !state.players.iter().any(|p| p.player_id == self.player_id) {
             return Err(CommandError::PlayerNotFound(self.player_id));
         }
-        Ok(vec![EventPayload::PlayerLeft { player: self.player_id }])
+        Ok(vec![EventPayload::PlayerLeft {
+            player: self.player_id,
+        }])
     }
 }
 
@@ -46,7 +46,12 @@ mod tests {
     };
 
     fn settings() -> TableSettings {
-        TableSettings { min_bet: 10, max_bet: 1000, max_players: 5, max_observers: 10 }
+        TableSettings {
+            min_bet: 10,
+            max_bet: 1000,
+            max_players: 5,
+            max_observers: 10,
+        }
     }
 
     fn state_with_player(pid: PlayerId) -> GameState {
@@ -86,8 +91,7 @@ mod tests {
     #[test]
     fn leave_unknown_player() {
         let state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
-        let err =
-            GameEngine::handle(&state, &settings(), &leave_cmd(PlayerId::new())).unwrap_err();
+        let err = GameEngine::handle(&state, &settings(), &leave_cmd(PlayerId::new())).unwrap_err();
         assert!(matches!(err, CommandError::PlayerNotFound(_)));
     }
 }

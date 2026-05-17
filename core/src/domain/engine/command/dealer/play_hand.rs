@@ -1,10 +1,7 @@
 use crate::domain::{
     engine::{
-        command::CommandHandler,
-        error::CommandError,
-        event::payload::EventPayload,
-        game_state::GameState,
-        phase::Phase,
+        command::CommandHandler, error::CommandError, event::payload::EventPayload,
+        game_state::GameState, phase::Phase,
     },
     table::TableSettings,
 };
@@ -33,10 +30,7 @@ impl CommandHandler for PlayHand {
             if score >= 17 {
                 break;
             }
-            let card = *state
-                .shoe
-                .get(dealt)
-                .ok_or(CommandError::ShoeEmpty)?;
+            let card = *state.shoe.get(dealt).ok_or(CommandError::ShoeEmpty)?;
             events.push(EventPayload::DealerCardDealt {
                 dealer: state.dealer.dealer_id,
                 card,
@@ -65,13 +59,13 @@ mod tests {
     use crate::domain::{
         dealer::DealerId,
         engine::{
-            command::{CommandId, GameCommand, DealerCommand},
+            command::{CommandId, DealerCommand, GameCommand},
             game_id::GameId,
             game_state::GameState,
             GameEngine,
         },
-        Card, DeckId, Rank, Suit,
         table::TableSettings,
+        Card, DeckId, Rank, Suit,
     };
 
     fn settings() -> TableSettings {

@@ -1,11 +1,7 @@
 use crate::domain::{
     engine::{
-        action::PlayerDecision,
-        command::CommandHandler,
-        error::CommandError,
-        event::payload::EventPayload,
-        game_state::GameState,
-        phase::Phase,
+        action::PlayerDecision, command::CommandHandler, error::CommandError,
+        event::payload::EventPayload, game_state::GameState, phase::Phase,
     },
     player::PlayerId,
     table::TableSettings,
@@ -42,7 +38,9 @@ impl CommandHandler for Hit {
         new_hand.add_card(card);
 
         if new_hand.value().is_bust() {
-            events.push(EventPayload::PlayerBust { player: self.player_id });
+            events.push(EventPayload::PlayerBust {
+                player: self.player_id,
+            });
             events.push(EventPayload::PhaseChanged {
                 from: Phase::PlayerTurn(self.player_id),
                 to: state.next_player_after(self.player_id),
@@ -67,42 +65,58 @@ impl CommandHandler for Hit {
 mod tests {
     use super::*;
     use crate::domain::{
+        dealer::DealerId,
         engine::{
-            command::{CommandId, GameCommand, player::{PlayerCommand, PlayerAction}},
+            command::{
+                player::{PlayerAction, PlayerCommand},
+                CommandId, GameCommand,
+            },
             game_id::GameId,
             game_state::GameState,
-            GameEngine,
             phase::Phase,
+            GameEngine,
         },
-        dealer::DealerId,
         player::PlayerId,
-        Card, DeckId, Rank, Suit,
         table::TableSettings,
+        Card, DeckId, Rank, Suit,
     };
 
     fn settings() -> TableSettings {
-        TableSettings { min_bet: 10, max_bet: 500, max_players: 5, max_observers: 10 }
+        TableSettings {
+            min_bet: 10,
+            max_bet: 500,
+            max_players: 5,
+            max_observers: 10,
+        }
     }
 
     fn card(rank: Rank) -> Card {
-        Card { deck_id: DeckId::One, rank, suit: Suit::Spades }
+        Card {
+            deck_id: DeckId::One,
+            rank,
+            suit: Suit::Spades,
+        }
     }
 
     fn hit_cmd(pid: PlayerId) -> GameCommand {
         GameCommand::Player(PlayerCommand {
-            game_id: GameId::new(), command_id: CommandId(0),
+            game_id: GameId::new(),
+            command_id: CommandId(0),
             action: PlayerAction::Hit(Hit { player_id: pid }),
         })
     }
 
-    fn state_in_player_turn(pid: PlayerId, hand_ranks: Vec<Rank>, next_card_rank: Rank) -> GameState {
+    fn state_in_player_turn(
+        pid: PlayerId,
+        hand_ranks: Vec<Rank>,
+        next_card_rank: Rank,
+    ) -> GameState {
         // shoe: [next_card, padding...]
         let mut shoe: Vec<Card> = vec![card(next_card_rank)];
         shoe.extend(vec![card(Rank::Two); 20]);
 
-        let mut state = GameState::new_with_balance(
-            GameId::new(), shoe, vec![(pid, 1000)], DealerId::new(),
-        );
+        let mut state =
+            GameState::new_with_balance(GameId::new(), shoe, vec![(pid, 1000)], DealerId::new());
         state.players[0].bet = Some(100);
         // Manually add hand cards (dealt = 0, so next_card is shoe[0])
         for r in hand_ranks {
@@ -139,7 +153,13 @@ mod tests {
         let state = state_in_player_turn(pid, vec![Rank::King, Rank::Eight], Rank::Three);
         let events = GameEngine::handle(&state, &settings(), &hit_cmd(pid)).unwrap();
         assert_eq!(events.len(), 3); // CardDealt + DecisionTaken(Stand) + PhaseChanged
-        assert!(matches!(events[1], EventPayload::PlayerDecisionTaken { action: PlayerDecision::Stand, .. }));
+        assert!(matches!(
+            events[1],
+            EventPayload::PlayerDecisionTaken {
+                action: PlayerDecision::Stand,
+                ..
+            }
+        ));
     }
 
     #[test]

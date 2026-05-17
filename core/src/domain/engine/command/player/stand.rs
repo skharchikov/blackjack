@@ -1,11 +1,7 @@
 use crate::domain::{
     engine::{
-        action::PlayerDecision,
-        command::CommandHandler,
-        error::CommandError,
-        event::payload::EventPayload,
-        game_state::GameState,
-        phase::Phase,
+        action::PlayerDecision, command::CommandHandler, error::CommandError,
+        event::payload::EventPayload, game_state::GameState, phase::Phase,
     },
     player::PlayerId,
     table::TableSettings,
@@ -43,39 +39,51 @@ impl CommandHandler for Stand {
 mod tests {
     use super::*;
     use crate::domain::{
+        dealer::DealerId,
         engine::{
-            command::{CommandId, GameCommand, player::{PlayerCommand, PlayerAction}},
+            command::{
+                player::{PlayerAction, PlayerCommand},
+                CommandId, GameCommand,
+            },
             game_id::GameId,
             game_state::GameState,
-            GameEngine,
             phase::Phase,
+            GameEngine,
         },
-        dealer::DealerId,
         player::PlayerId,
-        Card, DeckId, Rank, Suit,
         table::TableSettings,
+        Card, DeckId, Rank, Suit,
     };
 
     fn settings() -> TableSettings {
-        TableSettings { min_bet: 10, max_bet: 500, max_players: 5, max_observers: 10 }
+        TableSettings {
+            min_bet: 10,
+            max_bet: 500,
+            max_players: 5,
+            max_observers: 10,
+        }
     }
 
     fn card(rank: Rank) -> Card {
-        Card { deck_id: DeckId::One, rank, suit: Suit::Spades }
+        Card {
+            deck_id: DeckId::One,
+            rank,
+            suit: Suit::Spades,
+        }
     }
 
     fn stand_cmd(pid: PlayerId) -> GameCommand {
         GameCommand::Player(PlayerCommand {
-            game_id: GameId::new(), command_id: CommandId(0),
+            game_id: GameId::new(),
+            command_id: CommandId(0),
             action: PlayerAction::Stand(Stand { player_id: pid }),
         })
     }
 
     fn state_in_player_turn(pid: PlayerId) -> GameState {
         let shoe = vec![card(Rank::King); 30];
-        let mut state = GameState::new_with_balance(
-            GameId::new(), shoe, vec![(pid, 1000)], DealerId::new(),
-        );
+        let mut state =
+            GameState::new_with_balance(GameId::new(), shoe, vec![(pid, 1000)], DealerId::new());
         state.players[0].bet = Some(100);
         state.phase = Phase::PlayerTurn(pid);
         state
@@ -87,7 +95,13 @@ mod tests {
         let state = state_in_player_turn(pid);
         let events = GameEngine::handle(&state, &settings(), &stand_cmd(pid)).unwrap();
         assert_eq!(events.len(), 2);
-        assert!(matches!(events[1], EventPayload::PhaseChanged { to: Phase::DealerTurn, .. }));
+        assert!(matches!(
+            events[1],
+            EventPayload::PhaseChanged {
+                to: Phase::DealerTurn,
+                ..
+            }
+        ));
     }
 
     #[test]
@@ -96,13 +110,18 @@ mod tests {
         let p2 = PlayerId::new();
         let shoe = vec![card(Rank::King); 30];
         let mut state = GameState::new_with_balance(
-            GameId::new(), shoe, vec![(p1, 1000), (p2, 1000)], DealerId::new(),
+            GameId::new(),
+            shoe,
+            vec![(p1, 1000), (p2, 1000)],
+            DealerId::new(),
         );
         state.players[0].bet = Some(100);
         state.players[1].bet = Some(100);
         state.phase = Phase::PlayerTurn(p1);
         let events = GameEngine::handle(&state, &settings(), &stand_cmd(p1)).unwrap();
-        assert!(matches!(events[1], EventPayload::PhaseChanged { to: Phase::PlayerTurn(id), .. } if id == p2));
+        assert!(
+            matches!(events[1], EventPayload::PhaseChanged { to: Phase::PlayerTurn(id), .. } if id == p2)
+        );
     }
 
     #[test]

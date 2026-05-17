@@ -34,6 +34,11 @@ async fn main() {
     .await
     .expect("failed to bind to address");
 
-    info!("Server running on http://{}:{}", config.application.host, config.application.port);
-    axum::serve(listener, app).await.expect("failed to run server");
+    info!(
+        "Server running on http://{}:{}",
+        config.application.host, config.application.port
+    );
+    axum::serve(listener, app)
+        .await
+        .expect("failed to run server");
 }

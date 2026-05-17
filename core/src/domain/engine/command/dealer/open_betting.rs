@@ -1,10 +1,7 @@
 use crate::domain::{
     engine::{
-        command::CommandHandler,
-        error::CommandError,
-        event::payload::EventPayload,
-        game_state::GameState,
-        phase::Phase,
+        command::CommandHandler, error::CommandError, event::payload::EventPayload,
+        game_state::GameState, phase::Phase,
     },
     table::TableSettings,
 };
@@ -24,7 +21,9 @@ impl CommandHandler for OpenBetting {
                 from: Phase::Finished,
                 to: Phase::WaitingForBets,
             }]),
-            actual => Err(CommandError::WrongPhase { actual: actual.clone() }),
+            actual => Err(CommandError::WrongPhase {
+                actual: actual.clone(),
+            }),
         }
     }
 }
@@ -42,8 +41,8 @@ mod tests {
             game_id::GameId,
             GameEngine,
         },
-        Shoe,
         table::TableSettings,
+        Shoe,
     };
 
     fn settings() -> TableSettings {
