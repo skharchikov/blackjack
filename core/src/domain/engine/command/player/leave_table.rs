@@ -1,7 +1,7 @@
 use crate::domain::{
     engine::{
         command::CommandHandler, error::CommandError, event::payload::EventPayload,
-        game_state::GameState,
+        game_state::GameState, phase::Phase,
     },
     player::PlayerId,
     table::TableSettings,
@@ -21,9 +21,23 @@ impl CommandHandler for LeaveTable {
         if !state.players.iter().any(|p| p.player_id == self.player_id) {
             return Err(CommandError::PlayerNotFound(self.player_id));
         }
-        Ok(vec![EventPayload::PlayerLeft {
+        let mut events = vec![EventPayload::PlayerLeft {
             player: self.player_id,
-        }])
+        }];
+
+        if let Phase::PlayerTurn(active) = state.phase {
+            if active == self.player_id {
+                let mut temp = state.clone();
+                temp.players.retain(|p| p.player_id != self.player_id);
+                let next = temp.next_player_after_leave();
+                events.push(EventPayload::PhaseChanged {
+                    from: Phase::PlayerTurn(self.player_id),
+                    to: next,
+                });
+            }
+        }
+
+        Ok(events)
     }
 }
 
@@ -93,5 +107,22 @@ mod tests {
         let state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
         let err = GameEngine::handle(&state, &settings(), &leave_cmd(PlayerId::new())).unwrap_err();
         assert!(matches!(err, CommandError::PlayerNotFound(_)));
+    }
+
+    #[test]
+    fn leave_during_player_turn_advances_phase() {
+        let pid = PlayerId::new();
+        let mut state = state_with_player(pid);
+        state.phase = Phase::PlayerTurn(pid);
+        state.players[0].bet = Some(10);
+        let events = GameEngine::handle(&state, &settings(), &leave_cmd(pid)).unwrap();
+        assert_eq!(events.len(), 2);
+        assert!(matches!(
+            &events[1],
+            EventPayload::PhaseChanged {
+                to: Phase::DealerTurn,
+                ..
+            }
+        ));
     }
 }

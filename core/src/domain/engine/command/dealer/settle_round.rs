@@ -38,6 +38,9 @@ fn settle_player(
     if player_bj {
         return (PlayerOutcome::Blackjack, PayoutMultiplier::Blackjack);
     }
+    if dealer_bj {
+        return (PlayerOutcome::Lost, PayoutMultiplier::Loss);
+    }
     if dealer_busted {
         return (PlayerOutcome::Won, PayoutMultiplier::Win);
     }
@@ -261,6 +264,17 @@ mod tests {
             GameEngine::handle(&state, &settings(), &cmd()),
             Err(CommandError::WrongPhase { .. })
         ));
+    }
+
+    #[test]
+    fn dealer_blackjack_beats_player_21() {
+        let (state, pid) = state_at_payouts(
+            vec![Rank::King, Rank::Seven, Rank::Four], // non-natural 21
+            vec![Rank::Ace, Rank::King],               // dealer blackjack
+            100,
+        );
+        let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
+        assert_eq!(outcome_for(&events, pid), PlayerOutcome::Lost);
     }
 
     #[test]

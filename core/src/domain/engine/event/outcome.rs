@@ -24,7 +24,7 @@ impl PayoutMultiplier {
             Self::Loss => 0,
             Self::Push => bet,
             Self::Win => bet * 2,
-            Self::Blackjack => bet + bet / 2,
+            Self::Blackjack => bet * 2 + bet / 2,
         }
     }
 }
@@ -75,10 +75,10 @@ mod tests {
     }
     #[test]
     fn payout_blackjack_even() {
-        assert_eq!(PayoutMultiplier::Blackjack.apply(10), 15);
+        assert_eq!(PayoutMultiplier::Blackjack.apply(10), 25);
     }
     #[test]
     fn payout_blackjack_odd() {
-        assert_eq!(PayoutMultiplier::Blackjack.apply(11), 16);
+        assert_eq!(PayoutMultiplier::Blackjack.apply(11), 27);
     }
 }

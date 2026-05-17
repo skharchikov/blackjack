@@ -118,12 +118,20 @@ impl GameState {
     }
 
     pub fn next_player_after(&self, current_id: PlayerId) -> Phase {
-        let idx = self
-            .players
-            .iter()
-            .position(|p| p.player_id == current_id)
-            .unwrap_or(0);
+        let idx = match self.players.iter().position(|p| p.player_id == current_id) {
+            Some(i) => i,
+            None => return Phase::DealerTurn,
+        };
         for p in &self.players[idx + 1..] {
+            if p.bet.is_some() && !self.player_finished(p) {
+                return Phase::PlayerTurn(p.player_id);
+            }
+        }
+        Phase::DealerTurn
+    }
+
+    pub fn next_player_after_leave(&self) -> Phase {
+        for p in &self.players {
             if p.bet.is_some() && !self.player_finished(p) {
                 return Phase::PlayerTurn(p.player_id);
             }

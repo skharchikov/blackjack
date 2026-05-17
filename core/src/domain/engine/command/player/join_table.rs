@@ -23,11 +23,11 @@ impl CommandHandler for JoinTable {
                 actual: state.phase.clone(),
             });
         }
-        if state.players.len() >= settings.max_players {
-            return Err(CommandError::TableFull);
-        }
         if state.players.iter().any(|p| p.player_id == self.player_id) {
             return Ok(vec![]); // idempotent
+        }
+        if state.players.len() >= settings.max_players {
+            return Err(CommandError::TableFull);
         }
         Ok(vec![EventPayload::PlayerJoined {
             player: self.player_id,
@@ -105,6 +105,20 @@ mod tests {
             state.apply_event(e);
         }
         let events2 = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
+        assert!(events2.is_empty());
+    }
+
+    #[test]
+    fn join_idempotent_on_full_table() {
+        let s = settings(1);
+        let pid = PlayerId::new();
+        let mut state = empty_state();
+        let events = GameEngine::handle(&state, &s, &cmd(pid)).unwrap();
+        for e in &events {
+            state.apply_event(e);
+        }
+        // Same player rejoins a now-full table — should be idempotent, not TableFull
+        let events2 = GameEngine::handle(&state, &s, &cmd(pid)).unwrap();
         assert!(events2.is_empty());
     }
 
