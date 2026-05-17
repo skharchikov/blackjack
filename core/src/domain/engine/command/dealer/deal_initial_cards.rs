@@ -54,9 +54,9 @@ impl CommandHandler for DealInitialCards {
             });
             idx += 1;
         }
-        events.push(EventPayload::DealerCardDealt {
+        // Second dealer card is the hole card — do not reveal in the event.
+        events.push(EventPayload::DealerHoleCardDealt {
             dealer: state.dealer.dealer_id,
-            card: state.shoe[idx],
         });
 
         let first = bettors[0].player_id;
@@ -131,7 +131,7 @@ mod tests {
         let pid = PlayerId::new();
         let state = state_with_bet(pid);
         let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
-        // GameStarted + 2 PlayerCardDealt + 2 DealerCardDealt + PhaseChanged = 6
+        // GameStarted + 2 PlayerCardDealt + DealerCardDealt + DealerHoleCardDealt + PhaseChanged = 6
         assert_eq!(events.len(), 6);
     }
 

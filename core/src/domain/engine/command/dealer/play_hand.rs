@@ -22,6 +22,15 @@ impl CommandHandler for PlayHand {
         }
 
         let mut events = vec![];
+
+        // Reveal the hole card to clients before the dealer plays.
+        if state.dealer.hand.cards.len() >= 2 {
+            events.push(EventPayload::DealerHoleCardRevealed {
+                dealer: state.dealer.dealer_id,
+                card: state.dealer.hand.cards[1],
+            });
+        }
+
         let mut hand = state.dealer.hand.clone();
         let mut dealt = state.dealt;
 
@@ -109,10 +118,11 @@ mod tests {
         // Dealer has King(10)+Seven(7)=17, no more cards needed
         let state = state_with_dealer_hand(vec![Rank::King, Rank::Seven], vec![Rank::Two; 10]);
         let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
-        // Only PhaseChanged (no cards drawn)
-        assert_eq!(events.len(), 1);
+        // DealerHoleCardRevealed + PhaseChanged
+        assert_eq!(events.len(), 2);
+        assert!(matches!(events[0], EventPayload::DealerHoleCardRevealed { .. }));
         assert!(matches!(
-            events[0],
+            events[1],
             EventPayload::PhaseChanged {
                 to: Phase::Payouts,
                 ..
@@ -125,8 +135,10 @@ mod tests {
         // Dealer has King(10)+Five(5)=15, draws Two(2) -> 17
         let state = state_with_dealer_hand(vec![Rank::King, Rank::Five], vec![Rank::Two]);
         let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
-        assert_eq!(events.len(), 2); // DealerCardDealt + PhaseChanged
-        assert!(matches!(events[0], EventPayload::DealerCardDealt { .. }));
+        // DealerHoleCardRevealed + DealerCardDealt + PhaseChanged
+        assert_eq!(events.len(), 3);
+        assert!(matches!(events[0], EventPayload::DealerHoleCardRevealed { .. }));
+        assert!(matches!(events[1], EventPayload::DealerCardDealt { .. }));
     }
 
     #[test]
@@ -134,9 +146,10 @@ mod tests {
         // Dealer has King(10)+Six(6)=16, draws King(10) -> 26 bust
         let state = state_with_dealer_hand(vec![Rank::King, Rank::Six], vec![Rank::King]);
         let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
-        // DealerCardDealt + DealerBust + PhaseChanged
-        assert_eq!(events.len(), 3);
-        assert!(matches!(events[1], EventPayload::DealerBust { .. }));
+        // DealerHoleCardRevealed + DealerCardDealt + DealerBust + PhaseChanged
+        assert_eq!(events.len(), 4);
+        assert!(matches!(events[0], EventPayload::DealerHoleCardRevealed { .. }));
+        assert!(matches!(events[2], EventPayload::DealerBust { .. }));
     }
 
     #[test]

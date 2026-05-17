@@ -102,6 +102,14 @@ impl GameState {
                 self.dealer.hand.add_card(*card);
                 self.dealt += 1;
             }
+            EventPayload::DealerHoleCardDealt { dealer: _ } => {
+                let card = self.shoe[self.dealt];
+                self.dealer.hand.add_card(card);
+                self.dealt += 1;
+            }
+            EventPayload::DealerHoleCardRevealed { dealer: _, card: _ } => {
+                // State already has the card; this event exists only to inform clients.
+            }
             EventPayload::PlayerDecisionTaken { player, action } => {
                 if let Some(player_state) = self.players.iter_mut().find(|p| p.player_id == *player)
                 {
