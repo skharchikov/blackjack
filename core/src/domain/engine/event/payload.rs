@@ -7,7 +7,7 @@ use crate::domain::{
 
 use super::outcome::GameResult;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum EventPayload {
     PlayerJoined {
         player: PlayerId,

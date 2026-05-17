@@ -1,6 +1,6 @@
 use crate::domain::player::PlayerId;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum PlayerOutcome {
     Won,
     Lost,
@@ -9,7 +9,7 @@ pub enum PlayerOutcome {
     Bust,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Payout {
     pub bet: u32,
     pub multiplier: f32, // 0.0 for loss, 1.0 for push, 2.0 for win, 2.5 for blackjack
@@ -25,14 +25,14 @@ impl Payout {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PlayerResult {
     pub player: PlayerId,
     pub outcome: PlayerOutcome,
     pub payout: Payout,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GameResult {
     pub player_results: Vec<PlayerResult>,
     pub dealer_busted: bool,

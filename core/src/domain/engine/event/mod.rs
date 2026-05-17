@@ -6,10 +6,10 @@ pub use game_event::*;
 pub use outcome::*;
 pub use payload::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EventId(pub u64);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EventSeqId(pub u64);
 
 impl EventSeqId {

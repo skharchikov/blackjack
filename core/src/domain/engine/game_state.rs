@@ -7,7 +7,7 @@ use crate::domain::{
 
 use super::event::EventPayload;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GameState {
     pub game_id: GameId,
     pub phase: Phase,
