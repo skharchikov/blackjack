@@ -5,12 +5,12 @@ use bj_core::domain::{
 };
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-fn pid(n: u64) -> PlayerId {
-    PlayerId(n)
+fn pid() -> PlayerId {
+    PlayerId::new()
 }
 
 fn did() -> DealerId {
-    DealerId(0)
+    DealerId::new()
 }
 
 fn gid() -> GameId {
@@ -75,8 +75,8 @@ fn bench_shoe_shuffle(c: &mut Criterion) {
 /// Benchmark GameState construction.
 fn bench_game_state_new(c: &mut Criterion) {
     let shoe = Shoe::default().into_cards();
-    let p1 = pid(1);
-    let p2 = pid(2);
+    let p1 = pid();
+    let p2 = pid();
 
     c.bench_function("game_state_new_with_balance", |b| {
         b.iter(|| {
