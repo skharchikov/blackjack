@@ -10,6 +10,8 @@ pub struct TableState {
     pub dealer: UiHand,
     pub players: Vec<PlayerUiState>,
     pub event_log: Vec<String>,
+    /// True when it is this client's turn to act (hit/stand).
+    pub is_my_turn: bool,
 }
 
 impl TableState {
@@ -24,6 +26,7 @@ impl TableState {
             },
             players: vec![],
             event_log: vec![],
+            is_my_turn: false,
         }
     }
 

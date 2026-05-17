@@ -22,3 +22,4 @@ sqlx = { version = "0.8", features = ["postgres", "macros", "runtime-tokio", "mi
 utoipa = { version = "5.4.0", features = ["axum_extras", "openapi_extensions"] }
 utoipa-axum = "0.2.0"
 utoipa-redoc = { version = "6.0.0", features = ["axum"] }
+secrecy = "0.10.3"

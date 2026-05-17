@@ -11,6 +11,7 @@ use super::{
     history::render_history,
     layout::split_table_view,
     observers::render_observers,
+    player_turn_popup::render_player_turn_popup,
     theme::TOKIO_NIGHT_BLUE,
     waiting_list::render_waiting_list,
 };
@@ -22,6 +23,8 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     render_waiting_list(frame, layout.waiting_list);
     render_board(frame, layout.board, ui);
     render_history(frame, layout.history, ui);
+    // Popup rendered last so it floats above the board
+    render_player_turn_popup(frame, area, ui);
 }
 
 fn render_board(frame: &mut Frame, area: Rect, ui: &UiState) {

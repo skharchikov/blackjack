@@ -6,6 +6,7 @@ pub mod layout;
 pub mod lobby;
 pub mod login;
 pub mod observers;
+pub mod player_turn_popup;
 pub mod table;
 pub mod theme;
 pub mod waiting_list;

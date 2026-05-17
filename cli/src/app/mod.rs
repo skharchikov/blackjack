@@ -235,7 +235,7 @@ fn handle_ws_message(app: &mut App, json: String) {
             }
             use bj_core::domain::engine::snapshot::GameStateSnapshot;
             if let Ok(snap) = serde_json::from_value::<GameStateSnapshot>(v["state"].clone()) {
-                let table = table_state_from_snapshot(&snap, &app.player_id);
+                let table = table_state_from_snapshot(&snap, &app.player_id, &app.username);
                 app.ui = crate::state::UiState::from_table_state(
                     table,
                     app.table_min_bet,
@@ -263,6 +263,7 @@ fn handle_ws_message(app: &mut App, json: String) {
 fn table_state_from_snapshot(
     snap: &bj_core::domain::engine::snapshot::GameStateSnapshot,
     my_player_id: &str,
+    my_username: &str,
 ) -> crate::state::table::TableState {
     use crate::state::{
         cards::{UiCard, UiHand},
@@ -295,8 +296,13 @@ fn table_state_from_snapshot(
             } else {
                 "waiting".into()
             };
+            let name = if pid == my_player_id {
+                my_username.to_string()
+            } else {
+                short_id(&pid)
+            };
             PlayerUiState {
-                name: short_id(&pid),
+                name,
                 active: is_active,
                 hand,
                 hand_value: p.hand_value,
@@ -393,6 +399,7 @@ fn apply_event_payload(
         EventPayload::PlayerPlacedBet { player, .. } if player.to_string() == app.player_id
     );
     let my_player_id = app.player_id.clone();
+    let my_username = app.username.clone();
 
     // Apply payload to table state
     if let crate::state::Screen::Table(ref mut table) = app.ui.screen {
@@ -402,9 +409,10 @@ fn apply_event_payload(
             EventPayload::PlayerJoined { player } => {
                 let pid = player.to_string();
                 if !table.players.iter().any(|p| p.player_id == pid) {
+                    let name = if pid == my_player_id { my_username.clone() } else { short_id(&pid) };
                     table.players.push(PlayerUiState {
                         player_id: pid.clone(),
-                        name: short_id(&pid),
+                        name,
                         active: false,
                         hand: UiHand {
                             cards: vec![],
