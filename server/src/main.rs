@@ -1,4 +1,3 @@
-use bj_core::domain::{TableId, TableSettings};
 use server::config::Settings;
 use server::session::in_memory::InMemoryGameSession;
 use server::wallet::in_memory::InMemoryWallet;
@@ -21,14 +20,9 @@ async fn main() {
     let config = Settings::load().expect("Failed to load configuration");
     info!("Loaded configuration: {:?}", config);
 
-    let session = InMemoryGameSession::new();
-    session.add_table(
-        TableId::new(),
-        "Table 1".to_string(),
-        TableSettings { min_bet: 10, max_bet: 1000, max_players: 5, max_observers: 10 },
-    );
-    let session: Arc<dyn server::session::GameSession> = Arc::new(session);
     let wallet: Arc<dyn server::wallet::Wallet> = Arc::new(InMemoryWallet::new());
+    let session = InMemoryGameSession::new(wallet.clone());
+    let session: Arc<dyn server::session::GameSession> = session;
 
     let state: AppState = Arc::new(App::new(session, wallet));
     let app = create_router(state);

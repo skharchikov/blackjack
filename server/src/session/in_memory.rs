@@ -1,53 +1,118 @@
-use super::{CommandAck, GameSession, RequestId, SessionError, TableSummary};
-use async_trait::async_trait;
-use bj_core::domain::{
-    engine::{command::player::PlayerAction, event::GameEvent, snapshot::GameStateSnapshot},
-    PlayerId, TableId, TableSettings,
-};
-use dashmap::DashMap;
 use std::sync::Arc;
-use tokio::sync::broadcast;
+use async_trait::async_trait;
+use dashmap::DashMap;
+use tokio::sync::{broadcast, mpsc, RwLock};
+use ulid::Ulid;
+use bj_core::domain::{
+    engine::{
+        game_id::GameId,
+        game_state::GameState,
+        snapshot::GameStateSnapshot,
+        command::player::PlayerAction,
+        event::GameEvent,
+    },
+    DealerId, PlayerId, TableId, TableSettings, Shoe,
+};
+use crate::{
+    session::{
+        CommandAck, GameSession, RequestId, SessionError,
+        summary::TableSummary,
+        table_actor::{run_table_actor, TableCommand},
+    },
+    wallet::Wallet,
+};
 
-use super::table_actor::TableHandle;
+struct TableHandle {
+    cmd_tx: mpsc::Sender<TableCommand>,
+    event_tx: broadcast::Sender<GameEvent>,
+    summary: Arc<RwLock<TableSummary>>,
+}
 
 pub struct InMemoryGameSession {
-    tables: Arc<DashMap<TableId, TableHandle>>,
+    tables: DashMap<TableId, TableHandle>,
+    wallet: Arc<dyn Wallet>,
+}
+
+struct SeedTable {
+    name: &'static str,
+    settings: TableSettings,
+}
+
+fn seeds() -> Vec<SeedTable> {
+    vec![
+        SeedTable {
+            name: "Cool Kids #1",
+            settings: TableSettings { min_bet: 10, max_bet: 500, max_players: 5, max_observers: 10 },
+        },
+        SeedTable {
+            name: "Big Sharks #2",
+            settings: TableSettings { min_bet: 25, max_bet: 1000, max_players: 6, max_observers: 10 },
+        },
+        SeedTable {
+            name: "Sopranos #3",
+            settings: TableSettings { min_bet: 100, max_bet: 5000, max_players: 4, max_observers: 10 },
+        },
+    ]
 }
 
 impl InMemoryGameSession {
-    pub fn new() -> Self {
-        Self { tables: Arc::new(DashMap::new()) }
+    pub fn new(wallet: Arc<dyn Wallet>) -> Arc<Self> {
+        let session = Arc::new(Self {
+            tables: DashMap::new(),
+            wallet,
+        });
+        for seed in seeds() {
+            session.seed_table(seed.name, seed.settings);
+        }
+        session
     }
 
-    pub fn add_table(&self, id: TableId, name: String, settings: TableSettings) {
-        let handle = TableHandle::spawn(id, name, settings);
-        self.tables.insert(id, handle);
-    }
-}
+    fn seed_table(&self, name: &str, settings: TableSettings) {
+        let table_id = TableId::new();
+        let dealer_id = DealerId(Ulid::new());
+        let game_id = GameId::new();
+        let shoe = Shoe::shuffled();
+        let state = GameState::new(game_id, shoe, vec![], dealer_id);
 
-impl Default for InMemoryGameSession {
-    fn default() -> Self { Self::new() }
+        let (cmd_tx, cmd_rx) = mpsc::channel::<TableCommand>(128);
+        let (event_tx, _) = broadcast::channel::<GameEvent>(256);
+        let summary = Arc::new(RwLock::new(TableSummary {
+            id: table_id,
+            name: name.to_string(),
+            settings: settings.clone(),
+            player_count: 0,
+            phase: "WaitingForBets".into(),
+            is_joinable: true,
+        }));
+
+        let wallet = self.wallet.clone();
+        let summary_clone = summary.clone();
+        let event_tx_clone = event_tx.clone();
+        tokio::spawn(run_table_actor(
+            table_id, settings, state, cmd_rx,
+            event_tx_clone, summary_clone, wallet,
+        ));
+
+        self.tables.insert(table_id, TableHandle { cmd_tx, event_tx, summary });
+    }
 }
 
 #[async_trait]
 impl GameSession for InMemoryGameSession {
     async fn list_tables(&self) -> Vec<TableSummary> {
-        let mut out = vec![];
-        for entry in self.tables.iter() {
-            if let Ok(s) = entry.value().summary().await {
-                out.push(s);
-            }
+        let mut out = Vec::new();
+        for r in self.tables.iter() {
+            out.push(r.value().summary.read().await.clone());
         }
         out
     }
 
-    async fn snapshot(
-        &self,
-        table_id: TableId,
-        player: PlayerId,
-    ) -> Result<GameStateSnapshot, SessionError> {
+    async fn snapshot(&self, table_id: TableId, player: PlayerId) -> Result<GameStateSnapshot, SessionError> {
         let handle = self.tables.get(&table_id).ok_or(SessionError::TableNotFound)?;
-        handle.snapshot(player).await
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        handle.cmd_tx.send(TableCommand::Snapshot { requesting_player: player, reply: tx })
+            .await.map_err(|_| SessionError::Internal)?;
+        rx.await.map_err(|_| SessionError::Internal)?
     }
 
     async fn send_command(
@@ -58,14 +123,14 @@ impl GameSession for InMemoryGameSession {
         action: PlayerAction,
     ) -> Result<CommandAck, SessionError> {
         let handle = self.tables.get(&table_id).ok_or(SessionError::TableNotFound)?;
-        handle.send_command(player_id, request_id, action).await
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        handle.cmd_tx.send(TableCommand::Execute { player_id, request_id, action, reply: tx })
+            .await.map_err(|_| SessionError::Internal)?;
+        rx.await.map_err(|_| SessionError::Internal)?
     }
 
-    async fn subscribe(
-        &self,
-        table_id: TableId,
-    ) -> Result<broadcast::Receiver<GameEvent>, SessionError> {
+    async fn subscribe(&self, table_id: TableId) -> Result<broadcast::Receiver<GameEvent>, SessionError> {
         let handle = self.tables.get(&table_id).ok_or(SessionError::TableNotFound)?;
-        handle.subscribe()
+        Ok(handle.event_tx.subscribe())
     }
 }
