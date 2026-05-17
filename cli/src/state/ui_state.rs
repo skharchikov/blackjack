@@ -27,6 +27,8 @@ impl UiState {
             header: HeaderState {
                 title: "Blackjack".into(),
                 subtitle: "Login".into(),
+                phase_deadline: None,
+                my_balance: None,
             },
             footer: FooterState {
                 hints: vec![
@@ -58,6 +60,8 @@ impl UiState {
             header: HeaderState {
                 title: "Blackjack".into(),
                 subtitle: "Lobby".into(),
+                phase_deadline: None,
+                my_balance: None,
             },
             footer: FooterState {
                 hints: vec![
@@ -159,6 +163,8 @@ impl UiState {
             header: HeaderState {
                 title: "Blackjack".into(),
                 subtitle,
+                phase_deadline: None,
+                my_balance: None,
             },
             footer,
             betting,
@@ -195,6 +201,10 @@ impl UiState {
 pub struct HeaderState {
     pub title: String,
     pub subtitle: String,
+    /// When the current timed phase expires (set by the app layer).
+    pub phase_deadline: Option<std::time::Instant>,
+    /// Local player's balance, shown in the header when at a table.
+    pub my_balance: Option<u32>,
 }
 
 #[derive(Debug, Clone)]

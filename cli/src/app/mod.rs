@@ -58,13 +58,14 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     let mut tick_count: u64 = 0;
 
     loop {
-        terminal.draw(|f| render(f, &app.ui))?;
+        terminal.draw(|f| render(f, &app.ui, &mut app.throbber_state))?;
 
         if let Some(event) = rx.recv().await {
             match event {
                 AppEvent::Key(key) => handle_key(&mut app, key, &tx),
                 AppEvent::Tick => {
                     tick_count += 1;
+                    app.throbber_state.calc_next();
 
                     // Drain one queued event every 2 ticks (~500ms per card)
                     app.anim_tick += 1;
@@ -231,6 +232,7 @@ fn handle_ws_message(app: &mut App, json: String) {
                     app.table_min_bet,
                     app.table_max_bet,
                 );
+                refresh_header_balance(app);
             }
         }
         "Event" => {
@@ -535,11 +537,18 @@ fn apply_event_payload(
     if let Some(new_phase) = phase_change {
         sync_ui_chrome(app, server_phase_to_game_phase(&new_phase));
     }
+    // Keep header balance current after bet or payout events.
+    refresh_header_balance(app);
 }
+
+/// Timeouts matching the server's table_actor constants.
+const BETTING_TIMEOUT_SECS: u64 = 30;
+const PLAYER_TURN_TIMEOUT_SECS: u64 = 30;
 
 fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
     use crate::state::ui_state::{FooterHint, FooterState};
     use crate::state::{table::GamePhase, BettingState};
+    use std::time::{Duration, Instant};
 
     let min_bet = app.table_min_bet;
     let max_bet = app.table_max_bet;
@@ -555,66 +564,51 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
             });
             app.ui.footer = FooterState {
                 hints: vec![
-                    FooterHint {
-                        key: "←→",
-                        label: "bet",
-                    },
-                    FooterHint {
-                        key: "enter",
-                        label: "confirm",
-                    },
-                    FooterHint {
-                        key: "l",
-                        label: "leave",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
+                    FooterHint { key: "←→", label: "bet" },
+                    FooterHint { key: "enter", label: "confirm" },
+                    FooterHint { key: "l", label: "leave" },
+                    FooterHint { key: "q", label: "quit" },
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
+            app.ui.header.phase_deadline =
+                Some(Instant::now() + Duration::from_secs(BETTING_TIMEOUT_SECS));
         }
         GamePhase::PlayerTurn => {
             app.ui.betting = None;
             app.ui.footer = FooterState {
                 hints: vec![
-                    FooterHint {
-                        key: "h",
-                        label: "hit",
-                    },
-                    FooterHint {
-                        key: "s",
-                        label: "stand",
-                    },
-                    FooterHint {
-                        key: "l",
-                        label: "leave",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
+                    FooterHint { key: "h", label: "hit" },
+                    FooterHint { key: "s", label: "stand" },
+                    FooterHint { key: "l", label: "leave" },
+                    FooterHint { key: "q", label: "quit" },
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
+            app.ui.header.phase_deadline =
+                Some(Instant::now() + Duration::from_secs(PLAYER_TURN_TIMEOUT_SECS));
         }
         _ => {
             app.ui.betting = None;
             app.ui.footer = FooterState {
                 hints: vec![
-                    FooterHint {
-                        key: "l",
-                        label: "leave",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
+                    FooterHint { key: "l", label: "leave" },
+                    FooterHint { key: "q", label: "quit" },
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
+            app.ui.header.phase_deadline = None;
         }
+    }
+}
+
+fn refresh_header_balance(app: &mut App) {
+    if let crate::state::Screen::Table(ref table) = app.ui.screen {
+        let my_id = &app.player_id;
+        let balance = table.players.iter()
+            .find(|p| &p.player_id == my_id)
+            .map(|p| p.balance);
+        app.ui.header.my_balance = balance;
     }
 }
 

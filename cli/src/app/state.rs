@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 
 use bj_core::domain::engine::event::payload::EventPayload;
 use crate::state::UiState;
+use throbber_widgets_tui::ThrobberState;
 use tokio::sync::mpsc;
 use ulid::Ulid;
 
@@ -18,6 +19,8 @@ pub struct App {
     pub event_queue: VecDeque<(u64, EventPayload)>,
     /// Tick counter used to pace event application.
     pub anim_tick: u64,
+    /// Spinner animation state for the header.
+    pub throbber_state: ThrobberState,
 }
 
 impl App {
@@ -33,6 +36,7 @@ impl App {
             table_max_bet: 1_000,
             event_queue: VecDeque::new(),
             anim_tick: 0,
+            throbber_state: ThrobberState::default(),
         }
     }
 }

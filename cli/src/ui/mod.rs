@@ -11,14 +11,15 @@ pub mod theme;
 pub mod waiting_list;
 
 use ratatui::Frame;
+use throbber_widgets_tui::ThrobberState;
 
 use crate::state::{Screen, UiState};
 use crate::ui::footer::render_footer;
 use crate::ui::header::render_header;
 
-pub fn render(frame: &mut Frame, ui: &UiState) {
+pub fn render(frame: &mut Frame, ui: &UiState, throbber_state: &mut ThrobberState) {
     let layout = layout::split_screen(frame.area());
-    render_header(frame, layout.header, ui);
+    render_header(frame, layout.header, ui, throbber_state);
     render_main(frame, layout.main, ui);
     render_footer(frame, layout.footer, ui);
 }
