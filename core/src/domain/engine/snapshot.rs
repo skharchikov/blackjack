@@ -31,6 +31,8 @@ pub struct GameStateSnapshot {
     pub players: Vec<PlayerSnapshot>,
     pub dealer: DealerSnapshot,
     pub requesting_player: PlayerId,
+    pub observers: Vec<PlayerId>,
+    pub waiting: Vec<PlayerId>,
 }
 
 impl GameStateSnapshot {
@@ -68,6 +70,8 @@ impl GameStateSnapshot {
                 cards: dealer_cards,
             },
             requesting_player,
+            observers: state.observers.clone(),
+            waiting: state.waiting.clone(),
         }
     }
 }

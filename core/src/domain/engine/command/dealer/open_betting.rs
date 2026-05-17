@@ -13,14 +13,23 @@ impl CommandHandler for OpenBetting {
     fn handle(
         &self,
         state: &GameState,
-        _settings: &TableSettings,
+        settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
         match &state.phase {
             Phase::WaitingForBets => Ok(vec![]),
-            Phase::Finished => Ok(vec![EventPayload::PhaseChanged {
-                from: Phase::Finished,
-                to: Phase::WaitingForBets,
-            }]),
+            Phase::Finished => {
+                let mut events = vec![];
+                let seats_available =
+                    settings.max_players.saturating_sub(state.players.len());
+                for &pid in state.waiting.iter().take(seats_available) {
+                    events.push(EventPayload::PlayerJoined { player: pid });
+                }
+                events.push(EventPayload::PhaseChanged {
+                    from: Phase::Finished,
+                    to: Phase::WaitingForBets,
+                });
+                Ok(events)
+            }
             actual => Err(CommandError::WrongPhase {
                 actual: actual.clone(),
             }),
@@ -41,6 +50,7 @@ mod tests {
             game_id::GameId,
             GameEngine,
         },
+        player::PlayerId,
         table::TableSettings,
         Shoe,
     };
@@ -82,6 +92,54 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn open_betting_promotes_waiting_players() {
+        let mut state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
+        state.phase = Phase::Finished;
+        let pid1 = PlayerId::new();
+        let pid2 = PlayerId::new();
+        state.waiting.push(pid1);
+        state.waiting.push(pid2);
+        let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
+        // Two PlayerJoined + one PhaseChanged
+        assert_eq!(events.len(), 3);
+        assert!(matches!(events[0], EventPayload::PlayerJoined { player } if player == pid1));
+        assert!(matches!(events[1], EventPayload::PlayerJoined { player } if player == pid2));
+        assert!(matches!(
+            &events[2],
+            EventPayload::PhaseChanged {
+                to: Phase::WaitingForBets,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn open_betting_respects_max_players() {
+        let mut state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
+        state.phase = Phase::Finished;
+        // Fill one seat
+        state
+            .players
+            .push(crate::domain::player::PlayerState::new(PlayerId::new()));
+        // Two waiting but max_players is 2 so only one slot left
+        let pid1 = PlayerId::new();
+        let pid2 = PlayerId::new();
+        state.waiting.push(pid1);
+        state.waiting.push(pid2);
+
+        let s = TableSettings {
+            min_bet: 10,
+            max_bet: 1000,
+            max_players: 2,
+            max_observers: 10,
+        };
+        let events = GameEngine::handle(&state, &s, &cmd()).unwrap();
+        // One PlayerJoined + PhaseChanged
+        assert_eq!(events.len(), 2);
+        assert!(matches!(events[0], EventPayload::PlayerJoined { player } if player == pid1));
     }
 
     #[test]

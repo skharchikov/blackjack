@@ -102,6 +102,7 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
         return;
     };
     let phase = table.phase;
+    let is_observer = table.is_observer;
 
     // Leave works from any phase
     if let KeyCode::Char('l') = key {
@@ -112,6 +113,18 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
         app.ws_tx = None;
         app.current_table_id = None;
         app.ui = crate::state::UiState::lobby();
+        return;
+    }
+
+    // Observer: request a seat
+    if is_observer {
+        if let KeyCode::Char('t') = key {
+            if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
+                let msg = serde_json::json!({"type": "TakeSeat", "table_id": tid, "request_id": 5});
+                let _ = ws_tx.try_send(msg.to_string());
+            }
+        }
+        let _ = tx;
         return;
     }
 

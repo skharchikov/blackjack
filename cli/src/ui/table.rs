@@ -19,8 +19,10 @@ use crate::state::{table::GamePhase, Screen, UiState};
 
 pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     let layout = split_table_view(area);
-    render_observers(frame, layout.observers);
-    render_waiting_list(frame, layout.waiting_list);
+    if let Screen::Table(ref table) = ui.screen {
+        render_observers(frame, layout.observers, table);
+        render_waiting_list(frame, layout.waiting_list, table);
+    }
     render_board(frame, layout.board, ui);
     render_history(frame, layout.history, ui);
     // Popup rendered last so it floats above the board

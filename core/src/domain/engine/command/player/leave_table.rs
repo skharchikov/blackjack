@@ -18,26 +18,39 @@ impl CommandHandler for LeaveTable {
         state: &GameState,
         _settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
-        if !state.players.iter().any(|p| p.player_id == self.player_id) {
-            return Err(CommandError::PlayerNotFound(self.player_id));
-        }
-        let mut events = vec![EventPayload::PlayerLeft {
-            player: self.player_id,
-        }];
+        if state.players.iter().any(|p| p.player_id == self.player_id) {
+            let mut events = vec![EventPayload::PlayerLeft {
+                player: self.player_id,
+            }];
 
-        if let Phase::PlayerTurn(active) = state.phase {
-            if active == self.player_id {
-                let mut temp = state.clone();
-                temp.players.retain(|p| p.player_id != self.player_id);
-                let next = temp.next_player_after_leave();
-                events.push(EventPayload::PhaseChanged {
-                    from: Phase::PlayerTurn(self.player_id),
-                    to: next,
-                });
+            if let Phase::PlayerTurn(active) = state.phase {
+                if active == self.player_id {
+                    let mut temp = state.clone();
+                    temp.players.retain(|p| p.player_id != self.player_id);
+                    let next = temp.next_player_after_leave();
+                    events.push(EventPayload::PhaseChanged {
+                        from: Phase::PlayerTurn(self.player_id),
+                        to: next,
+                    });
+                }
             }
+
+            return Ok(events);
         }
 
-        Ok(events)
+        if state.observers.contains(&self.player_id) {
+            return Ok(vec![EventPayload::ObserverLeft {
+                player: self.player_id,
+            }]);
+        }
+
+        if state.waiting.contains(&self.player_id) {
+            return Ok(vec![EventPayload::PlayerRemovedFromWaitingList {
+                player: self.player_id,
+            }]);
+        }
+
+        Err(CommandError::PlayerNotFound(self.player_id))
     }
 }
 
@@ -48,7 +61,7 @@ mod tests {
         dealer::DealerId,
         engine::{
             command::{
-                player::{JoinTable, PlayerAction, PlayerCommand},
+                player::{PlayerAction, PlayerCommand, TakeSeat},
                 CommandId, GameCommand,
             },
             game_id::GameId,
@@ -68,21 +81,38 @@ mod tests {
         }
     }
 
-    fn state_with_player(pid: PlayerId) -> GameState {
+    /// Creates a state where the player is seated (in `players`).
+    fn state_with_seated_player(pid: PlayerId) -> GameState {
         let mut state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
+        // Observer first, then take seat
+        state.observers.push(pid);
         let events = GameEngine::handle(
             &state,
             &settings(),
             &GameCommand::Player(PlayerCommand {
                 game_id: GameId::new(),
                 command_id: CommandId(0),
-                action: PlayerAction::JoinTable(JoinTable { player_id: pid }),
+                action: PlayerAction::TakeSeat(TakeSeat { player_id: pid }),
             }),
         )
         .unwrap();
         for e in events {
             state.apply_event(&e);
         }
+        state
+    }
+
+    /// Creates a state where the player is an observer.
+    fn state_with_observer(pid: PlayerId) -> GameState {
+        let mut state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
+        state.observers.push(pid);
+        state
+    }
+
+    /// Creates a state where the player is in the waiting list.
+    fn state_with_waiting_player(pid: PlayerId) -> GameState {
+        let mut state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
+        state.waiting.push(pid);
         state
     }
 
@@ -95,24 +125,46 @@ mod tests {
     }
 
     #[test]
-    fn leave_existing_player() {
+    fn leave_seated_player() {
         let pid = PlayerId::new();
-        let state = state_with_player(pid);
+        let state = state_with_seated_player(pid);
         let events = GameEngine::handle(&state, &settings(), &leave_cmd(pid)).unwrap();
         assert!(matches!(events[0], EventPayload::PlayerLeft { player } if player == pid));
     }
 
     #[test]
+    fn leave_observer() {
+        let pid = PlayerId::new();
+        let state = state_with_observer(pid);
+        let events = GameEngine::handle(&state, &settings(), &leave_cmd(pid)).unwrap();
+        assert_eq!(events.len(), 1);
+        assert!(matches!(events[0], EventPayload::ObserverLeft { player } if player == pid));
+    }
+
+    #[test]
+    fn leave_waiting_player() {
+        let pid = PlayerId::new();
+        let state = state_with_waiting_player(pid);
+        let events = GameEngine::handle(&state, &settings(), &leave_cmd(pid)).unwrap();
+        assert_eq!(events.len(), 1);
+        assert!(matches!(
+            events[0],
+            EventPayload::PlayerRemovedFromWaitingList { player } if player == pid
+        ));
+    }
+
+    #[test]
     fn leave_unknown_player() {
         let state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
-        let err = GameEngine::handle(&state, &settings(), &leave_cmd(PlayerId::new())).unwrap_err();
+        let err =
+            GameEngine::handle(&state, &settings(), &leave_cmd(PlayerId::new())).unwrap_err();
         assert!(matches!(err, CommandError::PlayerNotFound(_)));
     }
 
     #[test]
     fn leave_during_player_turn_advances_phase() {
         let pid = PlayerId::new();
-        let mut state = state_with_player(pid);
+        let mut state = state_with_seated_player(pid);
         state.phase = Phase::PlayerTurn(pid);
         state.players[0].bet = Some(10);
         let events = GameEngine::handle(&state, &settings(), &leave_cmd(pid)).unwrap();

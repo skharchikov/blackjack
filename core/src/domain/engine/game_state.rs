@@ -15,6 +15,8 @@ pub struct GameState {
     pub dealt: usize,
     pub players: Vec<PlayerState>,
     pub dealer: DealerState,
+    pub observers: Vec<PlayerId>,
+    pub waiting: Vec<PlayerId>,
 }
 
 impl GameState {
@@ -26,6 +28,8 @@ impl GameState {
             dealt: 0,
             players: players.into_iter().map(PlayerState::new).collect(),
             dealer: DealerState::new(dealer),
+            observers: vec![],
+            waiting: vec![],
         }
     }
 
@@ -46,6 +50,8 @@ impl GameState {
                 .map(|(id, balance)| PlayerState::with_balance(id, balance))
                 .collect(),
             dealer: DealerState::new(dealer),
+            observers: vec![],
+            waiting: vec![],
         }
     }
 
@@ -61,10 +67,25 @@ impl GameState {
     pub fn apply_event(&mut self, payload: &EventPayload) {
         match payload {
             EventPayload::PlayerJoined { player } => {
+                self.observers.retain(|&p| p != *player);
+                self.waiting.retain(|&p| p != *player);
                 self.players.push(PlayerState::new(*player));
             }
             EventPayload::PlayerLeft { player } => {
                 self.players.retain(|p| p.player_id != *player);
+            }
+            EventPayload::ObserverJoined { player } => {
+                self.observers.push(*player);
+            }
+            EventPayload::ObserverLeft { player } => {
+                self.observers.retain(|&p| p != *player);
+            }
+            EventPayload::PlayerAddedToWaitingList { player } => {
+                self.observers.retain(|&p| p != *player);
+                self.waiting.push(*player);
+            }
+            EventPayload::PlayerRemovedFromWaitingList { player } => {
+                self.waiting.retain(|&p| p != *player);
             }
             EventPayload::PlayerPlacedBet { player, amount } => {
                 if let Some(player_state) = self.players.iter_mut().find(|p| p.player_id == *player)

@@ -15,7 +15,7 @@ use crate::{
     AppState,
 };
 use bj_core::domain::{
-    engine::command::player::{Hit, JoinTable, LeaveTable, PlaceBet, PlayerAction, Stand},
+    engine::command::player::{Hit, JoinTable, LeaveTable, PlaceBet, PlayerAction, Stand, TakeSeat},
     engine::snapshot::GameEventDto,
     TableId,
 };
@@ -392,6 +392,21 @@ async fn handle_client_msg(
                 &table_id,
                 request_id,
                 PlayerAction::Stand(Stand { player_id }),
+            )
+            .await?;
+        }
+
+        ClientMessage::TakeSeat {
+            table_id,
+            request_id,
+        } => {
+            send_player_cmd(
+                socket,
+                state,
+                player_id,
+                &table_id,
+                request_id,
+                PlayerAction::TakeSeat(TakeSeat { player_id }),
             )
             .await?;
         }

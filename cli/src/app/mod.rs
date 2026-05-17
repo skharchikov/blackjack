@@ -339,6 +339,33 @@ fn table_state_from_snapshot(
         .map(|pid| pid == my_player_id)
         .unwrap_or(false);
 
+    let make_ui_state = |pid_id: &bj_core::domain::PlayerId| -> PlayerUiState {
+        let pid = pid_id.to_string();
+        let name = if pid == my_player_id {
+            my_username.to_string()
+        } else {
+            short_id(&pid)
+        };
+        PlayerUiState {
+            player_id: pid,
+            name,
+            active: false,
+            hand: UiHand {
+                cards: vec![],
+                value: None,
+            },
+            hand_value: 0,
+            is_bust: false,
+            balance: 0,
+            bet: None,
+            status: String::new(),
+        }
+    };
+
+    let observers: Vec<PlayerUiState> = snap.observers.iter().map(&make_ui_state).collect();
+    let waiting: Vec<PlayerUiState> = snap.waiting.iter().map(&make_ui_state).collect();
+    let is_observer = snap.observers.iter().any(|p| p.to_string() == my_player_id);
+
     let mut state = TableState {
         game_id: snap.game_id.to_string(),
         phase,
@@ -348,6 +375,9 @@ fn table_state_from_snapshot(
             value: dealer_value,
         },
         players,
+        observers,
+        waiting,
+        is_observer,
         event_log: vec!["— snapshot —".into()],
         is_my_turn,
     };
@@ -403,8 +433,70 @@ fn apply_event_payload(
         table.event_seq = seq;
 
         match payload {
+            EventPayload::ObserverJoined { player } => {
+                let pid = player.to_string();
+                if !table.observers.iter().any(|o| o.player_id == pid) {
+                    let name = if pid == my_player_id { my_username.clone() } else { short_id(&pid) };
+                    table.observers.push(PlayerUiState {
+                        player_id: pid.clone(),
+                        name,
+                        active: false,
+                        hand: UiHand { cards: vec![], value: None },
+                        hand_value: 0,
+                        is_bust: false,
+                        balance: 0,
+                        bet: None,
+                        status: "observing".into(),
+                    });
+                    if pid == my_player_id {
+                        table.is_observer = true;
+                    }
+                }
+                table.log(format!("#{seq} {} observing", short_id(&pid)));
+            }
+            EventPayload::ObserverLeft { player } => {
+                let pid = player.to_string();
+                table.observers.retain(|o| o.player_id != pid);
+                if pid == my_player_id {
+                    table.is_observer = false;
+                }
+                table.log(format!("#{seq} {} left (observer)", short_id(&pid)));
+            }
+            EventPayload::PlayerAddedToWaitingList { player } => {
+                let pid = player.to_string();
+                table.observers.retain(|o| o.player_id != pid);
+                if !table.waiting.iter().any(|w| w.player_id == pid) {
+                    let name = if pid == my_player_id { my_username.clone() } else { short_id(&pid) };
+                    table.waiting.push(PlayerUiState {
+                        player_id: pid.clone(),
+                        name,
+                        active: false,
+                        hand: UiHand { cards: vec![], value: None },
+                        hand_value: 0,
+                        is_bust: false,
+                        balance: 0,
+                        bet: None,
+                        status: "waiting".into(),
+                    });
+                }
+                if pid == my_player_id {
+                    table.is_observer = false;
+                }
+                table.log(format!("#{seq} {} added to waiting list", short_id(&pid)));
+            }
+            EventPayload::PlayerRemovedFromWaitingList { player } => {
+                let pid = player.to_string();
+                table.waiting.retain(|w| w.player_id != pid);
+                table.log(format!("#{seq} {} removed from waiting list", short_id(&pid)));
+            }
             EventPayload::PlayerJoined { player } => {
                 let pid = player.to_string();
+                // Clean up observer/waiting lists
+                table.observers.retain(|o| o.player_id != pid);
+                table.waiting.retain(|w| w.player_id != pid);
+                if pid == my_player_id {
+                    table.is_observer = false;
+                }
                 if !table.players.iter().any(|p| p.player_id == pid) {
                     let name = if pid == my_player_id { my_username.clone() } else { short_id(&pid) };
                     table.players.push(PlayerUiState {
@@ -585,6 +677,26 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
 
     let min_bet = app.table_min_bet;
     let max_bet = app.table_max_bet;
+
+    let is_observer = if let crate::state::Screen::Table(ref t) = app.ui.screen {
+        t.is_observer
+    } else {
+        false
+    };
+
+    if is_observer {
+        app.ui.betting = None;
+        app.ui.footer = FooterState {
+            hints: vec![
+                FooterHint { key: "t", label: "take seat" },
+                FooterHint { key: "l", label: "leave" },
+                FooterHint { key: "q", label: "quit" },
+            ],
+        };
+        app.ui.header.subtitle = format!("Table – {} (observing)", phase);
+        app.ui.header.phase_deadline = None;
+        return;
+    }
 
     match phase {
         GamePhase::WaitingForBets | GamePhase::Betting => {

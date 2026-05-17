@@ -3,12 +3,14 @@ pub mod join_table;
 pub mod leave_table;
 pub mod place_bet;
 pub mod stand;
+pub mod take_seat;
 
 pub use hit::Hit;
 pub use join_table::JoinTable;
 pub use leave_table::LeaveTable;
 pub use place_bet::PlaceBet;
 pub use stand::Stand;
+pub use take_seat::TakeSeat;
 
 use crate::domain::engine::command::{CommandHandler, CommandId};
 use crate::domain::engine::error::CommandError;
@@ -31,6 +33,7 @@ pub enum PlayerAction {
     PlaceBet(PlaceBet),
     Hit(Hit),
     Stand(Stand),
+    TakeSeat(TakeSeat),
 }
 
 impl CommandHandler for PlayerAction {
@@ -45,6 +48,7 @@ impl CommandHandler for PlayerAction {
             Self::PlaceBet(h) => h.handle(state, settings),
             Self::Hit(h) => h.handle(state, settings),
             Self::Stand(h) => h.handle(state, settings),
+            Self::TakeSeat(h) => h.handle(state, settings),
         }
     }
 }

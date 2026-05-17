@@ -30,6 +30,10 @@ pub enum ClientMessage {
         table_id: String,
         request_id: u64,
     },
+    TakeSeat {
+        table_id: String,
+        request_id: u64,
+    },
     DealerOpenBetting {
         table_id: String,
         request_id: u64,

@@ -15,6 +15,18 @@ pub enum EventPayload {
     PlayerLeft {
         player: PlayerId,
     },
+    ObserverJoined {
+        player: PlayerId,
+    },
+    ObserverLeft {
+        player: PlayerId,
+    },
+    PlayerAddedToWaitingList {
+        player: PlayerId,
+    },
+    PlayerRemovedFromWaitingList {
+        player: PlayerId,
+    },
     PlayerPlacedBet {
         player: PlayerId,
         amount: u32,

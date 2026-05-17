@@ -1,7 +1,7 @@
 use crate::domain::{
     engine::{
         command::CommandHandler, error::CommandError, event::payload::EventPayload,
-        game_state::GameState, phase::Phase,
+        game_state::GameState,
     },
     player::PlayerId,
     table::TableSettings,
@@ -16,20 +16,16 @@ impl CommandHandler for JoinTable {
     fn handle(
         &self,
         state: &GameState,
-        settings: &TableSettings,
+        _settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
-        if !matches!(state.phase, Phase::WaitingForBets) {
-            return Err(CommandError::WrongPhase {
-                actual: state.phase.clone(),
-            });
+        // Idempotent: already anywhere at this table
+        if state.players.iter().any(|p| p.player_id == self.player_id)
+            || state.observers.contains(&self.player_id)
+            || state.waiting.contains(&self.player_id)
+        {
+            return Ok(vec![]);
         }
-        if state.players.iter().any(|p| p.player_id == self.player_id) {
-            return Ok(vec![]); // idempotent
-        }
-        if state.players.len() >= settings.max_players {
-            return Err(CommandError::TableFull);
-        }
-        Ok(vec![EventPayload::PlayerJoined {
+        Ok(vec![EventPayload::ObserverJoined {
             player: self.player_id,
         }])
     }
@@ -47,6 +43,7 @@ mod tests {
             },
             game_id::GameId,
             game_state::GameState,
+            phase::Phase,
             GameEngine,
         },
         Shoe,
@@ -74,30 +71,26 @@ mod tests {
     }
 
     #[test]
-    fn join_empty_table() {
+    fn join_becomes_observer() {
         let state = empty_state();
         let pid = PlayerId::new();
         let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
         assert_eq!(events.len(), 1);
-        assert!(matches!(events[0], EventPayload::PlayerJoined { player } if player == pid));
+        assert!(matches!(events[0], EventPayload::ObserverJoined { player } if player == pid));
     }
 
     #[test]
-    fn join_full_table() {
+    fn join_any_phase() {
         let mut state = empty_state();
-        let s = settings(1);
-        let pid1 = PlayerId::new();
-        let events = GameEngine::handle(&state, &s, &cmd(pid1)).unwrap();
-        for e in &events {
-            state.apply_event(e);
-        }
-        let pid2 = PlayerId::new();
-        let err = GameEngine::handle(&state, &s, &cmd(pid2)).unwrap_err();
-        assert_eq!(err, CommandError::TableFull);
+        state.phase = Phase::DealerTurn;
+        let pid = PlayerId::new();
+        let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
+        assert_eq!(events.len(), 1);
+        assert!(matches!(events[0], EventPayload::ObserverJoined { .. }));
     }
 
     #[test]
-    fn join_idempotent() {
+    fn join_idempotent_as_observer() {
         let mut state = empty_state();
         let pid = PlayerId::new();
         let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
@@ -109,24 +102,34 @@ mod tests {
     }
 
     #[test]
-    fn join_idempotent_on_full_table() {
-        let s = settings(1);
-        let pid = PlayerId::new();
+    fn join_idempotent_as_seated_player() {
         let mut state = empty_state();
-        let events = GameEngine::handle(&state, &s, &cmd(pid)).unwrap();
-        for e in &events {
-            state.apply_event(e);
-        }
-        // Same player rejoins a now-full table — should be idempotent, not TableFull
-        let events2 = GameEngine::handle(&state, &s, &cmd(pid)).unwrap();
-        assert!(events2.is_empty());
+        let pid = PlayerId::new();
+        // Manually seat the player
+        state.players.push(crate::domain::player::PlayerState::new(pid));
+        let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
+        assert!(events.is_empty());
     }
 
     #[test]
-    fn join_wrong_phase() {
+    fn join_idempotent_in_waiting_list() {
         let mut state = empty_state();
-        state.phase = Phase::DealerTurn;
-        let err = GameEngine::handle(&state, &settings(5), &cmd(PlayerId::new())).unwrap_err();
-        assert!(matches!(err, CommandError::WrongPhase { .. }));
+        let pid = PlayerId::new();
+        state.waiting.push(pid);
+        let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
+        assert!(events.is_empty());
+    }
+
+    #[test]
+    fn join_full_table_allowed_as_observer() {
+        let mut state = empty_state();
+        let s = settings(1);
+        let pid1 = PlayerId::new();
+        state.players.push(crate::domain::player::PlayerState::new(pid1));
+        // Table is full but join should still work (becomes observer)
+        let pid2 = PlayerId::new();
+        let events = GameEngine::handle(&state, &s, &cmd(pid2)).unwrap();
+        assert_eq!(events.len(), 1);
+        assert!(matches!(events[0], EventPayload::ObserverJoined { .. }));
     }
 }
