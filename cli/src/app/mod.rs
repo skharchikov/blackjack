@@ -375,6 +375,10 @@ fn apply_event_payload(
         EventPayload::PhaseChanged { to, .. } => Some(to.clone()),
         _ => None,
     };
+    // Track if it's our own bet confirmation to start the round-start countdown
+    let own_bet_confirmed = matches!(&payload,
+        EventPayload::PlayerPlacedBet { player, .. } if player.to_string() == app.player_id
+    );
 
     // Apply payload to table state
     if let crate::state::Screen::Table(ref mut table) = app.ui.screen {
@@ -537,6 +541,12 @@ fn apply_event_payload(
     if let Some(new_phase) = phase_change {
         sync_ui_chrome(app, server_phase_to_game_phase(&new_phase));
     }
+    // Start round-start countdown only when our own bet is confirmed.
+    if own_bet_confirmed {
+        use std::time::{Duration, Instant};
+        app.ui.header.phase_deadline =
+            Some(Instant::now() + Duration::from_secs(BETTING_TIMEOUT_SECS));
+    }
     // Keep header balance current after bet or payout events.
     refresh_header_balance(app);
 }
@@ -571,8 +581,7 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
                 ],
             };
             app.ui.header.subtitle = format!("Table – {}", phase);
-            app.ui.header.phase_deadline =
-                Some(Instant::now() + Duration::from_secs(BETTING_TIMEOUT_SECS));
+            app.ui.header.phase_deadline = None; // set on PlayerPlacedBet for own player
         }
         GamePhase::PlayerTurn => {
             app.ui.betting = None;
