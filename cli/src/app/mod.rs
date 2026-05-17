@@ -209,7 +209,11 @@ fn handle_ws_message(app: &mut App, json: String) {
             if let Some(tid) = v["table_id"].as_str() {
                 app.current_table_id = Some(tid.to_string());
             }
-            app.ui = crate::state::UiState::table_view();
+            let phase = v["state"]["phase"].as_str().unwrap_or("");
+            app.ui = match phase {
+                "WaitingForBets" => crate::state::UiState::betting(),
+                _ => crate::state::UiState::table_view(),
+            };
         }
         "Event" => {
             if let crate::state::Screen::Table(ref mut _table) = app.ui.screen {

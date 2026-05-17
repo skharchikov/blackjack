@@ -46,7 +46,13 @@ pub fn render_lobby(frame: &mut Frame, area: Rect, lobby: &LobbyState) {
                     "{}/{}",
                     table.player_count, table.settings.max_players
                 )),
-                Cell::from(if table.is_joinable { "Open" } else { "Full" }),
+                Cell::from(if table.is_joinable {
+                    "Open"
+                } else if table.phase == "WaitingForBets" {
+                    "Full"
+                } else {
+                    "In Progress"
+                }),
             ])
             .style(row_style)
             .height(1)

@@ -79,8 +79,10 @@ fn handle_lobby_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
         }
         KeyCode::Enter => {
             if let Some(table) = lobby.tables.get(lobby.selected) {
-                let table_id = table.id.clone();
-                crate::app::spawn_ws(app, table_id, tx);
+                if table.is_joinable {
+                    let table_id = table.id.clone();
+                    crate::app::spawn_ws(app, table_id, tx);
+                }
             }
         }
         _ => {}
@@ -91,14 +93,27 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     let Screen::Table(ref table) = app.ui.screen else {
         return;
     };
+    let phase = table.phase;
 
-    if table.phase == GamePhase::Betting {
+    // Leave works from any phase
+    if let KeyCode::Char('l') = key {
+        if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
+            let msg = serde_json::json!({"type": "LeaveTable", "table_id": tid, "request_id": 99});
+            let _ = ws_tx.try_send(msg.to_string());
+        }
+        app.ws_tx = None;
+        app.current_table_id = None;
+        app.ui = crate::state::UiState::lobby();
+        return;
+    }
+
+    if phase == GamePhase::Betting {
         handle_betting_key(app, key);
         return;
     }
 
     // PlayerTurn actions
-    if table.phase == GamePhase::PlayerTurn {
+    if phase == GamePhase::PlayerTurn {
         match key {
             KeyCode::Char('h') => {
                 if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
@@ -137,7 +152,12 @@ fn handle_betting_key(app: &mut App, key: KeyCode) {
             betting.current_bet = (betting.current_bet + betting.step).min(betting.max_bet);
         }
         KeyCode::Enter => {
+            let amount = betting.current_bet;
             betting.confirmed = true;
+            if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
+                let msg = serde_json::json!({"type": "PlaceBet", "table_id": tid, "request_id": 10, "amount": amount});
+                let _ = ws_tx.try_send(msg.to_string());
+            }
         }
         _ => {}
     }
