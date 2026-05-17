@@ -116,4 +116,30 @@ impl GameState {
             }
         }
     }
+
+    pub fn next_player_after(&self, current_id: PlayerId) -> Phase {
+        let idx = self
+            .players
+            .iter()
+            .position(|p| p.player_id == current_id)
+            .unwrap_or(0);
+        for p in &self.players[idx + 1..] {
+            if p.bet.is_some() && !self.player_finished(p) {
+                return Phase::PlayerTurn(p.player_id);
+            }
+        }
+        Phase::DealerTurn
+    }
+
+    pub fn player_finished(&self, p: &PlayerState) -> bool {
+        use crate::domain::engine::action::PlayerDecision;
+        p.hand.value().is_bust() || p.decisions.last() == Some(&PlayerDecision::Stand)
+    }
+
+    pub fn first_betting_player(&self) -> Option<PlayerId> {
+        self.players
+            .iter()
+            .find(|p| p.bet.is_some())
+            .map(|p| p.player_id)
+    }
 }

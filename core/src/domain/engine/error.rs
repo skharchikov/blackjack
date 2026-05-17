@@ -19,4 +19,8 @@ pub enum CommandError {
     AlreadyPlacedBet,
     #[error("shoe is empty")]
     ShoeEmpty,
+    #[error("table is full")]
+    TableFull,
+    #[error("no players have placed bets")]
+    NoBettors,
 }
