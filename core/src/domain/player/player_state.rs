@@ -1,6 +1,6 @@
 use crate::domain::{engine::action::PlayerDecision, hand::Hand, player::PlayerId};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PlayerState {
     pub player_id: PlayerId,
     pub hand: Hand,
@@ -50,7 +50,7 @@ impl PlayerState {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum BetError {
     InsufficientFunds,
     InvalidAmount,

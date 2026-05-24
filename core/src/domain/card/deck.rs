@@ -20,7 +20,7 @@ impl Deck {
 }
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Clone, Copy, EnumIter)]
+#[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize, EnumIter)]
 pub enum DeckId {
     One = 1,
     Two,

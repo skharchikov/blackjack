@@ -1,8 +1,7 @@
-use crate::state::lobby::TableStatus;
 use crate::state::{
-    lobby::{LobbyState, LobbyStatus, TableInfo},
+    lobby::{LobbyState, LobbyStatus},
     login::LoginState,
-    table::TableState,
+    table::{GamePhase, TableState},
     BettingState,
 };
 
@@ -28,6 +27,7 @@ impl UiState {
             header: HeaderState {
                 title: "Blackjack".into(),
                 subtitle: "Login".into(),
+                my_balance: None,
             },
             footer: FooterState {
                 hints: vec![
@@ -54,36 +54,12 @@ impl UiState {
             screen: Screen::Lobby(LobbyState {
                 status: LobbyStatus::Disconnected,
                 selected: 0,
-                tables: vec![
-                    TableInfo {
-                        name: "Cool Kids #1".into(),
-                        players: 1,
-                        max_players: 4,
-                        min_bet: 10,
-                        max_bet: 100,
-                        status: TableStatus::Open,
-                    },
-                    TableInfo {
-                        name: "Big Sharks #2".into(),
-                        players: 1,
-                        max_players: 4,
-                        min_bet: 100,
-                        max_bet: 1000,
-                        status: TableStatus::Open,
-                    },
-                    TableInfo {
-                        name: "Sopranos #3".into(),
-                        players: 1,
-                        max_players: 4,
-                        min_bet: 10,
-                        max_bet: 1000,
-                        status: TableStatus::Open,
-                    },
-                ],
+                tables: vec![],
             }),
             header: HeaderState {
                 title: "Blackjack".into(),
                 subtitle: "Lobby".into(),
+                my_balance: None,
             },
             footer: FooterState {
                 hints: vec![
@@ -105,96 +81,116 @@ impl UiState {
         }
     }
 
-    pub fn betting() -> Self {
-        use crate::state::table::GamePhase;
-        use crate::state::UiHand;
+    /// Build table view from a snapshot. Phase determines betting widget and footer.
+    pub fn from_table_state(table: TableState, min_bet: u32, max_bet: u32) -> Self {
+        let phase = table.phase;
+        let subtitle = format!("Table – {}", phase);
+
+        let (footer, betting) = match phase {
+            GamePhase::WaitingForBets | GamePhase::Betting => (
+                FooterState {
+                    hints: vec![
+                        FooterHint {
+                            key: "←→",
+                            label: "bet",
+                        },
+                        FooterHint {
+                            key: "enter",
+                            label: "confirm",
+                        },
+                        FooterHint {
+                            key: "l",
+                            label: "leave seat",
+                        },
+                        FooterHint {
+                            key: "q",
+                            label: "quit",
+                        },
+                    ],
+                },
+                Some(BettingState {
+                    min_bet: min_bet as u64,
+                    max_bet: max_bet as u64,
+                    current_bet: min_bet as u64,
+                    step: (min_bet as u64).max(5),
+                    confirmed: false,
+                }),
+            ),
+            GamePhase::PlayerTurn => (
+                FooterState {
+                    hints: vec![
+                        FooterHint {
+                            key: "h",
+                            label: "hit",
+                        },
+                        FooterHint {
+                            key: "s",
+                            label: "stand",
+                        },
+                        FooterHint {
+                            key: "l",
+                            label: "leave seat",
+                        },
+                        FooterHint {
+                            key: "q",
+                            label: "quit",
+                        },
+                    ],
+                },
+                None,
+            ),
+            _ => (
+                FooterState {
+                    hints: vec![
+                        FooterHint {
+                            key: "l",
+                            label: "leave seat",
+                        },
+                        FooterHint {
+                            key: "q",
+                            label: "quit",
+                        },
+                    ],
+                },
+                None,
+            ),
+        };
 
         Self {
-            screen: Screen::Table(TableState {
-                game_id: 1,
-                phase: GamePhase::Betting,
-                event_id: 0,
-                dealer: UiHand {
-                    cards: vec![],
-                    value: None,
-                },
-                players: vec![],
-            }),
+            screen: Screen::Table(table),
             header: HeaderState {
                 title: "Blackjack".into(),
-                subtitle: "Place your bet".into(),
+                subtitle,
+                my_balance: None,
             },
-            footer: FooterState {
-                hints: vec![
-                    FooterHint {
-                        key: "←→",
-                        label: "bet",
-                    },
-                    FooterHint {
-                        key: "enter",
-                        label: "confirm",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
-                ],
-            },
-            betting: Some(BettingState {
-                min_bet: 10,
-                max_bet: 1_000,
-                current_bet: 50,
-                step: 10,
-                confirmed: false,
-            }),
+            footer,
+            betting,
         }
     }
 
-    pub fn table_view() -> Self {
-        use crate::state::table::GamePhase;
-        use crate::state::UiHand;
+    // Legacy constructors kept for initial snapshot before table settings are known
+    pub fn betting() -> Self {
+        Self::from_table_state(
+            {
+                let mut t = TableState::empty();
+                t.phase = GamePhase::Betting;
+                t
+            },
+            10,
+            1_000,
+        )
+    }
 
-        Self {
-            screen: Screen::Table(TableState {
-                game_id: 1,
-                phase: GamePhase::PlayerTurn,
-                event_id: 0,
-                dealer: UiHand {
-                    cards: vec![],
-                    value: None,
-                },
-                players: vec![],
-            }),
-            header: HeaderState {
-                title: "Blackjack".into(),
-                subtitle: "Table #1".into(),
+    pub fn table_view() -> Self {
+        Self::from_table_state(
+            {
+                let mut t = TableState::empty();
+                t.phase = GamePhase::PlayerTurn;
+                t
             },
-            footer: FooterState {
-                hints: vec![
-                    FooterHint {
-                        key: "h",
-                        label: "hit",
-                    },
-                    FooterHint {
-                        key: "s",
-                        label: "stand",
-                    },
-                    FooterHint {
-                        key: "d",
-                        label: "double",
-                    },
-                    FooterHint {
-                        key: "l",
-                        label: "leave",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
-                ],
-            },
-            betting: None,
-        }
+            10,
+            1_000,
+        )
     }
 }
 
@@ -202,6 +198,8 @@ impl UiState {
 pub struct HeaderState {
     pub title: String,
     pub subtitle: String,
+    /// Local player's balance, shown in the header when at a table.
+    pub my_balance: Option<u32>,
 }
 
 #[derive(Debug, Clone)]

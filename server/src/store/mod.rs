@@ -1,3 +1,1 @@
-mod table_store;
-
-pub use table_store::*;
+// Superseded by session module.

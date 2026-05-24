@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, FromRepr};
 use thiserror::Error;
 
-#[derive(Debug, PartialEq, FromRepr, EnumIter, Clone, Copy)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, FromRepr, EnumIter, Clone, Copy)]
 #[repr(u8)]
 pub enum Suit {
     Hearts,

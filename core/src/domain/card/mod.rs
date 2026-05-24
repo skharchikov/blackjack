@@ -38,7 +38,7 @@ pub use suit::{Suit, SuitError};
 /// };
 /// println!("{:?}", card);
 /// ```
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Card {
     pub deck_id: DeckId,
     pub suit: Suit,
