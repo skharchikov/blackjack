@@ -8,6 +8,7 @@ pub enum AppEvent {
     Tick,
     Resize(u16, u16),
     LobbyRefreshed(Vec<TableSummary>),
+    LobbyPollDone,
     WsMessage(String),
     WsConnected { player_id: String },
     WsDisconnected,

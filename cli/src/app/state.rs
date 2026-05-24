@@ -20,6 +20,8 @@ pub struct App {
     pub table_max_bet: u32,
     pub event_queue: VecDeque<(u64, EventPayload)>,
     pub anim_tick: u64,
+    /// Prevents spawning a new lobby poll while the previous one is in flight.
+    pub lobby_poll_in_flight: bool,
     next_request_id: u64,
 }
 
@@ -39,6 +41,7 @@ impl App {
             table_max_bet: 1_000,
             event_queue: VecDeque::new(),
             anim_tick: 0,
+            lobby_poll_in_flight: false,
             next_request_id: 1,
         }
     }

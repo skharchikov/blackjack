@@ -73,30 +73,47 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
                         }
                     }
 
-                    // Poll lobby every ~3s (12 ticks × 250ms)
-                    if tick_count.is_multiple_of(12) {
-                        if let crate::state::Screen::Lobby(_) = &app.ui.screen {
-                            let url = format!("{}/tables", app.server_url);
-                            let tx2 = tx.clone();
-                            tokio::spawn(async move {
-                                if let Ok(resp) = reqwest::get(&url).await {
-                                    if let Ok(list) =
-                                        resp.json::<Vec<crate::state::lobby::TableSummary>>().await
-                                    {
-                                        let _ = tx2.send(AppEvent::LobbyRefreshed(list)).await;
-                                    }
-                                }
-                            });
-                        }
+                    // Poll lobby every ~3s (12 ticks × 250ms); skip if previous poll still in flight
+                    if tick_count.is_multiple_of(12)
+                        && !app.lobby_poll_in_flight
+                        && matches!(app.ui.screen, crate::state::Screen::Lobby(_))
+                    {
+                        app.lobby_poll_in_flight = true;
+                        let url = format!("{}/tables", app.server_url);
+                        let tx2 = tx.clone();
+                        tokio::spawn(async move {
+                            let result = async {
+                                let client = reqwest::Client::builder()
+                                    .timeout(Duration::from_secs(5))
+                                    .build()?;
+                                let list = client
+                                    .get(&url)
+                                    .send()
+                                    .await?
+                                    .json::<Vec<crate::state::lobby::TableSummary>>()
+                                    .await?;
+                                Ok::<_, reqwest::Error>(list)
+                            }
+                            .await;
+                            if let Ok(list) = result {
+                                let _ = tx2.send(AppEvent::LobbyRefreshed(list)).await;
+                            } else {
+                                let _ = tx2.send(AppEvent::LobbyPollDone).await;
+                            }
+                        });
                     }
                 }
                 AppEvent::LobbyRefreshed(tables) => {
+                    app.lobby_poll_in_flight = false;
                     if let crate::state::Screen::Lobby(ref mut lobby) = app.ui.screen {
                         let selected = lobby.selected.min(tables.len().saturating_sub(1));
                         lobby.tables = tables;
                         lobby.selected = selected;
                         lobby.status = crate::state::lobby::LobbyStatus::Connected;
                     }
+                }
+                AppEvent::LobbyPollDone => {
+                    app.lobby_poll_in_flight = false;
                 }
                 AppEvent::WsConnected { player_id } => {
                     app.player_id = player_id;

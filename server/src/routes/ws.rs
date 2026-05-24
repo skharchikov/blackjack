@@ -362,21 +362,41 @@ async fn handle_client_msg(
             table_id,
             request_id,
         } => {
-            if let Ok(tid) = table_id.parse::<TableId>() {
-                if let Err(e) = state
-                    .session
-                    .send_command(
-                        tid,
-                        player_id,
-                        RequestId(request_id),
-                        PlayerAction::LeaveTable(LeaveTable { player_id }),
+            let tid = match table_id.parse::<TableId>() {
+                Ok(t) => t,
+                Err(_) => {
+                    let _ = send_msg(
+                        socket,
+                        &ServerMessage::CommandError {
+                            request_id,
+                            reason: "invalid table_id".into(),
+                        },
                     )
-                    .await
-                {
-                    warn!("player={player_id} leave table={tid} failed: {e}");
-                } else {
-                    info!("player={player_id} left table={tid}");
+                    .await;
+                    return Ok(());
                 }
+            };
+            if let Err(e) = state
+                .session
+                .send_command(
+                    tid,
+                    player_id,
+                    RequestId(request_id),
+                    PlayerAction::LeaveTable(LeaveTable { player_id }),
+                )
+                .await
+            {
+                warn!("player={player_id} leave table={tid} failed: {e}");
+                let _ = send_msg(
+                    socket,
+                    &ServerMessage::CommandError {
+                        request_id,
+                        reason: e.to_string(),
+                    },
+                )
+                .await;
+            } else {
+                info!("player={player_id} left table={tid}");
                 if let Some(h) = fwd_abort.take() {
                     h.abort();
                 }
