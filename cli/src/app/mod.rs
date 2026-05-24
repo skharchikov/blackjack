@@ -65,16 +65,16 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
                 AppEvent::Key(key) => handle_key(&mut app, key, &tx),
                 AppEvent::Tick => {
                     tick_count += 1;
-                    // Drain one queued event every 2 ticks (~500ms per card)
+                    // Drain one queued event every 3 ticks (~750ms per card)
                     app.anim_tick += 1;
-                    if app.anim_tick % 2 == 0 {
+                    if app.anim_tick.is_multiple_of(3) {
                         if let Some((seq, payload)) = app.event_queue.pop_front() {
                             apply_event_payload(&mut app, payload, seq);
                         }
                     }
 
                     // Poll lobby every ~3s (12 ticks × 250ms)
-                    if tick_count % 12 == 0 {
+                    if tick_count.is_multiple_of(12) {
                         if let crate::state::Screen::Lobby(_) = &app.ui.screen {
                             let url = format!("{}/tables", app.server_url);
                             let tx2 = tx.clone();
@@ -126,19 +126,31 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
         }
     }
 
+    // Drop WS sender to trigger close frame, then await the task
+    app.ws_tx = None;
+    if let Some(task) = app.ws_task.take() {
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(2), task).await;
+    }
+
     Ok(())
 }
 
 fn set_login_error(app: &mut App, msg: &str) {
     use crate::state::{LoginField, LoginState, LoginStatus, Screen};
-    let mut login = LoginState::default();
-    login.username = app.username.clone();
-    login.active_field = LoginField::Password;
-    login.status = LoginStatus::Error(msg.to_string());
+    let login = LoginState {
+        username: app.username.clone(),
+        active_field: LoginField::Password,
+        status: LoginStatus::Error(msg.to_string()),
+        ..LoginState::default()
+    };
     app.ui.screen = Screen::Login(login);
 }
 
 pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
+    // Cancel previous WS task if any
+    if let Some(h) = app.ws_task.take() {
+        h.abort();
+    }
     let ws_url = format!("{}/ws", app.server_url.replace("http", "ws"));
     let username = app.username.clone();
     let password = app.password.clone();
@@ -146,7 +158,7 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
     let (ws_cmd_tx, mut ws_cmd_rx) = mpsc::channel::<String>(32);
     app.ws_tx = Some(ws_cmd_tx);
 
-    tokio::spawn(async move {
+    let handle = tokio::spawn(async move {
         use futures_util::{SinkExt, StreamExt};
         use tokio_tungstenite::connect_async;
         use tokio_tungstenite::tungstenite::Message;
@@ -211,9 +223,18 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
         // Forward loop — JoinTable and other commands arrive via ws_cmd_rx
         loop {
             tokio::select! {
-                Some(cmd) = ws_cmd_rx.recv() => {
-                    if ws.send(Message::Text(cmd.into())).await.is_err() {
-                        break;
+                cmd = ws_cmd_rx.recv() => {
+                    match cmd {
+                        Some(text) => {
+                            if ws.send(Message::Text(text.into())).await.is_err() {
+                                break;
+                            }
+                        }
+                        None => {
+                            // Sender dropped (app quitting) — send close frame
+                            let _ = ws.send(Message::Close(None)).await;
+                            break;
+                        }
                     }
                 }
                 msg = ws.next() => {
@@ -230,6 +251,8 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
 
         let _ = tx_app.send(AppEvent::WsDisconnected).await;
     });
+
+    app.ws_task = Some(handle);
 }
 
 fn handle_ws_message(app: &mut App, json: String) {
@@ -399,6 +422,7 @@ fn table_state_from_snapshot(
         is_observer,
         event_log: vec!["— snapshot —".into()],
         is_my_turn,
+        round_result: None,
     };
 
     // Seed log with current table state so history isn't blank on join
@@ -639,6 +663,8 @@ fn apply_event_payload(
                 table.log(format!("#{seq} dealer BUST"));
             }
             EventPayload::GameFinished { result } => {
+                use crate::state::table::{RoundOutcome, RoundResult};
+                use bj_core::domain::engine::event::outcome::PlayerOutcome;
                 table.phase = GamePhase::Finished;
                 for pr in &result.player_results {
                     let pid = pr.player.to_string();
@@ -647,6 +673,21 @@ fn apply_event_payload(
                         p.balance += payout;
                         p.bet = None;
                         p.status = format!("{:?} +{}", pr.outcome, payout);
+                    }
+                    // Show outcome popup for local player
+                    if pid == my_player_id {
+                        let outcome = match pr.outcome {
+                            PlayerOutcome::Blackjack => RoundOutcome::Blackjack,
+                            PlayerOutcome::Won => RoundOutcome::Won,
+                            PlayerOutcome::Push => RoundOutcome::Push,
+                            PlayerOutcome::Lost => RoundOutcome::Lost,
+                            PlayerOutcome::Bust => RoundOutcome::Bust,
+                        };
+                        table.round_result = Some(RoundResult {
+                            outcome,
+                            bet: pr.payout.bet,
+                            payout,
+                        });
                     }
                     table.log(format!(
                         "#{seq} {} {:?} payout:{}",

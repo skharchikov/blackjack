@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::state::UiState;
 use bj_core::domain::engine::event::payload::EventPayload;
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, task::JoinHandle};
 use ulid::Ulid;
 
 pub struct App {
@@ -13,6 +13,8 @@ pub struct App {
     pub username: String,
     pub password: String,
     pub ws_tx: Option<mpsc::Sender<String>>,
+    /// Handle to the active WS background task; awaited on clean shutdown.
+    pub ws_task: Option<JoinHandle<()>>,
     pub current_table_id: Option<String>,
     pub table_min_bet: u32,
     pub table_max_bet: u32,
@@ -31,6 +33,7 @@ impl App {
             username: String::new(),
             password: String::new(),
             ws_tx: None,
+            ws_task: None,
             current_table_id: None,
             table_min_bet: 10,
             table_max_bet: 1_000,

@@ -39,11 +39,17 @@ pub struct InMemoryAuthenticator {
     users: RwLock<HashMap<String, UserRecord>>,
 }
 
-impl InMemoryAuthenticator {
-    pub fn new() -> Self {
+impl Default for InMemoryAuthenticator {
+    fn default() -> Self {
         Self {
             users: RwLock::new(HashMap::new()),
         }
+    }
+}
+
+impl InMemoryAuthenticator {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Pre-register a user and return their PlayerId. Idempotent: returns existing id if username taken.

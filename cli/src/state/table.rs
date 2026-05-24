@@ -2,6 +2,35 @@ use std::fmt;
 
 use super::cards::UiHand;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RoundOutcome {
+    Blackjack,
+    Won,
+    Push,
+    Lost,
+    Bust,
+}
+
+impl fmt::Display for RoundOutcome {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            RoundOutcome::Blackjack => "BLACKJACK!",
+            RoundOutcome::Won => "YOU WIN",
+            RoundOutcome::Push => "PUSH",
+            RoundOutcome::Lost => "YOU LOSE",
+            RoundOutcome::Bust => "BUST",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RoundResult {
+    pub outcome: RoundOutcome,
+    pub bet: u32,
+    pub payout: u32,
+}
+
 #[derive(Debug, Clone)]
 pub struct TableState {
     pub game_id: String,
@@ -15,6 +44,8 @@ pub struct TableState {
     pub event_log: Vec<String>,
     /// True when it is this client's turn to act (hit/stand).
     pub is_my_turn: bool,
+    /// Populated after GameFinished for the local player; shown as overlay popup.
+    pub round_result: Option<RoundResult>,
 }
 
 impl TableState {
@@ -33,6 +64,7 @@ impl TableState {
             is_observer: false,
             event_log: vec![],
             is_my_turn: false,
+            round_result: None,
         }
     }
 

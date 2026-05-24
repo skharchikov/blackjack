@@ -48,13 +48,11 @@ fn handle_login_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
                 login.password.pop();
             }
         },
-        KeyCode::Enter => {
-            if !login.username.is_empty() && !login.password.is_empty() {
-                app.username = login.username.clone();
-                app.password = login.password.clone();
-                login.status = LoginStatus::Connecting;
-                crate::app::spawn_ws(app, tx);
-            }
+        KeyCode::Enter if !login.username.is_empty() && !login.password.is_empty() => {
+            app.username = login.username.clone();
+            app.password = login.password.clone();
+            login.status = LoginStatus::Connecting;
+            crate::app::spawn_ws(app, tx);
         }
         KeyCode::Esc => {
             app.should_quit = true;
@@ -69,15 +67,11 @@ fn handle_lobby_key(app: &mut App, key: KeyCode, _tx: &mpsc::Sender<AppEvent>) {
     };
 
     match key {
-        KeyCode::Up => {
-            if lobby.selected > 0 {
-                lobby.selected -= 1;
-            }
+        KeyCode::Up if lobby.selected > 0 => {
+            lobby.selected -= 1;
         }
-        KeyCode::Down => {
-            if lobby.selected + 1 < lobby.tables.len() {
-                lobby.selected += 1;
-            }
+        KeyCode::Down if lobby.selected + 1 < lobby.tables.len() => {
+            lobby.selected += 1;
         }
         KeyCode::Enter => {
             if let Some(table) = lobby.tables.get(lobby.selected) {
@@ -104,6 +98,14 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     };
     let phase = table.phase;
     let is_observer = table.is_observer;
+
+    // If outcome popup is visible, any key dismisses it
+    if table.round_result.is_some() {
+        if let Screen::Table(ref mut t) = app.ui.screen {
+            t.round_result = None;
+        }
+        return;
+    }
 
     if let KeyCode::Char('l') = key {
         let rid = app.next_request_id();

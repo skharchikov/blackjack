@@ -247,6 +247,7 @@ fn reset_player_timer(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn fire_dealer(
     state: &mut GameState,
     settings: &TableSettings,
@@ -275,6 +276,7 @@ async fn fire_dealer(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn maybe_advance_dealer(
     state: &mut GameState,
     settings: &TableSettings,

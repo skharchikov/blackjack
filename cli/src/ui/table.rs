@@ -12,6 +12,7 @@ use super::{
     layout::split_table_view,
     observers::render_observers,
     player_turn_popup::render_player_turn_popup,
+    round_result_popup::render_round_result_popup,
     theme::TOKIO_NIGHT_BLUE,
     waiting_list::render_waiting_list,
 };
@@ -25,8 +26,9 @@ pub fn render_table(frame: &mut Frame, area: Rect, ui: &UiState) {
     }
     render_board(frame, layout.board, ui);
     render_history(frame, layout.history, ui);
-    // Popup rendered last so it floats above the board
+    // Popups rendered last so they float above the board
     render_player_turn_popup(frame, area, ui);
+    render_round_result_popup(frame, area, ui);
 }
 
 fn render_board(frame: &mut Frame, area: Rect, ui: &UiState) {
@@ -243,8 +245,7 @@ fn render_hand_cards(
 
         if card.face_down || card.card.is_none() {
             render_hidden_card(frame, card_area);
-        } else {
-            let c = card.card.unwrap();
+        } else if let Some(c) = card.card {
             let style = if busted {
                 Style::default().fg(Color::Red)
             } else {
