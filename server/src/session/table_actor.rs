@@ -40,7 +40,50 @@ pub enum TableCommand {
     },
 }
 
+/// Timing parameters for a `TableActor`.
+///
+/// Production code uses [`TableActorConfig::default`].
+/// Tests and load benchmarks can supply shorter timers.
+#[derive(Debug, Clone)]
+pub struct TableActorConfig {
+    pub betting_timeout: Duration,
+    pub player_turn_timeout: Duration,
+    pub round_delay: Duration,
+}
+
+impl Default for TableActorConfig {
+    fn default() -> Self {
+        Self {
+            betting_timeout: Duration::from_secs(30),
+            player_turn_timeout: Duration::from_secs(30),
+            round_delay: Duration::from_secs(5),
+        }
+    }
+}
+
 pub async fn run_table_actor(
+    _table_id: TableId,
+    settings: TableSettings,
+    initial_state: GameState,
+    cmd_rx: mpsc::Receiver<TableCommand>,
+    event_tx: broadcast::Sender<GameEvent>,
+    summary: Arc<RwLock<TableSummary>>,
+    wallet: Arc<dyn Wallet>,
+) {
+    run_table_actor_with_config(
+        _table_id,
+        settings,
+        initial_state,
+        cmd_rx,
+        event_tx,
+        summary,
+        wallet,
+        TableActorConfig::default(),
+    )
+    .await
+}
+
+pub async fn run_table_actor_with_config(
     _table_id: TableId,
     settings: TableSettings,
     initial_state: GameState,
@@ -48,13 +91,14 @@ pub async fn run_table_actor(
     event_tx: broadcast::Sender<GameEvent>,
     summary: Arc<RwLock<TableSummary>>,
     wallet: Arc<dyn Wallet>,
+    config: TableActorConfig,
 ) {
     let mut state = initial_state;
     let mut seq = 0u64;
 
-    let betting_timeout = Duration::from_secs(30);
-    let player_turn_timeout = Duration::from_secs(30);
-    let round_delay = Duration::from_secs(5);
+    let betting_timeout = config.betting_timeout;
+    let player_turn_timeout = config.player_turn_timeout;
+    let round_delay = config.round_delay;
 
     let betting_dl = tokio::time::sleep(betting_timeout);
     tokio::pin!(betting_dl);
