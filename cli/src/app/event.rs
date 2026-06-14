@@ -10,8 +10,8 @@ pub enum AppEvent {
     LobbyRefreshed(Vec<TableSummary>),
     LobbyPollDone,
     WsMessage(String),
-    WsConnected { player_id: String },
-    WsDisconnected,
-    AuthFailed(String),
+    WsConnected { player_id: String, generation: u64 },
+    WsDisconnected { generation: u64 },
+    AuthFailed { reason: String, generation: u64 },
     ServerError(String),
 }

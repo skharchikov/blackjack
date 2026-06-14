@@ -110,13 +110,12 @@ fn handle_table_key(app: &mut App, key: KeyCode, tx: &mpsc::Sender<AppEvent>) {
     if let KeyCode::Char('l') = key {
         let rid = app.next_request_id();
         if is_observer {
-            // Observer leaves the table entirely
+            // Observer leaves the table — keep the WS connection alive for the lobby.
             if let (Some(ref ws_tx), Some(ref tid)) = (&app.ws_tx, &app.current_table_id) {
                 let msg =
                     serde_json::json!({"type": "LeaveTable", "table_id": tid, "request_id": rid});
                 let _ = ws_tx.try_send(msg.to_string());
             }
-            app.ws_tx = None;
             app.current_table_id = None;
             app.ui = crate::state::UiState::lobby();
         } else {

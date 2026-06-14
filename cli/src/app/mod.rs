@@ -81,25 +81,26 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
                         app.lobby_poll_in_flight = true;
                         let url = format!("{}/tables", app.server_url);
                         let tx2 = tx.clone();
+                        // Exactly one of LobbyRefreshed or LobbyPollDone is always
+                        // sent, ensuring lobby_poll_in_flight is always cleared.
                         tokio::spawn(async move {
-                            let result = async {
+                            let event = match async {
                                 let client = reqwest::Client::builder()
                                     .timeout(Duration::from_secs(5))
                                     .build()?;
-                                let list = client
+                                client
                                     .get(&url)
                                     .send()
                                     .await?
                                     .json::<Vec<crate::state::lobby::TableSummary>>()
-                                    .await?;
-                                Ok::<_, reqwest::Error>(list)
+                                    .await
                             }
-                            .await;
-                            if let Ok(list) = result {
-                                let _ = tx2.send(AppEvent::LobbyRefreshed(list)).await;
-                            } else {
-                                let _ = tx2.send(AppEvent::LobbyPollDone).await;
-                            }
+                            .await
+                            {
+                                Ok(list) => AppEvent::LobbyRefreshed(list),
+                                Err(_) => AppEvent::LobbyPollDone,
+                            };
+                            let _ = tx2.send(event).await;
                         });
                     }
                 }
@@ -115,21 +116,30 @@ pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
                 AppEvent::LobbyPollDone => {
                     app.lobby_poll_in_flight = false;
                 }
-                AppEvent::WsConnected { player_id } => {
-                    app.player_id = player_id;
-                    app.ui = crate::state::UiState::lobby();
+                AppEvent::WsConnected {
+                    player_id,
+                    generation,
+                } => {
+                    if generation == app.ws_generation {
+                        app.player_id = player_id;
+                        app.ui = crate::state::UiState::lobby();
+                    }
                 }
                 AppEvent::WsMessage(json) => {
                     handle_ws_message(&mut app, json);
                 }
-                AppEvent::WsDisconnected => {
-                    app.ws_tx = None;
-                    app.current_table_id = None;
-                    set_login_error(&mut app, "Disconnected from server");
+                AppEvent::WsDisconnected { generation } => {
+                    if generation == app.ws_generation {
+                        app.ws_tx = None;
+                        app.current_table_id = None;
+                        set_login_error(&mut app, "Disconnected from server");
+                    }
                 }
-                AppEvent::AuthFailed(reason) => {
-                    app.ws_tx = None;
-                    set_login_error(&mut app, &reason);
+                AppEvent::AuthFailed { reason, generation } => {
+                    if generation == app.ws_generation {
+                        app.ws_tx = None;
+                        set_login_error(&mut app, &reason);
+                    }
                 }
                 AppEvent::ServerError(e) => {
                     tracing::error!("server error: {e}");
@@ -164,7 +174,10 @@ fn set_login_error(app: &mut App, msg: &str) {
 }
 
 pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
-    // Cancel previous WS task if any
+    // Increment generation so stale events from the aborted task are ignored.
+    app.ws_generation += 1;
+    let generation = app.ws_generation;
+
     if let Some(h) = app.ws_task.take() {
         h.abort();
     }
@@ -184,7 +197,10 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
             Ok(v) => v,
             Err(e) => {
                 let _ = tx_app
-                    .send(AppEvent::AuthFailed(format!("Cannot connect: {e}")))
+                    .send(AppEvent::AuthFailed {
+                        reason: format!("Cannot connect: {e}"),
+                        generation,
+                    })
                     .await;
                 return;
             }
@@ -197,7 +213,10 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
             .is_err()
         {
             let _ = tx_app
-                .send(AppEvent::AuthFailed("Connection lost".into()))
+                .send(AppEvent::AuthFailed {
+                    reason: "Connection lost".into(),
+                    generation,
+                })
                 .await;
             return;
         }
@@ -215,7 +234,9 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
                             Some("AuthError") => {
                                 let reason =
                                     v["reason"].as_str().unwrap_or("auth failed").to_string();
-                                let _ = tx_app.send(AppEvent::AuthFailed(reason)).await;
+                                let _ = tx_app
+                                    .send(AppEvent::AuthFailed { reason, generation })
+                                    .await;
                                 return;
                             }
                             _ => {}
@@ -224,7 +245,10 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
                 }
                 _ => {
                     let _ = tx_app
-                        .send(AppEvent::AuthFailed("Connection lost".into()))
+                        .send(AppEvent::AuthFailed {
+                            reason: "Connection lost".into(),
+                            generation,
+                        })
                         .await;
                     return;
                 }
@@ -234,6 +258,7 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
         let _ = tx_app
             .send(AppEvent::WsConnected {
                 player_id: confirmed_player_id,
+                generation,
             })
             .await;
 
@@ -266,7 +291,7 @@ pub fn spawn_ws(app: &mut App, tx: &mpsc::Sender<AppEvent>) {
             }
         }
 
-        let _ = tx_app.send(AppEvent::WsDisconnected).await;
+        let _ = tx_app.send(AppEvent::WsDisconnected { generation }).await;
     });
 
     app.ws_task = Some(handle);

@@ -23,6 +23,9 @@ pub struct App {
     /// Prevents spawning a new lobby poll while the previous one is in flight.
     pub lobby_poll_in_flight: bool,
     next_request_id: u64,
+    /// Incremented each time a new WS task is spawned. Stale WsDisconnected/
+    /// AuthFailed events carry the old generation and are ignored.
+    pub ws_generation: u64,
 }
 
 impl App {
@@ -43,6 +46,7 @@ impl App {
             anim_tick: 0,
             lobby_poll_in_flight: false,
             next_request_id: 1,
+            ws_generation: 0,
         }
     }
 }
