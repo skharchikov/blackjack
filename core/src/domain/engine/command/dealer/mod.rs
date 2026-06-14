@@ -1,3 +1,7 @@
+pub mod open_betting;
+
+pub use open_betting::OpenBetting;
+
 use crate::domain::engine::command::{CommandHandler, CommandId};
 use crate::domain::engine::error::CommandError;
 use crate::domain::engine::event::payload::EventPayload;
@@ -13,15 +17,19 @@ pub struct DealerCommand {
 }
 
 #[derive(Debug, Clone)]
-pub enum DealerAction {}
+pub enum DealerAction {
+    OpenBetting(OpenBetting),
+}
 
 impl CommandHandler for DealerAction {
     fn handle(
         &self,
-        _state: &GameState,
-        _settings: &TableSettings,
+        state: &GameState,
+        settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
-        match *self {}
+        match self {
+            Self::OpenBetting(h) => h.handle(state, settings),
+        }
     }
 }
 
