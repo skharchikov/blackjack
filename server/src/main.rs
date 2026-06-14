@@ -1,11 +1,19 @@
+use server::auth::InMemoryAuthenticator;
 use server::config::Settings;
-use server::store::PostgresTableStore;
+use server::session::in_memory::InMemoryGameSession;
+use server::wallet::in_memory::InMemoryWallet;
 use server::{routes::create_router, App, AppState};
-use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+const SEED_ACCOUNTS: &[(&str, &str)] = &[
+    ("admin", "famly1234"),
+    ("qa", "famly1234"),
+    ("dev", "famly1234"),
+];
+const SEED_BALANCE: u32 = 1000;
 
 #[tokio::main]
 async fn main() {
@@ -16,23 +24,24 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
+
     let config = Settings::load().expect("Failed to load configuration");
     info!("Loaded configuration: {:?}", config);
 
-    let pool = PgPoolOptions::new()
-        .max_connections(config.database.max_connections)
-        .connect(&config.database.connection_string())
-        .await
-        .expect("Failed to connect to Postgres");
+    let wallet = Arc::new(InMemoryWallet::new());
+    let auth = Arc::new(InMemoryAuthenticator::new());
 
-    info!("Applying database migrations...");
-    sqlx::migrate!("../migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run database migrations");
+    for (username, password) in SEED_ACCOUNTS {
+        let pid = auth.seed_user(username, password);
+        wallet.seed(pid, SEED_BALANCE);
+        info!("Seeded account '{}' with {} chips", username, SEED_BALANCE);
+    }
 
-    let table_store = PostgresTableStore::new(pool);
-    let state: AppState = Arc::new(App::new(table_store));
+    let wallet_dyn: Arc<dyn server::wallet::Wallet> = wallet;
+    let session = InMemoryGameSession::new(wallet_dyn.clone());
+    let session: Arc<dyn server::session::GameSession> = session;
+
+    let state: AppState = Arc::new(App::new(session, wallet_dyn, auth));
     let app = create_router(state);
 
     let listener = TcpListener::bind(format!(
@@ -41,10 +50,12 @@ async fn main() {
     ))
     .await
     .expect("failed to bind to address");
-    info!("Server running on http://localhost:3000");
-    info!("WebSocket endpoint: ws://localhost:3000/ws");
 
+    info!(
+        "Server running on http://{}:{}",
+        config.application.host, config.application.port
+    );
     axum::serve(listener, app)
         .await
-        .expect("failed to run Blackjack server");
+        .expect("failed to run server");
 }
