@@ -28,7 +28,7 @@ cargo run -p cli
 ### Against hosted server
 
 ```bash
-SERVER_URL=http://77.42.69.253:8080 cargo run -p cli
+SERVER_URL=http://<host>:8080 cargo run -p cli
 ```
 
 ### Accounts
@@ -53,7 +53,7 @@ Pre-seeded accounts: `admin`, `qa`, `dev` — all with password `famly1234`.
 
 ## Deployment
 
-Server runs on Hetzner (`77.42.69.253:8080`) via Docker. Deploy triggers automatically on push to `master`.
+Server runs on Hetzner via Docker. Deploy triggers automatically on push to `master`.
 
 ```bash
 # Manual redeploy
