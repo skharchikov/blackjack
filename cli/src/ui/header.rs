@@ -1,35 +1,58 @@
 use ratatui::{
-    layout::Rect,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
+    text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
 use crate::state::UiState;
 
-pub fn render_header(frame: &mut Frame, area: Rect, ui: &UiState) {
-    // Tokyo Night colors
-    let title_color = Color::Rgb(255, 158, 100); // orange: #ff9e64
-    let subtitle_color = Color::Rgb(125, 207, 255); // cyan: #7dcfff
-    let border_color = Color::Rgb(86, 95, 137); // comment: #565f89
+const COLOR_ORANGE: Color = Color::Rgb(255, 158, 100);
+const COLOR_CYAN: Color = Color::Rgb(125, 207, 255);
+const COLOR_COMMENT: Color = Color::Rgb(86, 95, 137);
+const COLOR_GREEN: Color = Color::Rgb(158, 206, 106);
 
-    let line = Line::from(vec![
+pub fn render_header(frame: &mut Frame, area: Rect, ui: &UiState) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(COLOR_COMMENT));
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(0), Constraint::Length(28)])
+        .split(inner);
+
+    let title_line = Line::from(vec![
         Span::styled(
-            &ui.header.title,
+            ui.header.title.clone(),
             Style::default()
-                .fg(title_color)
+                .fg(COLOR_ORANGE)
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" — ", Style::default().fg(border_color)),
-        Span::styled(&ui.header.subtitle, Style::default().fg(subtitle_color)),
+        Span::styled(" — ", Style::default().fg(COLOR_COMMENT)),
+        Span::styled(ui.header.subtitle.clone(), Style::default().fg(COLOR_CYAN)),
     ]);
+    frame.render_widget(Paragraph::new(title_line), chunks[0]);
 
-    let header = Paragraph::new(Text::from(line)).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(border_color)),
+    let right_line = build_right_line(ui);
+    frame.render_widget(
+        Paragraph::new(right_line).alignment(Alignment::Right),
+        chunks[1],
     );
+}
 
-    frame.render_widget(header, area);
+fn build_right_line(ui: &UiState) -> Line<'static> {
+    let mut spans: Vec<Span<'static>> = Vec::new();
+
+    if let Some(balance) = ui.header.my_balance {
+        spans.push(Span::styled(
+            format!("💰 {balance}"),
+            Style::default().fg(COLOR_GREEN),
+        ));
+    }
+
+    Line::from(spans)
 }
