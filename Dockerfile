@@ -15,8 +15,8 @@ RUN cargo build --release -p server
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY --from=builder /app/target/release/server /app/server
+COPY --from=builder /app/target/release/server /app/blackjack-server
 COPY server/configuration /app/server/configuration
 ENV APP_ENVIRONMENT=production
-EXPOSE 3000
-CMD ["/app/server"]
+EXPOSE 8080
+CMD ["/app/blackjack-server"]
