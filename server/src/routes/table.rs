@@ -1,16 +1,16 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use bj_core::domain::{TableSettings, TableStatus};
+use bj_core::domain::TableSettings;
 use serde::Serialize;
 use utoipa::{ToResponse, ToSchema};
 
 use crate::AppState;
 
+// TODO(Task 16): Fully replace with new table/session architecture.
 #[derive(Serialize, ToResponse, ToSchema)]
 #[response(description = "Table information")]
 struct TableResponse {
     id: String,
     name: String,
-    status: TableStatus,
     settings: TableSettings,
 }
 
@@ -22,23 +22,8 @@ struct TableResponse {
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn list_tables(State(state): State<AppState>) -> impl IntoResponse {
-    match state.table_store.list_tables().await {
-        Ok(tables) => {
-            let response: Vec<TableResponse> = tables
-                .into_iter()
-                .map(|t| TableResponse {
-                    id: t.id.0.to_string(),
-                    name: t.name,
-                    status: t.status,
-                    settings: t.settings,
-                })
-                .collect();
-            Ok(Json(response))
-        }
-        Err(e) => {
-            tracing::error!("Failed to list tables: {:?}", e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
-        }
-    }
+pub async fn list_tables(State(_state): State<AppState>) -> impl IntoResponse {
+    // TODO(Task 16): Wire up real session store.
+    let response: Vec<TableResponse> = vec![];
+    (StatusCode::OK, Json(response))
 }
