@@ -8,7 +8,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE: ghcr.io/skharchikov/blackjack-server
-  DEPLOY_HOST: 77.42.69.253
   DEPLOY_DIR: /opt/blackjack-server
 
 jobs:
@@ -56,27 +55,31 @@ jobs:
       - name: Set up SSH
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ env.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Copy docker-compose to server
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
         run: |
           rsync -az -e "ssh -i ~/.ssh/deploy_key" \
             --include='docker-compose.yml' \
             --exclude='*' \
-            ./ "deploy@${{ env.DEPLOY_HOST }}:${{ env.DEPLOY_DIR }}/"
+            ./ "deploy@$DEPLOY_HOST:${{ env.DEPLOY_DIR }}/"
 
       - name: Pull image and restart
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o ServerAliveInterval=15 \
             -o ServerAliveCountMax=40 \
-            "deploy@${{ env.DEPLOY_HOST }}" \
+            "deploy@$DEPLOY_HOST" \
             "echo '$GITHUB_TOKEN' | docker login ghcr.io -u ${{ github.actor }} --password-stdin && \
              cd ${{ env.DEPLOY_DIR }} && \
              docker pull ${{ env.IMAGE }}:latest && \
