@@ -24,3 +24,13 @@ impl CommandHandler for SystemAction {
         match *self {}
     }
 }
+
+impl CommandHandler for SystemCommand {
+    fn handle(
+        &self,
+        state: &GameState,
+        settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
+        self.action.handle(state, settings)
+    }
+}

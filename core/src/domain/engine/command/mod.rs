@@ -2,6 +2,10 @@ pub mod dealer;
 pub mod player;
 pub mod system;
 
+pub use dealer::{DealerAction, DealerCommand};
+pub use player::{PlayerAction, PlayerCommand};
+pub use system::SystemCommand;
+
 use crate::domain::engine::error::CommandError;
 use crate::domain::engine::event::payload::EventPayload;
 use crate::domain::engine::game_state::GameState;
@@ -17,4 +21,11 @@ pub trait CommandHandler {
         state: &GameState,
         settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError>;
+}
+
+#[derive(Debug, Clone)]
+pub enum GameCommand {
+    Player(PlayerCommand),
+    Dealer(DealerCommand),
+    System(SystemCommand),
 }

@@ -13,8 +13,8 @@ impl GameEngine {
         cmd: &GameCommand,
     ) -> Result<Vec<EventPayload>, CommandError> {
         match cmd {
-            GameCommand::Player(c) => c.action.handle(state, settings),
-            GameCommand::Dealer(c) => c.action.handle(state, settings),
+            GameCommand::Player(c) => c.handle(state, settings),
+            GameCommand::Dealer(c) => c.handle(state, settings),
             GameCommand::System(c) => c.handle(state, settings),
         }
     }
