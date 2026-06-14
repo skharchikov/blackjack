@@ -105,7 +105,10 @@ mod tests {
             &GameCommand::Player(PlayerCommand {
                 game_id: GameId::new(),
                 command_id: CommandId(0),
-                action: PlayerAction::TakeSeat(TakeSeat { player_id: pid, seat: Seat::One }),
+                action: PlayerAction::TakeSeat(TakeSeat {
+                    player_id: pid,
+                    seat: Seat::One,
+                }),
             }),
         )
         .unwrap();

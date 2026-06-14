@@ -23,10 +23,15 @@ impl CommandHandler for TakeSeat {
         if !state.observers.contains(&self.player_id) {
             return Err(CommandError::PlayerNotFound(self.player_id));
         }
-        if self.seat.index() > settings.max_players {
-            return Err(CommandError::SeatNotAvailable(self.seat, settings.max_players));
+        if self.seat.number() > settings.max_players {
+            return Err(CommandError::SeatNotAvailable(
+                self.seat,
+                settings.max_players,
+            ));
         }
-        if state.players.iter().any(|p| p.seat == self.seat) {
+        if state.players.iter().any(|p| p.seat == self.seat)
+            || state.waiting.iter().any(|(_, s)| *s == self.seat)
+        {
             return Err(CommandError::SeatOccupied(self.seat));
         }
 
@@ -90,7 +95,9 @@ mod tests {
         let state = state_with_observer(pid);
         let events = GameEngine::handle(&state, &settings(5), &cmd(pid, Seat::One)).unwrap();
         assert_eq!(events.len(), 1);
-        assert!(matches!(events[0], EventPayload::PlayerJoined { player, seat: Seat::One } if player == pid));
+        assert!(
+            matches!(events[0], EventPayload::PlayerJoined { player, seat: Seat::One } if player == pid)
+        );
     }
 
     #[test]
@@ -98,7 +105,12 @@ mod tests {
         let pid = PlayerId::new();
         let other = PlayerId::new();
         let mut state = state_with_observer(pid);
-        state.players.push(crate::domain::player::PlayerState::at_seat(other, Seat::One));
+        state
+            .players
+            .push(crate::domain::player::PlayerState::at_seat(
+                other,
+                Seat::One,
+            ));
         let err = GameEngine::handle(&state, &settings(5), &cmd(pid, Seat::One)).unwrap_err();
         assert!(matches!(err, CommandError::SeatOccupied(Seat::One)));
     }
@@ -108,7 +120,10 @@ mod tests {
         let pid = PlayerId::new();
         let state = state_with_observer(pid);
         let err = GameEngine::handle(&state, &settings(2), &cmd(pid, Seat::Three)).unwrap_err();
-        assert!(matches!(err, CommandError::SeatNotAvailable(Seat::Three, 2)));
+        assert!(matches!(
+            err,
+            CommandError::SeatNotAvailable(Seat::Three, 2)
+        ));
     }
 
     #[test]
@@ -120,7 +135,10 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert!(matches!(
             events[0],
-            EventPayload::PlayerAddedToWaitingList { seat: Seat::Two, .. }
+            EventPayload::PlayerAddedToWaitingList {
+                seat: Seat::Two,
+                ..
+            }
         ));
     }
 
@@ -141,7 +159,10 @@ mod tests {
             state.apply_event(e);
         }
         assert!(!state.observers.contains(&pid));
-        assert!(state.players.iter().any(|p| p.player_id == pid && p.seat == Seat::One));
+        assert!(state
+            .players
+            .iter()
+            .any(|p| p.player_id == pid && p.seat == Seat::One));
     }
 
     #[test]
@@ -154,6 +175,9 @@ mod tests {
             state.apply_event(e);
         }
         assert!(!state.observers.contains(&pid));
-        assert!(state.waiting.iter().any(|(p, s)| *p == pid && *s == Seat::Three));
+        assert!(state
+            .waiting
+            .iter()
+            .any(|(p, s)| *p == pid && *s == Seat::Three));
     }
 }

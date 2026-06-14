@@ -3,7 +3,9 @@
 /// Variants are ordered left-to-right from the dealer's perspective, which is the
 /// canonical deal order. `Ord` reflects that order, so sorting by `Seat` gives the
 /// correct dealing sequence without any extra mapping.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub enum Seat {
     One = 1,
     Two = 2,
@@ -26,14 +28,15 @@ impl Seat {
         Seat::Seven,
     ];
 
-    /// 1-indexed position used for bounds checks against `TableSettings::max_players`.
-    pub fn index(self) -> usize {
+    /// 1-based seat number (1–7), used for bounds checks against `TableSettings::max_players`.
+    /// Named `number` rather than `index` to avoid implying 0-based indexing.
+    pub fn number(self) -> usize {
         self as usize
     }
 }
 
 impl std::fmt::Display for Seat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.index())
+        write!(f, "{}", self.number())
     }
 }

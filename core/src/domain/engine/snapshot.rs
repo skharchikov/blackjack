@@ -33,7 +33,8 @@ pub struct GameStateSnapshot {
     pub dealer: DealerSnapshot,
     pub requesting_player: PlayerId,
     pub observers: Vec<PlayerId>,
-    pub waiting: Vec<PlayerId>,
+    /// Players waiting to join the next round, with their reserved seat.
+    pub waiting: Vec<(PlayerId, Seat)>,
 }
 
 impl GameStateSnapshot {
@@ -73,7 +74,7 @@ impl GameStateSnapshot {
             },
             requesting_player,
             observers: state.observers.clone(),
-            waiting: state.waiting.iter().map(|(p, _)| *p).collect(),
+            waiting: state.waiting.clone(),
         }
     }
 }

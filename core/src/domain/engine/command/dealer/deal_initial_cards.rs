@@ -21,7 +21,7 @@ impl CommandHandler for DealInitialCards {
             });
         }
         let mut bettors: Vec<_> = state.players.iter().filter(|p| p.bet.is_some()).collect();
-        bettors.sort_by_key(|p| p.seat);
+        bettors.sort_unstable_by_key(|p| p.seat);
         if bettors.is_empty() {
             return Err(CommandError::NoBettors);
         }

@@ -118,8 +118,12 @@ mod tests {
         let events = GameEngine::handle(&state, &settings(), &cmd()).unwrap();
         // Two PlayerJoined + one PhaseChanged
         assert_eq!(events.len(), 3);
-        assert!(matches!(events[0], EventPayload::PlayerJoined { player, seat: Seat::One } if player == pid1));
-        assert!(matches!(events[1], EventPayload::PlayerJoined { player, seat: Seat::Two } if player == pid2));
+        assert!(
+            matches!(events[0], EventPayload::PlayerJoined { player, seat: Seat::One } if player == pid1)
+        );
+        assert!(
+            matches!(events[1], EventPayload::PlayerJoined { player, seat: Seat::Two } if player == pid2)
+        );
         assert!(matches!(
             &events[2],
             EventPayload::PhaseChanged {
@@ -136,7 +140,10 @@ mod tests {
         // Fill seat One
         state
             .players
-            .push(crate::domain::player::PlayerState::at_seat(PlayerId::new(), Seat::One));
+            .push(crate::domain::player::PlayerState::at_seat(
+                PlayerId::new(),
+                Seat::One,
+            ));
         // Two waiting but max_players is 2 so only one slot left
         let pid1 = PlayerId::new();
         let pid2 = PlayerId::new();

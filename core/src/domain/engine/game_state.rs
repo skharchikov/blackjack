@@ -22,6 +22,11 @@ pub struct GameState {
 
 impl GameState {
     pub fn new(game_id: GameId, shoe: Vec<Card>, players: Vec<PlayerId>, dealer: DealerId) -> Self {
+        debug_assert!(
+            players.len() <= Seat::ALL.len(),
+            "more players than seats: {}",
+            players.len()
+        );
         Self {
             game_id,
             phase: Phase::WaitingForBets,
@@ -45,6 +50,11 @@ impl GameState {
         players: Vec<(PlayerId, u32)>,
         dealer: DealerId,
     ) -> Self {
+        debug_assert!(
+            players.len() <= Seat::ALL.len(),
+            "more players than seats: {}",
+            players.len()
+        );
         Self {
             game_id,
             phase: Phase::WaitingForBets,
@@ -53,7 +63,9 @@ impl GameState {
             players: players
                 .into_iter()
                 .enumerate()
-                .map(|(i, (id, balance))| PlayerState::with_balance_at_seat(id, Seat::ALL[i], balance))
+                .map(|(i, (id, balance))| {
+                    PlayerState::with_balance_at_seat(id, Seat::ALL[i], balance)
+                })
                 .collect(),
             dealer: DealerState::new(dealer),
             observers: vec![],
@@ -79,6 +91,7 @@ impl GameState {
             }
             EventPayload::PlayerLeft { player } => {
                 self.players.retain(|p| p.player_id != *player);
+                self.waiting.retain(|(p, _)| *p != *player);
             }
             EventPayload::ObserverJoined { player } => {
                 self.observers.push(*player);
