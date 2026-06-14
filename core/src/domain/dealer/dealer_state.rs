@@ -1,6 +1,6 @@
 use crate::domain::{dealer::DealerId, hand::Hand};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DealerState {
     pub dealer_id: DealerId,
     pub hand: Hand,

@@ -7,7 +7,6 @@ mod table;
 
 pub use card::*;
 pub use dealer::*;
-pub use engine::GameEngine;
 pub use engine::GameId;
 pub use engine::GameState;
 pub use hand::Hand;

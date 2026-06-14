@@ -7,12 +7,24 @@ use crate::domain::{
 
 use super::outcome::GameResult;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum EventPayload {
     PlayerJoined {
         player: PlayerId,
     },
     PlayerLeft {
+        player: PlayerId,
+    },
+    ObserverJoined {
+        player: PlayerId,
+    },
+    ObserverLeft {
+        player: PlayerId,
+    },
+    PlayerAddedToWaitingList {
+        player: PlayerId,
+    },
+    PlayerRemovedFromWaitingList {
         player: PlayerId,
     },
     PlayerPlacedBet {
@@ -32,6 +44,15 @@ pub enum EventPayload {
         card: Card,
     },
     DealerCardDealt {
+        dealer: DealerId,
+        card: Card,
+    },
+    /// Hole card dealt face-down during initial dealing — card value not broadcast.
+    DealerHoleCardDealt {
+        dealer: DealerId,
+    },
+    /// Hole card revealed at the start of the dealer's turn.
+    DealerHoleCardRevealed {
         dealer: DealerId,
         card: Card,
     },

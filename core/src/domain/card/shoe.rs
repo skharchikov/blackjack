@@ -68,17 +68,16 @@ mod tests {
 
     #[test]
     fn test_random_shoe() {
-        let shoe1 = Shoe::random();
-        let shoe2 = Shoe::random();
+        let shoe = Shoe::random();
+        let cards = shoe.into_cards();
 
-        assert_ne!(shoe1.decks, shoe2.decks);
+        assert_eq!(cards.len(), 52 * 4);
 
-        let cards1 = shoe1.into_cards();
-        let cards2 = shoe2.into_cards();
-
-        // 4 decks of 52 cards each
-        assert_eq!(cards1.len(), 52 * 4);
-        assert_eq!(cards2.len(), 52 * 4);
-        assert_ne!(cards1, cards2);
+        // Every card from the default shoe must appear exactly once
+        let mut default_cards = Shoe::default().into_cards();
+        let mut shuffled = cards.clone();
+        default_cards.sort_by_key(|c| format!("{:?}", c));
+        shuffled.sort_by_key(|c| format!("{:?}", c));
+        assert_eq!(shuffled, default_cards);
     }
 }

@@ -7,7 +7,7 @@ use crate::domain::{
 
 use super::event::EventPayload;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GameState {
     pub game_id: GameId,
     pub phase: Phase,
@@ -15,6 +15,8 @@ pub struct GameState {
     pub dealt: usize,
     pub players: Vec<PlayerState>,
     pub dealer: DealerState,
+    pub observers: Vec<PlayerId>,
+    pub waiting: Vec<PlayerId>,
 }
 
 impl GameState {
@@ -26,6 +28,8 @@ impl GameState {
             dealt: 0,
             players: players.into_iter().map(PlayerState::new).collect(),
             dealer: DealerState::new(dealer),
+            observers: vec![],
+            waiting: vec![],
         }
     }
 
@@ -46,6 +50,8 @@ impl GameState {
                 .map(|(id, balance)| PlayerState::with_balance(id, balance))
                 .collect(),
             dealer: DealerState::new(dealer),
+            observers: vec![],
+            waiting: vec![],
         }
     }
 
@@ -61,10 +67,25 @@ impl GameState {
     pub fn apply_event(&mut self, payload: &EventPayload) {
         match payload {
             EventPayload::PlayerJoined { player } => {
+                self.observers.retain(|&p| p != *player);
+                self.waiting.retain(|&p| p != *player);
                 self.players.push(PlayerState::new(*player));
             }
             EventPayload::PlayerLeft { player } => {
                 self.players.retain(|p| p.player_id != *player);
+            }
+            EventPayload::ObserverJoined { player } => {
+                self.observers.push(*player);
+            }
+            EventPayload::ObserverLeft { player } => {
+                self.observers.retain(|&p| p != *player);
+            }
+            EventPayload::PlayerAddedToWaitingList { player } => {
+                self.observers.retain(|&p| p != *player);
+                self.waiting.push(*player);
+            }
+            EventPayload::PlayerRemovedFromWaitingList { player } => {
+                self.waiting.retain(|&p| p != *player);
             }
             EventPayload::PlayerPlacedBet { player, amount } => {
                 if let Some(player_state) = self.players.iter_mut().find(|p| p.player_id == *player)
@@ -102,6 +123,14 @@ impl GameState {
                 self.dealer.hand.add_card(*card);
                 self.dealt += 1;
             }
+            EventPayload::DealerHoleCardDealt { dealer: _ } => {
+                let card = self.shoe[self.dealt];
+                self.dealer.hand.add_card(card);
+                self.dealt += 1;
+            }
+            EventPayload::DealerHoleCardRevealed { dealer: _, card: _ } => {
+                // State already has the card; this event exists only to inform clients.
+            }
             EventPayload::PlayerDecisionTaken { player, action } => {
                 if let Some(player_state) = self.players.iter_mut().find(|p| p.player_id == *player)
                 {
@@ -115,5 +144,39 @@ impl GameState {
                 // Dealer has busted, hand value already reflects this
             }
         }
+    }
+
+    pub fn next_player_after(&self, current_id: PlayerId) -> Phase {
+        let idx = match self.players.iter().position(|p| p.player_id == current_id) {
+            Some(i) => i,
+            None => return Phase::DealerTurn,
+        };
+        for p in &self.players[idx + 1..] {
+            if p.bet.is_some() && !self.player_finished(p) {
+                return Phase::PlayerTurn(p.player_id);
+            }
+        }
+        Phase::DealerTurn
+    }
+
+    pub fn next_player_after_leave(&self) -> Phase {
+        for p in &self.players {
+            if p.bet.is_some() && !self.player_finished(p) {
+                return Phase::PlayerTurn(p.player_id);
+            }
+        }
+        Phase::DealerTurn
+    }
+
+    pub fn player_finished(&self, p: &PlayerState) -> bool {
+        use crate::domain::engine::action::PlayerDecision;
+        p.hand.value().is_bust() || p.decisions.last() == Some(&PlayerDecision::Stand)
+    }
+
+    pub fn first_betting_player(&self) -> Option<PlayerId> {
+        self.players
+            .iter()
+            .find(|p| p.bet.is_some())
+            .map(|p| p.player_id)
     }
 }
