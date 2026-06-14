@@ -233,5 +233,7 @@ pub trait EventStore: Send + Sync {
 - **Snapshot store**: Redis or a `game_snapshots` PostgreSQL table?
 - **Command rejections**: inline WebSocket response via correlation ID, or a
   `blackjack.command-rejections` Kafka topic?
-- **Player balance**: PostgreSQL projection or part of `TableState`?
-- **Auth**: JWT on WebSocket upgrade, or session token?
+- **Player balance**: Resolved in ADR-0004 — wallet service owns balance; game
+  holds a transient copy per round only.
+- **Auth**: Resolved in ADR-0002 (PoC) — username/password at WS connect time.
+  Production path TBD (JWT or session token).
