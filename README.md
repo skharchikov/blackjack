@@ -1,13 +1,13 @@
 # Blackjack
 
-Multiplayer Blackjack — domain core, in-memory server, WebSocket protocol, TUI client.
+Multiplayer Blackjack — domain core, WebSocket server, TUI client.
 
 ## Architecture
 
 ```
 blackjack/
 ├── core/      # Pure domain logic (no I/O) — game engine, rules, events
-├── server/    # Axum HTTP + WebSocket server, in-memory auth/wallet/session
+├── server/    # Axum HTTP + WebSocket server — auth, wallet, session
 └── cli/       # Ratatui TUI client
 ```
 
