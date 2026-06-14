@@ -1,6 +1,6 @@
-# Blackjack DeFi PoC
+# Blackjack
 
-Multiplayer Blackjack — TDD domain core, in-memory server, WebSocket protocol, TUI client.
+Multiplayer Blackjack — domain core, in-memory server, WebSocket protocol, TUI client.
 
 ## Architecture
 
