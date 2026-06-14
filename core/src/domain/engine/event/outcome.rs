@@ -24,6 +24,7 @@ impl PayoutMultiplier {
             Self::Loss => 0,
             Self::Push => bet,
             Self::Win => bet * 2,
+            // 3:2 payout; integer division truncates on odd bets (house rounds down, intentional)
             Self::Blackjack => bet * 2 + bet / 2,
         }
     }

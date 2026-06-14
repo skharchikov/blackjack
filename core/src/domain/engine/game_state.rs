@@ -124,7 +124,7 @@ impl GameState {
                 self.dealt += 1;
             }
             EventPayload::DealerHoleCardDealt { dealer: _ } => {
-                let card = self.shoe[self.dealt];
+                let card = *self.shoe.get(self.dealt).expect("shoe exhausted on hole card deal — dealing logic bug");
                 self.dealer.hand.add_card(card);
                 self.dealt += 1;
             }

@@ -8,7 +8,7 @@ use crate::domain::engine::game_state::GameState;
 use crate::domain::table::TableSettings;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommandId(pub u64);
 
 pub trait CommandHandler {
