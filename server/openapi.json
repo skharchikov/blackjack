@@ -24,20 +24,7 @@
         "operationId": "list_tables",
         "responses": {
           "200": {
-            "description": "List of tables",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TableResponse"
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error"
+            "description": "List of live tables"
           }
         }
       }
@@ -53,56 +40,5 @@
       }
     }
   },
-  "components": {
-    "schemas": {
-      "TableResponse": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "settings"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "settings": {
-            "$ref": "#/components/schemas/TableSettings"
-          }
-        }
-      },
-      "TableSettings": {
-        "type": "object",
-        "required": [
-          "min_bet",
-          "max_bet",
-          "max_players",
-          "max_observers"
-        ],
-        "properties": {
-          "max_bet": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "max_observers": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "max_players": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "min_bet": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          }
-        }
-      }
-    }
-  }
+  "components": {}
 }
