@@ -1,3 +1,13 @@
+pub mod join_table;
+pub mod leave_seat;
+pub mod leave_table;
+pub mod take_seat;
+
+pub use join_table::JoinTable;
+pub use leave_seat::LeaveSeat;
+pub use leave_table::LeaveTable;
+pub use take_seat::TakeSeat;
+
 use crate::domain::engine::command::{CommandHandler, CommandId};
 use crate::domain::engine::error::CommandError;
 use crate::domain::engine::event::payload::EventPayload;
@@ -13,14 +23,24 @@ pub struct PlayerCommand {
 }
 
 #[derive(Debug, Clone)]
-pub enum PlayerAction {}
+pub enum PlayerAction {
+    JoinTable(JoinTable),
+    LeaveSeat(LeaveSeat),
+    LeaveTable(LeaveTable),
+    TakeSeat(TakeSeat),
+}
 
 impl CommandHandler for PlayerAction {
     fn handle(
         &self,
-        _state: &GameState,
-        _settings: &TableSettings,
+        state: &GameState,
+        settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
-        match *self {}
+        match self {
+            Self::JoinTable(h) => h.handle(state, settings),
+            Self::LeaveSeat(h) => h.handle(state, settings),
+            Self::LeaveTable(h) => h.handle(state, settings),
+            Self::TakeSeat(h) => h.handle(state, settings),
+        }
     }
 }
