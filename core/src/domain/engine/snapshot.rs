@@ -82,3 +82,74 @@ pub struct GameEventDto {
     pub seq: u64,
     pub payload: EventPayload,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::{
+        card::{Card, DeckId, Rank, Shoe, Suit},
+        dealer::DealerId,
+        engine::{game_id::GameId, game_state::GameState, phase::Phase},
+        player::PlayerId,
+    };
+
+    fn state_with_dealer_two_cards() -> (GameState, Card, Card) {
+        let mut state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
+        let face_up = Card::new(DeckId::One, Suit::Spades, Rank::Ten);
+        let hole = Card::new(DeckId::One, Suit::Hearts, Rank::Ace);
+        state.dealer.hand.add_card(face_up);
+        state.dealer.hand.add_card(hole);
+        (state, face_up, hole)
+    }
+
+    #[test]
+    fn hole_card_hidden_during_initial_dealing() {
+        let (mut state, face_up, _) = state_with_dealer_two_cards();
+        state.phase = Phase::InitialDealing;
+        let snap = GameStateSnapshot::from_state(&state, PlayerId::new());
+        assert_eq!(snap.dealer.cards[0], Some(face_up));
+        assert_eq!(
+            snap.dealer.cards[1], None,
+            "hole card must be hidden during InitialDealing"
+        );
+    }
+
+    #[test]
+    fn hole_card_hidden_during_player_turn() {
+        let (mut state, _, _) = state_with_dealer_two_cards();
+        state.phase = Phase::PlayerTurn(PlayerId::new());
+        let snap = GameStateSnapshot::from_state(&state, PlayerId::new());
+        assert_eq!(
+            snap.dealer.cards[1], None,
+            "hole card must be hidden during PlayerTurn"
+        );
+    }
+
+    #[test]
+    fn hole_card_visible_during_dealer_turn() {
+        let (mut state, _, hole) = state_with_dealer_two_cards();
+        state.phase = Phase::DealerTurn;
+        let snap = GameStateSnapshot::from_state(&state, PlayerId::new());
+        assert_eq!(
+            snap.dealer.cards[1],
+            Some(hole),
+            "hole card must be visible during DealerTurn"
+        );
+    }
+
+    #[test]
+    fn hole_card_visible_during_payouts() {
+        let (mut state, _, hole) = state_with_dealer_two_cards();
+        state.phase = Phase::Payouts;
+        let snap = GameStateSnapshot::from_state(&state, PlayerId::new());
+        assert_eq!(snap.dealer.cards[1], Some(hole));
+    }
+
+    #[test]
+    fn hole_card_visible_after_finished() {
+        let (mut state, _, hole) = state_with_dealer_two_cards();
+        state.phase = Phase::Finished;
+        let snap = GameStateSnapshot::from_state(&state, PlayerId::new());
+        assert_eq!(snap.dealer.cards[1], Some(hole));
+    }
+}
