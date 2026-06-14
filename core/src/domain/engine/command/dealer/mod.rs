@@ -1,5 +1,7 @@
+pub mod deal_initial_cards;
 pub mod open_betting;
 
+pub use deal_initial_cards::DealInitialCards;
 pub use open_betting::OpenBetting;
 
 use crate::domain::engine::command::{CommandHandler, CommandId};
@@ -18,6 +20,7 @@ pub struct DealerCommand {
 
 #[derive(Debug, Clone)]
 pub enum DealerAction {
+    DealInitialCards(DealInitialCards),
     OpenBetting(OpenBetting),
 }
 
@@ -28,6 +31,7 @@ impl CommandHandler for DealerAction {
         settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
         match self {
+            Self::DealInitialCards(h) => h.handle(state, settings),
             Self::OpenBetting(h) => h.handle(state, settings),
         }
     }

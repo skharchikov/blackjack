@@ -1,13 +1,17 @@
+pub mod hit;
 pub mod join_table;
 pub mod leave_seat;
 pub mod leave_table;
 pub mod place_bet;
+pub mod stand;
 pub mod take_seat;
 
+pub use hit::Hit;
 pub use join_table::JoinTable;
 pub use leave_seat::LeaveSeat;
 pub use leave_table::LeaveTable;
 pub use place_bet::PlaceBet;
+pub use stand::Stand;
 pub use take_seat::TakeSeat;
 
 use crate::domain::engine::command::{CommandHandler, CommandId};
@@ -26,10 +30,12 @@ pub struct PlayerCommand {
 
 #[derive(Debug, Clone)]
 pub enum PlayerAction {
+    Hit(Hit),
     JoinTable(JoinTable),
     LeaveSeat(LeaveSeat),
     LeaveTable(LeaveTable),
     PlaceBet(PlaceBet),
+    Stand(Stand),
     TakeSeat(TakeSeat),
 }
 
@@ -40,10 +46,12 @@ impl CommandHandler for PlayerAction {
         settings: &TableSettings,
     ) -> Result<Vec<EventPayload>, CommandError> {
         match self {
+            Self::Hit(h) => h.handle(state, settings),
             Self::JoinTable(h) => h.handle(state, settings),
             Self::LeaveSeat(h) => h.handle(state, settings),
             Self::LeaveTable(h) => h.handle(state, settings),
             Self::PlaceBet(h) => h.handle(state, settings),
+            Self::Stand(h) => h.handle(state, settings),
             Self::TakeSeat(h) => h.handle(state, settings),
         }
     }
