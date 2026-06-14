@@ -2,6 +2,8 @@
 
 Multiplayer Blackjack — domain core, WebSocket server, TUI client.
 
+![Demo](assets/demo.gif)
+
 ## Architecture
 
 ```
