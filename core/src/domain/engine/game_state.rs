@@ -2,7 +2,7 @@ use crate::domain::{
     dealer::{DealerId, DealerState},
     engine::{game_id::GameId, phase::Phase},
     player::{PlayerId, PlayerState},
-    Card,
+    Card, Seat,
 };
 
 use super::event::EventPayload;
@@ -16,7 +16,8 @@ pub struct GameState {
     pub players: Vec<PlayerState>,
     pub dealer: DealerState,
     pub observers: Vec<PlayerId>,
-    pub waiting: Vec<PlayerId>,
+    /// (player_id, desired_seat) — seat is remembered so OpenBetting can restore the player to their preferred position.
+    pub waiting: Vec<(PlayerId, Seat)>,
 }
 
 impl GameState {
@@ -26,7 +27,11 @@ impl GameState {
             phase: Phase::WaitingForBets,
             shoe,
             dealt: 0,
-            players: players.into_iter().map(PlayerState::new).collect(),
+            players: players
+                .into_iter()
+                .enumerate()
+                .map(|(i, id)| PlayerState::at_seat(id, Seat::ALL[i]))
+                .collect(),
             dealer: DealerState::new(dealer),
             observers: vec![],
             waiting: vec![],
@@ -47,7 +52,8 @@ impl GameState {
             dealt: 0,
             players: players
                 .into_iter()
-                .map(|(id, balance)| PlayerState::with_balance(id, balance))
+                .enumerate()
+                .map(|(i, (id, balance))| PlayerState::with_balance_at_seat(id, Seat::ALL[i], balance))
                 .collect(),
             dealer: DealerState::new(dealer),
             observers: vec![],
@@ -66,10 +72,10 @@ impl GameState {
 
     pub fn apply_event(&mut self, payload: &EventPayload) {
         match payload {
-            EventPayload::PlayerJoined { player } => {
+            EventPayload::PlayerJoined { player, seat } => {
                 self.observers.retain(|&p| p != *player);
-                self.waiting.retain(|&p| p != *player);
-                self.players.push(PlayerState::new(*player));
+                self.waiting.retain(|(p, _)| *p != *player);
+                self.players.push(PlayerState::at_seat(*player, *seat));
             }
             EventPayload::PlayerLeft { player } => {
                 self.players.retain(|p| p.player_id != *player);
@@ -80,12 +86,12 @@ impl GameState {
             EventPayload::ObserverLeft { player } => {
                 self.observers.retain(|&p| p != *player);
             }
-            EventPayload::PlayerAddedToWaitingList { player } => {
+            EventPayload::PlayerAddedToWaitingList { player, seat } => {
                 self.observers.retain(|&p| p != *player);
-                self.waiting.push(*player);
+                self.waiting.push((*player, *seat));
             }
             EventPayload::PlayerRemovedFromWaitingList { player } => {
-                self.waiting.retain(|&p| p != *player);
+                self.waiting.retain(|(p, _)| *p != *player);
             }
             EventPayload::PlayerPlacedBet { player, amount } => {
                 if let Some(player_state) = self.players.iter_mut().find(|p| p.player_id == *player)

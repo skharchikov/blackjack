@@ -39,7 +39,7 @@ impl CommandHandler for LeaveSeat {
             return Ok(events);
         }
 
-        if state.waiting.contains(&self.player_id) {
+        if state.waiting.iter().any(|(p, _)| *p == self.player_id) {
             return Ok(vec![
                 EventPayload::PlayerRemovedFromWaitingList {
                     player: self.player_id,
@@ -76,7 +76,7 @@ mod tests {
         },
         player::PlayerId,
         table::TableSettings,
-        Shoe,
+        Seat, Shoe,
     };
 
     fn settings() -> TableSettings {
@@ -105,7 +105,7 @@ mod tests {
             &GameCommand::Player(PlayerCommand {
                 game_id: GameId::new(),
                 command_id: CommandId(0),
-                action: PlayerAction::TakeSeat(TakeSeat { player_id: pid }),
+                action: PlayerAction::TakeSeat(TakeSeat { player_id: pid, seat: Seat::One }),
             }),
         )
         .unwrap();
@@ -147,7 +147,7 @@ mod tests {
     fn waiting_list_player_returns_to_observer() {
         let pid = PlayerId::new();
         let mut state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
-        state.waiting.push(pid);
+        state.waiting.push((pid, Seat::One));
         let events = GameEngine::handle(&state, &settings(), &leave_seat_cmd(pid)).unwrap();
         assert!(
             matches!(events[0], EventPayload::PlayerRemovedFromWaitingList { player } if player == pid)

@@ -4,12 +4,13 @@ use crate::domain::{
     dealer::DealerId,
     engine::{event::payload::EventPayload, game_id::GameId, game_state::GameState, phase::Phase},
     player::PlayerId,
-    Card,
+    Card, Seat,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerSnapshot {
     pub player_id: PlayerId,
+    pub seat: Seat,
     pub balance: u32,
     pub bet: Option<u32>,
     pub cards: Vec<Card>,
@@ -44,6 +45,7 @@ impl GameStateSnapshot {
             .iter()
             .map(|p| PlayerSnapshot {
                 player_id: p.player_id,
+                seat: p.seat,
                 balance: p.balance,
                 bet: p.bet,
                 cards: p.hand.cards.clone(),
@@ -71,7 +73,7 @@ impl GameStateSnapshot {
             },
             requesting_player,
             observers: state.observers.clone(),
-            waiting: state.waiting.clone(),
+            waiting: state.waiting.iter().map(|(p, _)| *p).collect(),
         }
     }
 }

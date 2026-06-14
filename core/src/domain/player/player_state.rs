@@ -1,8 +1,11 @@
-use crate::domain::{engine::action::PlayerDecision, hand::Hand, player::PlayerId};
+use crate::domain::{engine::action::PlayerDecision, hand::Hand, player::PlayerId, Seat};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PlayerState {
     pub player_id: PlayerId,
+    /// Physical seat at the table. Multiple entries with the same player_id but different
+    /// seats represent a player holding multiple hands simultaneously.
+    pub seat: Seat,
     pub hand: Hand,
     pub balance: u32,
     pub bet: Option<u32>,
@@ -11,12 +14,21 @@ pub struct PlayerState {
 
 impl PlayerState {
     pub fn new(player_id: PlayerId) -> Self {
-        Self::with_balance(player_id, 0)
+        Self::at_seat(player_id, Seat::One)
+    }
+
+    pub fn at_seat(player_id: PlayerId, seat: Seat) -> Self {
+        Self::with_balance_at_seat(player_id, seat, 0)
     }
 
     pub fn with_balance(player_id: PlayerId, balance: u32) -> Self {
+        Self::with_balance_at_seat(player_id, Seat::One, balance)
+    }
+
+    pub fn with_balance_at_seat(player_id: PlayerId, seat: Seat, balance: u32) -> Self {
         Self {
             player_id,
+            seat,
             hand: Hand::new(),
             balance,
             bet: None,

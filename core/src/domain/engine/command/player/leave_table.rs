@@ -44,7 +44,7 @@ impl CommandHandler for LeaveTable {
             }]);
         }
 
-        if state.waiting.contains(&self.player_id) {
+        if state.waiting.iter().any(|(p, _)| *p == self.player_id) {
             return Ok(vec![EventPayload::PlayerRemovedFromWaitingList {
                 player: self.player_id,
             }]);
@@ -69,7 +69,7 @@ mod tests {
             GameEngine,
         },
         table::TableSettings,
-        Shoe,
+        Seat, Shoe,
     };
 
     fn settings() -> TableSettings {
@@ -92,7 +92,7 @@ mod tests {
             &GameCommand::Player(PlayerCommand {
                 game_id: GameId::new(),
                 command_id: CommandId(0),
-                action: PlayerAction::TakeSeat(TakeSeat { player_id: pid }),
+                action: PlayerAction::TakeSeat(TakeSeat { player_id: pid, seat: Seat::One }),
             }),
         )
         .unwrap();
@@ -112,7 +112,7 @@ mod tests {
     /// Creates a state where the player is in the waiting list.
     fn state_with_waiting_player(pid: PlayerId) -> GameState {
         let mut state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
-        state.waiting.push(pid);
+        state.waiting.push((pid, Seat::One));
         state
     }
 

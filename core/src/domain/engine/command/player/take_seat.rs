@@ -5,11 +5,13 @@ use crate::domain::{
     },
     player::PlayerId,
     table::TableSettings,
+    Seat,
 };
 
 #[derive(Debug, Clone)]
 pub struct TakeSeat {
     pub player_id: PlayerId,
+    pub seat: Seat,
 }
 
 impl CommandHandler for TakeSeat {
@@ -21,16 +23,22 @@ impl CommandHandler for TakeSeat {
         if !state.observers.contains(&self.player_id) {
             return Err(CommandError::PlayerNotFound(self.player_id));
         }
+        if self.seat.index() > settings.max_players {
+            return Err(CommandError::SeatNotAvailable(self.seat, settings.max_players));
+        }
+        if state.players.iter().any(|p| p.seat == self.seat) {
+            return Err(CommandError::SeatOccupied(self.seat));
+        }
 
-        if matches!(state.phase, Phase::WaitingForBets)
-            && state.players.len() < settings.max_players
-        {
+        if matches!(state.phase, Phase::WaitingForBets) {
             Ok(vec![EventPayload::PlayerJoined {
                 player: self.player_id,
+                seat: self.seat,
             }])
         } else {
             Ok(vec![EventPayload::PlayerAddedToWaitingList {
                 player: self.player_id,
+                seat: self.seat,
             }])
         }
     }
@@ -50,7 +58,7 @@ mod tests {
             game_state::GameState,
             GameEngine,
         },
-        Shoe,
+        Seat, Shoe,
     };
 
     fn settings(max_players: usize) -> TableSettings {
@@ -68,11 +76,11 @@ mod tests {
         state
     }
 
-    fn cmd(player_id: PlayerId) -> GameCommand {
+    fn cmd(player_id: PlayerId, seat: Seat) -> GameCommand {
         GameCommand::Player(PlayerCommand {
             game_id: GameId::new(),
             command_id: CommandId(0),
-            action: PlayerAction::TakeSeat(TakeSeat { player_id }),
+            action: PlayerAction::TakeSeat(TakeSeat { player_id, seat }),
         })
     }
 
@@ -80,25 +88,27 @@ mod tests {
     fn take_seat_waiting_for_bets_with_open_slot() {
         let pid = PlayerId::new();
         let state = state_with_observer(pid);
-        let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
+        let events = GameEngine::handle(&state, &settings(5), &cmd(pid, Seat::One)).unwrap();
         assert_eq!(events.len(), 1);
-        assert!(matches!(events[0], EventPayload::PlayerJoined { player } if player == pid));
+        assert!(matches!(events[0], EventPayload::PlayerJoined { player, seat: Seat::One } if player == pid));
     }
 
     #[test]
-    fn take_seat_waiting_for_bets_table_full() {
+    fn take_seat_occupied_errors() {
         let pid = PlayerId::new();
-        let mut state = state_with_observer(pid);
         let other = PlayerId::new();
-        state
-            .players
-            .push(crate::domain::player::PlayerState::new(other));
-        let events = GameEngine::handle(&state, &settings(1), &cmd(pid)).unwrap();
-        assert_eq!(events.len(), 1);
-        assert!(matches!(
-            events[0],
-            EventPayload::PlayerAddedToWaitingList { player } if player == pid
-        ));
+        let mut state = state_with_observer(pid);
+        state.players.push(crate::domain::player::PlayerState::at_seat(other, Seat::One));
+        let err = GameEngine::handle(&state, &settings(5), &cmd(pid, Seat::One)).unwrap_err();
+        assert!(matches!(err, CommandError::SeatOccupied(Seat::One)));
+    }
+
+    #[test]
+    fn take_seat_out_of_range_errors() {
+        let pid = PlayerId::new();
+        let state = state_with_observer(pid);
+        let err = GameEngine::handle(&state, &settings(2), &cmd(pid, Seat::Three)).unwrap_err();
+        assert!(matches!(err, CommandError::SeatNotAvailable(Seat::Three, 2)));
     }
 
     #[test]
@@ -106,11 +116,11 @@ mod tests {
         let pid = PlayerId::new();
         let mut state = state_with_observer(pid);
         state.phase = Phase::PlayerTurn(PlayerId::new());
-        let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
+        let events = GameEngine::handle(&state, &settings(5), &cmd(pid, Seat::Two)).unwrap();
         assert_eq!(events.len(), 1);
         assert!(matches!(
             events[0],
-            EventPayload::PlayerAddedToWaitingList { .. }
+            EventPayload::PlayerAddedToWaitingList { seat: Seat::Two, .. }
         ));
     }
 
@@ -118,7 +128,7 @@ mod tests {
     fn take_seat_not_observer_returns_error() {
         let pid = PlayerId::new();
         let state = GameState::new(GameId::new(), Shoe::shuffled(), vec![], DealerId::new());
-        let err = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap_err();
+        let err = GameEngine::handle(&state, &settings(5), &cmd(pid, Seat::One)).unwrap_err();
         assert!(matches!(err, CommandError::PlayerNotFound(_)));
     }
 
@@ -126,12 +136,12 @@ mod tests {
     fn take_seat_removes_from_observers_when_seated() {
         let pid = PlayerId::new();
         let mut state = state_with_observer(pid);
-        let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
+        let events = GameEngine::handle(&state, &settings(5), &cmd(pid, Seat::One)).unwrap();
         for e in &events {
             state.apply_event(e);
         }
         assert!(!state.observers.contains(&pid));
-        assert!(state.players.iter().any(|p| p.player_id == pid));
+        assert!(state.players.iter().any(|p| p.player_id == pid && p.seat == Seat::One));
     }
 
     #[test]
@@ -139,11 +149,11 @@ mod tests {
         let pid = PlayerId::new();
         let mut state = state_with_observer(pid);
         state.phase = Phase::DealerTurn;
-        let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
+        let events = GameEngine::handle(&state, &settings(5), &cmd(pid, Seat::Three)).unwrap();
         for e in &events {
             state.apply_event(e);
         }
         assert!(!state.observers.contains(&pid));
-        assert!(state.waiting.contains(&pid));
+        assert!(state.waiting.iter().any(|(p, s)| *p == pid && *s == Seat::Three));
     }
 }
