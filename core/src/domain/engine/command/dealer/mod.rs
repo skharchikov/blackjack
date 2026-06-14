@@ -1,8 +1,12 @@
 pub mod deal_initial_cards;
 pub mod open_betting;
+pub mod play_hand;
+pub mod settle_round;
 
 pub use deal_initial_cards::DealInitialCards;
 pub use open_betting::OpenBetting;
+pub use play_hand::PlayHand;
+pub use settle_round::SettleRound;
 
 use crate::domain::engine::command::{CommandHandler, CommandId};
 use crate::domain::engine::error::CommandError;
@@ -22,6 +26,8 @@ pub struct DealerCommand {
 pub enum DealerAction {
     DealInitialCards(DealInitialCards),
     OpenBetting(OpenBetting),
+    PlayHand(PlayHand),
+    SettleRound(SettleRound),
 }
 
 impl CommandHandler for DealerAction {
@@ -33,6 +39,8 @@ impl CommandHandler for DealerAction {
         match self {
             Self::DealInitialCards(h) => h.handle(state, settings),
             Self::OpenBetting(h) => h.handle(state, settings),
+            Self::PlayHand(h) => h.handle(state, settings),
+            Self::SettleRound(h) => h.handle(state, settings),
         }
     }
 }
