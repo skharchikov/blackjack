@@ -14,6 +14,9 @@ use crate::{
     session::RequestId,
     AppState,
 };
+
+/// Chips granted to a first-time player on their initial login.
+const NEW_PLAYER_CHIPS: u32 = 1_000;
 use bj_core::domain::{
     engine::command::player::{
         Hit, JoinTable, LeaveSeat, LeaveTable, PlaceBet, PlayerAction, Stand, TakeSeat,
@@ -58,7 +61,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                             Ok(pid) => {
                                 // Only seed chips for new players (wallet returns Err if player unknown)
                                 if state.wallet.balance(pid).await.is_err() {
-                                    let _ = state.wallet.credit(pid, 1000).await;
+                                    let _ = state.wallet.credit(pid, NEW_PLAYER_CHIPS).await;
                                 }
                                 info!(
                                     "conn={conn_id} authenticated user='{}' player_id={}",
@@ -230,7 +233,24 @@ async fn handle_client_msg(
                     .await;
             }
 
-            // Reject join if the table refuses it
+            // Subscribe before joining so PlayerJoined event is never missed.
+            let mut rx = match state.session.subscribe(tid).await {
+                Ok(rx) => rx,
+                Err(e) => {
+                    error!("player={player_id} subscribe table={tid} failed: {e}");
+                    let _ = send_msg(
+                        socket,
+                        &ServerMessage::CommandError {
+                            request_id,
+                            reason: e.to_string(),
+                        },
+                    )
+                    .await;
+                    return Ok(());
+                }
+            };
+
+            // Then join — if rejected, the broadcast receiver is simply dropped.
             if let Err(e) = state
                 .session
                 .send_command(
@@ -254,24 +274,7 @@ async fn handle_client_msg(
             }
             info!("player={player_id} joined table={tid}");
 
-            // Subscribe FIRST to avoid missing events between snapshot and subscribe
-            let mut rx = match state.session.subscribe(tid).await {
-                Ok(rx) => rx,
-                Err(e) => {
-                    error!("player={player_id} subscribe table={tid} failed: {e}");
-                    let _ = send_msg(
-                        socket,
-                        &ServerMessage::CommandError {
-                            request_id,
-                            reason: e.to_string(),
-                        },
-                    )
-                    .await;
-                    return Ok(());
-                }
-            };
-
-            // Then snapshot
+            // Snapshot — on failure, undo the join so the actor state stays consistent.
             match state.session.snapshot(tid, player_id).await {
                 Ok(snap) => {
                     let _ = send_msg(
@@ -285,6 +288,15 @@ async fn handle_client_msg(
                 }
                 Err(e) => {
                     error!("player={player_id} snapshot table={tid} failed: {e}");
+                    let _ = state
+                        .session
+                        .send_command(
+                            tid,
+                            player_id,
+                            RequestId(0),
+                            PlayerAction::LeaveTable(LeaveTable { player_id }),
+                        )
+                        .await;
                     let _ = send_msg(
                         socket,
                         &ServerMessage::CommandError {
