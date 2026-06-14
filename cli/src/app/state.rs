@@ -33,7 +33,8 @@ impl App {
         Self {
             ui: UiState::login(),
             should_quit: false,
-            server_url: "http://127.0.0.1:3000".into(),
+            server_url: std::env::var("SERVER_URL")
+                .unwrap_or_else(|_| "http://127.0.0.1:3000".into()),
             player_id: Ulid::new().to_string(),
             username: String::new(),
             password: String::new(),
