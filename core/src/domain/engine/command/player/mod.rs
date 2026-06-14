@@ -44,3 +44,13 @@ impl CommandHandler for PlayerAction {
         }
     }
 }
+
+impl CommandHandler for PlayerCommand {
+    fn handle(
+        &self,
+        state: &GameState,
+        settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
+        self.action.handle(state, settings)
+    }
+}

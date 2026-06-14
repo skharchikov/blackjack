@@ -8,7 +8,10 @@ pub mod game_state;
 pub mod phase;
 
 pub use action::PlayerDecision;
-pub use command::*;
+pub use command::{
+    CommandHandler, CommandId, DealerAction, DealerCommand, GameCommand, PlayerAction,
+    PlayerCommand, SystemCommand,
+};
 pub use error::CommandError;
 pub use event::*;
 pub use game_engine::GameEngine;

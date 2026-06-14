@@ -24,3 +24,13 @@ impl CommandHandler for DealerAction {
         match *self {}
     }
 }
+
+impl CommandHandler for DealerCommand {
+    fn handle(
+        &self,
+        state: &GameState,
+        settings: &TableSettings,
+    ) -> Result<Vec<EventPayload>, CommandError> {
+        self.action.handle(state, settings)
+    }
+}
