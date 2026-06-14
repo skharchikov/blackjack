@@ -28,7 +28,7 @@ cargo run -p cli
 ### Against hosted server
 
 ```bash
-SERVER_URL=http://<host>:8080 cargo run -p cli
+SERVER_URL=https://blackjack.skh.rs cargo run -p cli
 ```
 
 ### Accounts
