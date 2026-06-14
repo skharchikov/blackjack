@@ -2,7 +2,7 @@ use crate::domain::{
     dealer::DealerId,
     engine::{action::PlayerDecision, phase::Phase},
     player::PlayerId,
-    Card,
+    Card, Seat,
 };
 
 use super::outcome::GameResult;
@@ -11,6 +11,7 @@ use super::outcome::GameResult;
 pub enum EventPayload {
     PlayerJoined {
         player: PlayerId,
+        seat: Seat,
     },
     PlayerLeft {
         player: PlayerId,
@@ -23,6 +24,7 @@ pub enum EventPayload {
     },
     PlayerAddedToWaitingList {
         player: PlayerId,
+        seat: Seat,
     },
     PlayerRemovedFromWaitingList {
         player: PlayerId,

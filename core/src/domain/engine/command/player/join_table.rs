@@ -21,7 +21,7 @@ impl CommandHandler for JoinTable {
         // Idempotent: already anywhere at this table
         if state.players.iter().any(|p| p.player_id == self.player_id)
             || state.observers.contains(&self.player_id)
-            || state.waiting.contains(&self.player_id)
+            || state.waiting.iter().any(|(p, _)| *p == self.player_id)
         {
             return Ok(vec![]);
         }
@@ -120,7 +120,7 @@ mod tests {
     fn join_idempotent_in_waiting_list() {
         let mut state = empty_state();
         let pid = PlayerId::new();
-        state.waiting.push(pid);
+        state.waiting.push((pid, crate::domain::Seat::One));
         let events = GameEngine::handle(&state, &settings(5), &cmd(pid)).unwrap();
         assert!(events.is_empty());
     }

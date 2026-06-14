@@ -25,4 +25,8 @@ pub enum CommandError {
     ObserversFull,
     #[error("no players have placed bets")]
     NoBettors,
+    #[error("seat {0} is already occupied")]
+    SeatOccupied(crate::domain::Seat),
+    #[error("seat {0} is not available at this table (max {1} players)")]
+    SeatNotAvailable(crate::domain::Seat, usize),
 }

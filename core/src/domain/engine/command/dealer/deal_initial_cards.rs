@@ -20,7 +20,8 @@ impl CommandHandler for DealInitialCards {
                 actual: state.phase.clone(),
             });
         }
-        let bettors: Vec<_> = state.players.iter().filter(|p| p.bet.is_some()).collect();
+        let mut bettors: Vec<_> = state.players.iter().filter(|p| p.bet.is_some()).collect();
+        bettors.sort_unstable_by_key(|p| p.seat);
         if bettors.is_empty() {
             return Err(CommandError::NoBettors);
         }
