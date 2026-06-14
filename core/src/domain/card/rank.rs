@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, FromRepr};
 use thiserror::Error;
 
-#[derive(Debug, Clone, Copy, PartialEq, FromRepr, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, FromRepr, EnumIter)]
 #[repr(u8)]
 pub enum Rank {
     Two = 2,

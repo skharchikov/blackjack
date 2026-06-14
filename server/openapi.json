@@ -60,7 +60,6 @@
         "required": [
           "id",
           "name",
-          "status",
           "settings"
         ],
         "properties": {
@@ -72,9 +71,6 @@
           },
           "settings": {
             "$ref": "#/components/schemas/TableSettings"
-          },
-          "status": {
-            "$ref": "#/components/schemas/TableStatus"
           }
         }
       },
@@ -106,13 +102,6 @@
             "minimum": 0
           }
         }
-      },
-      "TableStatus": {
-        "type": "string",
-        "enum": [
-          "Open",
-          "Closed"
-        ]
       }
     }
   }

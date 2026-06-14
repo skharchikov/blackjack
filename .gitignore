@@ -31,6 +31,10 @@ server/target/      # Ignore compiled files for the server module
 
 # Claude specific files
 .ai
+.claude
 
 # app specific files
 blackjack-cli.log
+
+# Local docs / design specs
+docs/

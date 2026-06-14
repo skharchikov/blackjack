@@ -3,7 +3,7 @@ use crate::domain::engine::{
     game_id::GameId,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GameEvent {
     pub game_id: GameId,
     pub event_seq_id: EventSeqId,

@@ -1,6 +1,7 @@
 use crate::domain::{Card, Rank};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hand {
     pub cards: Vec<Card>,
 }
@@ -55,7 +56,7 @@ impl Default for Hand {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum HandScore {
     Single { value: u8 },
     Dual { soft: u8, hard: u8 },
