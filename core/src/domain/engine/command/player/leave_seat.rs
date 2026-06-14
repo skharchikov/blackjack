@@ -107,7 +107,7 @@ mod tests {
                 command_id: CommandId(0),
                 action: PlayerAction::TakeSeat(TakeSeat {
                     player_id: pid,
-                    seat: Seat::One,
+                    seat: Some(Seat::One),
                 }),
             }),
         )

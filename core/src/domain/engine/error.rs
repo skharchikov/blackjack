@@ -29,4 +29,6 @@ pub enum CommandError {
     SeatOccupied(crate::domain::Seat),
     #[error("seat {0} is not available at this table (max {1} players)")]
     SeatNotAvailable(crate::domain::Seat, usize),
+    #[error("no seats available at this table")]
+    NoSeatAvailable,
 }

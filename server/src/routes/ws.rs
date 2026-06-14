@@ -481,19 +481,22 @@ async fn handle_client_msg(
             request_id,
             seat,
         } => {
-            let seat = match Seat::try_from(seat) {
-                Ok(s) => s,
-                Err(_) => {
-                    let _ = send_msg(
-                        socket,
-                        &ServerMessage::CommandError {
-                            request_id,
-                            reason: format!("invalid seat number {seat}: must be 1–7"),
-                        },
-                    )
-                    .await;
-                    return Ok(());
-                }
+            let seat = match seat {
+                Some(n) => match Seat::try_from(n) {
+                    Ok(s) => Some(s),
+                    Err(_) => {
+                        let _ = send_msg(
+                            socket,
+                            &ServerMessage::CommandError {
+                                request_id,
+                                reason: format!("invalid seat number {n}: must be 1–7"),
+                            },
+                        )
+                        .await;
+                        return Ok(());
+                    }
+                },
+                None => None,
             };
             send_player_cmd(
                 socket,

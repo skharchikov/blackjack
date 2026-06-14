@@ -37,7 +37,8 @@ pub enum ClientMessage {
     TakeSeat {
         table_id: String,
         request_id: u64,
-        seat: u8,
+        #[serde(default)]
+        seat: Option<u8>,
     },
     DealerOpenBetting {
         table_id: String,

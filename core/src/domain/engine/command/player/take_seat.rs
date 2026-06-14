@@ -11,7 +11,8 @@ use crate::domain::{
 #[derive(Debug, Clone)]
 pub struct TakeSeat {
     pub player_id: PlayerId,
-    pub seat: Seat,
+    /// `None` = auto-assign the lowest available seat.
+    pub seat: Option<Seat>,
 }
 
 impl CommandHandler for TakeSeat {
@@ -23,27 +24,38 @@ impl CommandHandler for TakeSeat {
         if !state.observers.contains(&self.player_id) {
             return Err(CommandError::PlayerNotFound(self.player_id));
         }
-        if self.seat.number() > settings.max_players {
-            return Err(CommandError::SeatNotAvailable(
-                self.seat,
-                settings.max_players,
-            ));
+
+        let seat = match self.seat {
+            Some(s) => s,
+            None => Seat::ALL
+                .iter()
+                .take(settings.max_players)
+                .find(|&&s| {
+                    !state.players.iter().any(|p| p.seat == s)
+                        && !state.waiting.iter().any(|(_, ws)| *ws == s)
+                })
+                .copied()
+                .ok_or(CommandError::NoSeatAvailable)?,
+        };
+
+        if seat.number() > settings.max_players {
+            return Err(CommandError::SeatNotAvailable(seat, settings.max_players));
         }
-        if state.players.iter().any(|p| p.seat == self.seat)
-            || state.waiting.iter().any(|(_, s)| *s == self.seat)
+        if state.players.iter().any(|p| p.seat == seat)
+            || state.waiting.iter().any(|(_, s)| *s == seat)
         {
-            return Err(CommandError::SeatOccupied(self.seat));
+            return Err(CommandError::SeatOccupied(seat));
         }
 
         if matches!(state.phase, Phase::WaitingForBets) {
             Ok(vec![EventPayload::PlayerJoined {
                 player: self.player_id,
-                seat: self.seat,
+                seat,
             }])
         } else {
             Ok(vec![EventPayload::PlayerAddedToWaitingList {
                 player: self.player_id,
-                seat: self.seat,
+                seat,
             }])
         }
     }
@@ -85,7 +97,7 @@ mod tests {
         GameCommand::Player(PlayerCommand {
             game_id: GameId::new(),
             command_id: CommandId(0),
-            action: PlayerAction::TakeSeat(TakeSeat { player_id, seat }),
+            action: PlayerAction::TakeSeat(TakeSeat { player_id, seat: Some(seat) }),
         })
     }
 
