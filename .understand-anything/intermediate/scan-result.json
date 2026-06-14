@@ -1,0 +1,1044 @@
+{
+  "name": "blackjack",
+  "description": "A multiplayer Blackjack game with a server-client architecture and a text-based user interface (TUI). The core logic is implemented in Rust, with a TUI client built using Ratatui and an Axum-based WebSocket server. Note: this project has over 100 source files; consider scoping analysis to a subdirectory for faster results.",
+  "languages": [
+    "json",
+    "markdown",
+    "rust",
+    "sql",
+    "toml",
+    "yaml"
+  ],
+  "frameworks": [
+    "axum",
+    "Docker Compose",
+    "GitHub Actions",
+    "ratatui",
+    "serde",
+    "sqlx",
+    "tokio",
+    "utoipa"
+  ],
+  "files": [
+    {
+      "path": ".envrc",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "language": "yaml",
+      "sizeLines": 81,
+      "fileCategory": "infra"
+    },
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "adr/0001-system-architecture.md",
+      "language": "markdown",
+      "sizeLines": 239,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "adr/0002-poc-in-memory-implementation.md",
+      "language": "markdown",
+      "sizeLines": 70,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "adr/0003-player-lifecycle-observer-model.md",
+      "language": "markdown",
+      "sizeLines": 88,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "adr/0004-balance-as-wallet-concern.md",
+      "language": "markdown",
+      "sizeLines": 78,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "adr/index.md",
+      "language": "markdown",
+      "sizeLines": 8,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Cargo.toml",
+      "language": "toml",
+      "sizeLines": 3,
+      "fileCategory": "config"
+    },
+    {
+      "path": "cli/Cargo.toml",
+      "language": "toml",
+      "sizeLines": 22,
+      "fileCategory": "config"
+    },
+    {
+      "path": "cli/CHANGELOG.md",
+      "language": "markdown",
+      "sizeLines": 48,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "cli/README.md",
+      "language": "markdown",
+      "sizeLines": 90,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "cli/src/app/event.rs",
+      "language": "rust",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/app/keys.rs",
+      "language": "rust",
+      "sizeLines": 206,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/app/mod.rs",
+      "language": "rust",
+      "sizeLines": 887,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/app/state.rs",
+      "language": "rust",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/main.rs",
+      "language": "rust",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/state/betting.rs",
+      "language": "rust",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/state/cards.rs",
+      "language": "rust",
+      "sizeLines": 108,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/state/lobby.rs",
+      "language": "rust",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/state/login.rs",
+      "language": "rust",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/state/mod.rs",
+      "language": "rust",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/state/table.rs",
+      "language": "rust",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/state/ui_state.rs",
+      "language": "rust",
+      "sizeLines": 214,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/card.rs",
+      "language": "rust",
+      "sizeLines": 237,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/footer.rs",
+      "language": "rust",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/header.rs",
+      "language": "rust",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/history.rs",
+      "language": "rust",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/layout.rs",
+      "language": "rust",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/lobby.rs",
+      "language": "rust",
+      "sizeLines": 86,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/login.rs",
+      "language": "rust",
+      "sizeLines": 285,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/mod.rs",
+      "language": "rust",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/observers.rs",
+      "language": "rust",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/player_turn_popup.rs",
+      "language": "rust",
+      "sizeLines": 132,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/round_result_popup.rs",
+      "language": "rust",
+      "sizeLines": 127,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/table.rs",
+      "language": "rust",
+      "sizeLines": 284,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/theme.rs",
+      "language": "rust",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cli/src/ui/waiting_list.rs",
+      "language": "rust",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/benches/game_engine.rs",
+      "language": "rust",
+      "sizeLines": 99,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/Cargo.toml",
+      "language": "toml",
+      "sizeLines": 21,
+      "fileCategory": "config"
+    },
+    {
+      "path": "core/CHANGELOG.md",
+      "language": "markdown",
+      "sizeLines": 23,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "core/README.md",
+      "language": "markdown",
+      "sizeLines": 187,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "core/src/domain/card/deck.rs",
+      "language": "rust",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/card/mod.rs",
+      "language": "rust",
+      "sizeLines": 150,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/card/rank.rs",
+      "language": "rust",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/card/shoe.rs",
+      "language": "rust",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/card/suit.rs",
+      "language": "rust",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/dealer/dealer_state.rs",
+      "language": "rust",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/dealer/mod.rs",
+      "language": "rust",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/action.rs",
+      "language": "rust",
+      "sizeLines": 5,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/dealer/deal_initial_cards.rs",
+      "language": "rust",
+      "sizeLines": 184,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/dealer/mod.rs",
+      "language": "rust",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/dealer/open_betting.rs",
+      "language": "rust",
+      "sizeLines": 151,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/dealer/play_hand.rs",
+      "language": "rust",
+      "sizeLines": 178,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/dealer/settle_round.rs",
+      "language": "rust",
+      "sizeLines": 297,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/mod.rs",
+      "language": "rust",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/player/hit.rs",
+      "language": "rust",
+      "sizeLines": 175,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/player/join_table.rs",
+      "language": "rust",
+      "sizeLines": 157,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/player/leave_seat.rs",
+      "language": "rust",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/player/leave_table.rs",
+      "language": "rust",
+      "sizeLines": 179,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/player/mod.rs",
+      "language": "rust",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/player/place_bet.rs",
+      "language": "rust",
+      "sizeLines": 187,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/player/stand.rs",
+      "language": "rust",
+      "sizeLines": 137,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/player/take_seat.rs",
+      "language": "rust",
+      "sizeLines": 149,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/system/close_table.rs",
+      "language": "rust",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/system/mod.rs",
+      "language": "rust",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/command/system/player_timeout.rs",
+      "language": "rust",
+      "sizeLines": 86,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/error.rs",
+      "language": "rust",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/event/game_event.rs",
+      "language": "rust",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/event/mod.rs",
+      "language": "rust",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/event/outcome.rs",
+      "language": "rust",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/event/payload.rs",
+      "language": "rust",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/game_engine.rs",
+      "language": "rust",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/game_id.rs",
+      "language": "rust",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/game_state.rs",
+      "language": "rust",
+      "sizeLines": 182,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/mod.rs",
+      "language": "rust",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/phase.rs",
+      "language": "rust",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/engine/snapshot.rs",
+      "language": "rust",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/hand/mod.rs",
+      "language": "rust",
+      "sizeLines": 249,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/mod.rs",
+      "language": "rust",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/player/mod.rs",
+      "language": "rust",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/player/player_state.rs",
+      "language": "rust",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/domain/table/mod.rs",
+      "language": "rust",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "core/src/lib.rs",
+      "language": "rust",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": "migrations/1771453859_create_tables_table.sql",
+      "language": "sql",
+      "sizeLines": 8,
+      "fileCategory": "data"
+    },
+    {
+      "path": "migrations/1771453860_seed_test_tables.sql",
+      "language": "sql",
+      "sizeLines": 5,
+      "fileCategory": "data"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 42,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "release-plz.toml",
+      "language": "toml",
+      "sizeLines": 27,
+      "fileCategory": "config"
+    },
+    {
+      "path": "server/Cargo.toml",
+      "language": "toml",
+      "sizeLines": 25,
+      "fileCategory": "config"
+    },
+    {
+      "path": "server/CHANGELOG.md",
+      "language": "markdown",
+      "sizeLines": 20,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "server/configuration/base.yml",
+      "language": "yaml",
+      "sizeLines": 9,
+      "fileCategory": "config"
+    },
+    {
+      "path": "server/configuration/local.yml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "server/docker-compose.yaml",
+      "language": "yaml",
+      "sizeLines": 21,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "server/examples/load_test.rs",
+      "language": "rust",
+      "sizeLines": 559,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/openapi.json",
+      "language": "json",
+      "sizeLines": 43,
+      "fileCategory": "config"
+    },
+    {
+      "path": "server/README.md",
+      "language": "markdown",
+      "sizeLines": 30,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "server/src/auth/mod.rs",
+      "language": "rust",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/auth/password.rs",
+      "language": "rust",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/config.rs",
+      "language": "rust",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/lib.rs",
+      "language": "rust",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/main.rs",
+      "language": "rust",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/protocol/mod.rs",
+      "language": "rust",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/routes/health.rs",
+      "language": "rust",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/routes/mod.rs",
+      "language": "rust",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/routes/table.rs",
+      "language": "rust",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/routes/ws.rs",
+      "language": "rust",
+      "sizeLines": 561,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/session/in_memory.rs",
+      "language": "rust",
+      "sizeLines": 204,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/session/mod.rs",
+      "language": "rust",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/session/summary.rs",
+      "language": "rust",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/session/table_actor.rs",
+      "language": "rust",
+      "sizeLines": 368,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/store/mod.rs",
+      "language": "rust",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/wallet/in_memory.rs",
+      "language": "rust",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/src/wallet/mod.rs",
+      "language": "rust",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "server/tests/openapi_schema.rs",
+      "language": "rust",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    }
+  ],
+  "totalFiles": 114,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "moderate",
+  "importMap": {
+    ".envrc": [],
+    ".github/workflows/ci.yml": [],
+    ".understand-anything/.understandignore": [],
+    "adr/0001-system-architecture.md": [],
+    "adr/0002-poc-in-memory-implementation.md": [],
+    "adr/0003-player-lifecycle-observer-model.md": [],
+    "adr/0004-balance-as-wallet-concern.md": [],
+    "adr/index.md": [],
+    "Cargo.toml": [],
+    "cli/Cargo.toml": [],
+    "cli/CHANGELOG.md": [],
+    "cli/README.md": [],
+    "cli/src/app/event.rs": [
+      "cli/src/state/lobby.rs"
+    ],
+    "cli/src/app/keys.rs": [
+      "cli/src/state/mod.rs"
+    ],
+    "cli/src/app/mod.rs": [
+      "cli/src/app/event.rs",
+      "cli/src/app/keys.rs",
+      "cli/src/app/state.rs",
+      "cli/src/ui/mod.rs"
+    ],
+    "cli/src/app/state.rs": [
+      "cli/src/state/mod.rs"
+    ],
+    "cli/src/main.rs": [
+      "cli/src/app/mod.rs",
+      "cli/src/state/mod.rs",
+      "cli/src/ui/mod.rs"
+    ],
+    "cli/src/state/betting.rs": [],
+    "cli/src/state/cards.rs": [],
+    "cli/src/state/lobby.rs": [],
+    "cli/src/state/login.rs": [],
+    "cli/src/state/mod.rs": [
+      "cli/src/state/betting.rs",
+      "cli/src/state/cards.rs",
+      "cli/src/state/lobby.rs",
+      "cli/src/state/login.rs",
+      "cli/src/state/table.rs",
+      "cli/src/state/ui_state.rs"
+    ],
+    "cli/src/state/table.rs": [],
+    "cli/src/state/ui_state.rs": [
+      "cli/src/state/mod.rs"
+    ],
+    "cli/src/ui/card.rs": [],
+    "cli/src/ui/footer.rs": [
+      "cli/src/state/mod.rs",
+      "cli/src/ui/theme.rs"
+    ],
+    "cli/src/ui/header.rs": [
+      "cli/src/state/mod.rs"
+    ],
+    "cli/src/ui/history.rs": [
+      "cli/src/state/mod.rs"
+    ],
+    "cli/src/ui/layout.rs": [],
+    "cli/src/ui/lobby.rs": [
+      "cli/src/state/lobby.rs"
+    ],
+    "cli/src/ui/login.rs": [
+      "cli/src/state/login.rs",
+      "cli/src/state/mod.rs",
+      "cli/src/ui/card.rs",
+      "cli/src/ui/theme.rs"
+    ],
+    "cli/src/ui/mod.rs": [
+      "cli/src/state/mod.rs",
+      "cli/src/ui/card.rs",
+      "cli/src/ui/footer.rs",
+      "cli/src/ui/header.rs",
+      "cli/src/ui/history.rs",
+      "cli/src/ui/layout.rs",
+      "cli/src/ui/lobby.rs",
+      "cli/src/ui/login.rs",
+      "cli/src/ui/observers.rs",
+      "cli/src/ui/player_turn_popup.rs",
+      "cli/src/ui/round_result_popup.rs",
+      "cli/src/ui/table.rs",
+      "cli/src/ui/theme.rs",
+      "cli/src/ui/waiting_list.rs"
+    ],
+    "cli/src/ui/observers.rs": [
+      "cli/src/state/table.rs",
+      "cli/src/ui/theme.rs"
+    ],
+    "cli/src/ui/player_turn_popup.rs": [
+      "cli/src/state/mod.rs"
+    ],
+    "cli/src/ui/round_result_popup.rs": [
+      "cli/src/state/mod.rs"
+    ],
+    "cli/src/ui/table.rs": [
+      "cli/src/state/mod.rs"
+    ],
+    "cli/src/ui/theme.rs": [],
+    "cli/src/ui/waiting_list.rs": [
+      "cli/src/state/table.rs",
+      "cli/src/ui/theme.rs"
+    ],
+    "core/benches/game_engine.rs": [],
+    "core/Cargo.toml": [],
+    "core/CHANGELOG.md": [],
+    "core/README.md": [],
+    "core/src/domain/card/deck.rs": [],
+    "core/src/domain/card/mod.rs": [
+      "core/src/domain/card/deck.rs",
+      "core/src/domain/card/rank.rs",
+      "core/src/domain/card/shoe.rs",
+      "core/src/domain/card/suit.rs"
+    ],
+    "core/src/domain/card/rank.rs": [],
+    "core/src/domain/card/shoe.rs": [],
+    "core/src/domain/card/suit.rs": [],
+    "core/src/domain/dealer/dealer_state.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/dealer/mod.rs": [
+      "core/src/domain/dealer/dealer_state.rs"
+    ],
+    "core/src/domain/engine/action.rs": [],
+    "core/src/domain/engine/command/dealer/deal_initial_cards.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/dealer/mod.rs": [
+      "core/src/domain/engine/command/dealer/deal_initial_cards.rs",
+      "core/src/domain/engine/command/dealer/open_betting.rs",
+      "core/src/domain/engine/command/dealer/play_hand.rs",
+      "core/src/domain/engine/command/dealer/settle_round.rs",
+      "core/src/domain/engine/command/mod.rs",
+      "core/src/domain/engine/error.rs",
+      "core/src/domain/engine/event/payload.rs",
+      "core/src/domain/engine/game_id.rs",
+      "core/src/domain/engine/game_state.rs",
+      "core/src/domain/table/mod.rs"
+    ],
+    "core/src/domain/engine/command/dealer/open_betting.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/dealer/play_hand.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/dealer/settle_round.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/mod.rs": [
+      "core/src/domain/engine/command/dealer/mod.rs",
+      "core/src/domain/engine/command/player/mod.rs",
+      "core/src/domain/engine/command/system/mod.rs",
+      "core/src/domain/engine/error.rs",
+      "core/src/domain/engine/event/payload.rs",
+      "core/src/domain/engine/game_state.rs",
+      "core/src/domain/table/mod.rs"
+    ],
+    "core/src/domain/engine/command/player/hit.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/player/join_table.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/player/leave_seat.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/player/leave_table.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/player/mod.rs": [
+      "core/src/domain/engine/command/mod.rs",
+      "core/src/domain/engine/command/player/hit.rs",
+      "core/src/domain/engine/command/player/join_table.rs",
+      "core/src/domain/engine/command/player/leave_seat.rs",
+      "core/src/domain/engine/command/player/leave_table.rs",
+      "core/src/domain/engine/command/player/place_bet.rs",
+      "core/src/domain/engine/command/player/stand.rs",
+      "core/src/domain/engine/command/player/take_seat.rs",
+      "core/src/domain/engine/error.rs",
+      "core/src/domain/engine/event/payload.rs",
+      "core/src/domain/engine/game_id.rs",
+      "core/src/domain/engine/game_state.rs",
+      "core/src/domain/table/mod.rs"
+    ],
+    "core/src/domain/engine/command/player/place_bet.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/player/stand.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/player/take_seat.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/command/system/close_table.rs": [
+      "core/src/domain/engine/command/mod.rs",
+      "core/src/domain/engine/error.rs",
+      "core/src/domain/engine/event/payload.rs",
+      "core/src/domain/engine/game_state.rs",
+      "core/src/domain/table/mod.rs"
+    ],
+    "core/src/domain/engine/command/system/mod.rs": [
+      "core/src/domain/engine/command/mod.rs",
+      "core/src/domain/engine/command/system/close_table.rs",
+      "core/src/domain/engine/command/system/player_timeout.rs",
+      "core/src/domain/engine/error.rs",
+      "core/src/domain/engine/event/payload.rs",
+      "core/src/domain/engine/game_state.rs",
+      "core/src/domain/table/mod.rs"
+    ],
+    "core/src/domain/engine/command/system/player_timeout.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/error.rs": [
+      "core/src/domain/engine/phase.rs",
+      "core/src/domain/player/mod.rs"
+    ],
+    "core/src/domain/engine/event/game_event.rs": [
+      "core/src/domain/engine/mod.rs"
+    ],
+    "core/src/domain/engine/event/mod.rs": [
+      "core/src/domain/engine/event/game_event.rs",
+      "core/src/domain/engine/event/outcome.rs",
+      "core/src/domain/engine/event/payload.rs"
+    ],
+    "core/src/domain/engine/event/outcome.rs": [
+      "core/src/domain/player/mod.rs"
+    ],
+    "core/src/domain/engine/event/payload.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/game_engine.rs": [
+      "core/src/domain/engine/command/mod.rs",
+      "core/src/domain/engine/error.rs",
+      "core/src/domain/engine/event/payload.rs",
+      "core/src/domain/engine/game_state.rs",
+      "core/src/domain/table/mod.rs"
+    ],
+    "core/src/domain/engine/game_id.rs": [],
+    "core/src/domain/engine/game_state.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/engine/mod.rs": [
+      "core/src/domain/engine/action.rs",
+      "core/src/domain/engine/command/mod.rs",
+      "core/src/domain/engine/error.rs",
+      "core/src/domain/engine/event/mod.rs",
+      "core/src/domain/engine/game_engine.rs",
+      "core/src/domain/engine/game_id.rs",
+      "core/src/domain/engine/game_state.rs",
+      "core/src/domain/engine/phase.rs",
+      "core/src/domain/engine/snapshot.rs"
+    ],
+    "core/src/domain/engine/phase.rs": [
+      "core/src/domain/player/mod.rs"
+    ],
+    "core/src/domain/engine/snapshot.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/hand/mod.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/mod.rs": [
+      "core/src/domain/card/mod.rs",
+      "core/src/domain/dealer/mod.rs",
+      "core/src/domain/engine/mod.rs",
+      "core/src/domain/hand/mod.rs",
+      "core/src/domain/player/mod.rs",
+      "core/src/domain/table/mod.rs"
+    ],
+    "core/src/domain/player/mod.rs": [
+      "core/src/domain/player/player_state.rs"
+    ],
+    "core/src/domain/player/player_state.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "core/src/domain/table/mod.rs": [],
+    "core/src/lib.rs": [
+      "core/src/domain/mod.rs"
+    ],
+    "migrations/1771453859_create_tables_table.sql": [],
+    "migrations/1771453860_seed_test_tables.sql": [],
+    "README.md": [],
+    "release-plz.toml": [],
+    "server/Cargo.toml": [],
+    "server/CHANGELOG.md": [],
+    "server/configuration/base.yml": [],
+    "server/configuration/local.yml": [],
+    "server/docker-compose.yaml": [],
+    "server/examples/load_test.rs": [],
+    "server/openapi.json": [],
+    "server/README.md": [],
+    "server/src/auth/mod.rs": [
+      "server/src/auth/password.rs"
+    ],
+    "server/src/auth/password.rs": [],
+    "server/src/config.rs": [],
+    "server/src/lib.rs": [
+      "server/src/auth/mod.rs",
+      "server/src/config.rs",
+      "server/src/protocol/mod.rs",
+      "server/src/routes/mod.rs",
+      "server/src/session/mod.rs",
+      "server/src/store/mod.rs",
+      "server/src/wallet/mod.rs"
+    ],
+    "server/src/main.rs": [],
+    "server/src/protocol/mod.rs": [
+      "server/src/session/summary.rs"
+    ],
+    "server/src/routes/health.rs": [],
+    "server/src/routes/mod.rs": [
+      "server/src/routes/health.rs",
+      "server/src/routes/table.rs",
+      "server/src/routes/ws.rs"
+    ],
+    "server/src/routes/table.rs": [],
+    "server/src/routes/ws.rs": [],
+    "server/src/session/in_memory.rs": [],
+    "server/src/session/mod.rs": [
+      "server/src/session/in_memory.rs",
+      "server/src/session/summary.rs",
+      "server/src/session/table_actor.rs"
+    ],
+    "server/src/session/summary.rs": [],
+    "server/src/session/table_actor.rs": [],
+    "server/src/store/mod.rs": [],
+    "server/src/wallet/in_memory.rs": [],
+    "server/src/wallet/mod.rs": [
+      "server/src/wallet/in_memory.rs"
+    ],
+    "server/tests/openapi_schema.rs": []
+  }
+}

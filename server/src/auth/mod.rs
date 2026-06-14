@@ -61,6 +61,7 @@ impl InMemoryAuthenticator {
             return record.player_id;
         }
         let pid = PlayerId::new();
+        let mut reverse = self.reverse.write().unwrap();
         users.insert(
             username.to_string(),
             UserRecord {
@@ -68,11 +69,7 @@ impl InMemoryAuthenticator {
                 player_id: pid,
             },
         );
-        drop(users);
-        self.reverse
-            .write()
-            .unwrap()
-            .insert(pid, username.to_string());
+        reverse.insert(pid, username.to_string());
         pid
     }
 
@@ -94,8 +91,9 @@ impl Authenticator for InMemoryAuthenticator {
                 return Err(AuthError::WrongPassword);
             }
         }
-        // Auto-register on first login
+        // Auto-register on first login — hold both locks together to keep maps in sync.
         let pid = PlayerId::new();
+        let mut reverse = self.reverse.write().unwrap();
         users.insert(
             payload.username.clone(),
             UserRecord {
@@ -103,11 +101,7 @@ impl Authenticator for InMemoryAuthenticator {
                 player_id: pid,
             },
         );
-        drop(users);
-        self.reverse
-            .write()
-            .unwrap()
-            .insert(pid, payload.username.clone());
+        reverse.insert(pid, payload.username.clone());
         Ok(pid)
     }
 }

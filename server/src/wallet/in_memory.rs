@@ -2,16 +2,15 @@ use super::{Wallet, WalletError};
 use async_trait::async_trait;
 use bj_core::domain::PlayerId;
 use dashmap::DashMap;
-use std::sync::Arc;
 
 pub struct InMemoryWallet {
-    balances: Arc<DashMap<PlayerId, u32>>,
+    balances: DashMap<PlayerId, u32>,
 }
 
 impl InMemoryWallet {
     pub fn new() -> Self {
         Self {
-            balances: Arc::new(DashMap::new()),
+            balances: DashMap::new(),
         }
     }
 
@@ -52,7 +51,7 @@ impl Wallet for InMemoryWallet {
 
     async fn credit(&self, player: PlayerId, amount: u32) -> Result<u32, WalletError> {
         let mut entry = self.balances.entry(player).or_insert(0);
-        *entry += amount;
+        *entry = entry.saturating_add(amount);
         Ok(*entry)
     }
 

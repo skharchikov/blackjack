@@ -1,4 +1,5 @@
 use secrecy::{ExposeSecret, SecretString};
+use subtle::ConstantTimeEq;
 
 /// Opaque password wrapper. Never printed or logged.
 #[derive(Clone)]
@@ -16,7 +17,10 @@ impl Password {
 
 impl PartialEq for Password {
     fn eq(&self, other: &Self) -> bool {
-        self.expose() == other.expose()
+        self.expose()
+            .as_bytes()
+            .ct_eq(other.expose().as_bytes())
+            .into()
     }
 }
 

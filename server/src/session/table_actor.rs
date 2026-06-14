@@ -62,7 +62,7 @@ impl Default for TableActorConfig {
 }
 
 pub async fn run_table_actor(
-    _table_id: TableId,
+    table_id: TableId,
     settings: TableSettings,
     initial_state: GameState,
     cmd_rx: mpsc::Receiver<TableCommand>,
@@ -71,7 +71,7 @@ pub async fn run_table_actor(
     wallet: Arc<dyn Wallet>,
 ) {
     run_table_actor_with_config(
-        _table_id,
+        table_id,
         settings,
         initial_state,
         cmd_rx,
@@ -84,7 +84,7 @@ pub async fn run_table_actor(
 }
 
 pub async fn run_table_actor_with_config(
-    _table_id: TableId,
+    table_id: TableId,
     settings: TableSettings,
     initial_state: GameState,
     mut cmd_rx: mpsc::Receiver<TableCommand>,
@@ -119,7 +119,7 @@ pub async fn run_table_actor_with_config(
                         });
                         match GameEngine::handle(&state, &settings, &game_cmd) {
                             Err(e) => {
-                                warn!("table={_table_id} player={player_id} command rejected: {e}");
+                                warn!("table={table_id} player={player_id} command rejected: {e}");
                                 let _ = reply.send(Err(SessionError::CommandRejected(e.to_string())));
                             }
                             Ok(events) => {
@@ -151,7 +151,7 @@ pub async fn run_table_actor_with_config(
                             action,
                         });
                         match GameEngine::handle(&state, &settings, &game_cmd) {
-                            Err(e) => warn!("table={_table_id} dealer command rejected: {e}"),
+                            Err(e) => warn!("table={table_id} dealer command rejected: {e}"),
                             Ok(events) => {
                                 apply_and_broadcast(&mut state, &events, &event_tx, &mut seq);
                                 update_summary(&summary, &state, &settings).await;
@@ -207,6 +207,14 @@ pub async fn run_table_actor_with_config(
                     .iter()
                     .map(|p| (p.player_id, p.seat, p.balance))
                     .collect();
+                debug_assert!(
+                    {
+                        let mut seats = preserved.iter().map(|(_, s, _)| *s).collect::<Vec<_>>();
+                        seats.sort();
+                        seats.windows(2).all(|w| w[0] != w[1])
+                    },
+                    "duplicate seats detected in round reset"
+                );
                 let dealer_id = state.dealer.dealer_id;
                 let shoe = Shoe::shuffled();
                 let mut next =
@@ -267,7 +275,7 @@ async fn update_summary(
         Phase::Finished => "Finished".to_string(),
     };
     let player_count = state.players.len();
-    let is_joinable = state.observers.len() < settings.max_observers;
+    let is_joinable = state.players.len() < settings.max_players;
     let mut s = summary.write().await;
     s.player_count = player_count;
     s.phase = phase_str;

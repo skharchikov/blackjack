@@ -1,0 +1,1765 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "f8861ff251ba9b43b185f414d8735b4e4fea882f",
+  "generatedAt": "2026-05-27T12:58:18.266Z",
+  "files": {
+    ".understand-anything/.understandignore": {
+      "filePath": ".understand-anything/.understandignore",
+      "contentHash": "19501ce9b19550a9e3db7f615417e6451d305a481da510f49511992690eb0cad",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 10,
+      "hasStructuralAnalysis": false
+    },
+    "Cargo.toml": {
+      "filePath": "Cargo.toml",
+      "contentHash": "705e0f96f8885743debfec271258c7a680bb210c0c066a47e04e67e190983bea",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "CHANGELOG.md": {
+      "filePath": "CHANGELOG.md",
+      "contentHash": "f7c8bd02691e4c5a14d7a5b8b3623752991b05e943d2b2d4f177b355b121304c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 21,
+      "hasStructuralAnalysis": true
+    },
+    "configuration/base.yml": {
+      "filePath": "configuration/base.yml",
+      "contentHash": "cf47acf77c401e7d8ed08c695916750dcd51c3c232c836b7ed3a00e8a61c5ce0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    "configuration/local.yml": {
+      "filePath": "configuration/local.yml",
+      "contentHash": "fd9bcd9c0a3e0fe5b4222bf4584cb30fcfba817b4f4524ac1194d6c89315e90e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": true
+    },
+    "docker-compose.yaml": {
+      "filePath": "docker-compose.yaml",
+      "contentHash": "d973ab78a5df411ebdab70ad283214e277b0b0ec3fb7be3f9ea74346b7cdd4ac",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 22,
+      "hasStructuralAnalysis": true
+    },
+    "examples/load_test.rs": {
+      "filePath": "examples/load_test.rs",
+      "contentHash": "8835530358498f3abde2bb262b6ef14d1925ab9e7df5e06ff689456b116984cf",
+      "functions": [
+        {
+          "name": "create_table",
+          "params": [
+            "wallet",
+            "settings",
+            "betting_timeout",
+            "round_delay"
+          ],
+          "returnType": "TableHandle",
+          "exported": false,
+          "lineCount": 45
+        },
+        {
+          "name": "send_cmd",
+          "params": [
+            "cmd_tx",
+            "player_id",
+            "action",
+            "req_id",
+            "metrics"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "player_task",
+          "params": [
+            "player_id",
+            "cmd_tx",
+            "event_tx",
+            "wallet",
+            "metrics",
+            "deadline"
+          ],
+          "exported": false,
+          "lineCount": 148
+        },
+        {
+          "name": "wait_for_event",
+          "params": [
+            "rx",
+            "deadline",
+            "pred"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "observer_task",
+          "params": [
+            "event_tx",
+            "metrics",
+            "deadline"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "parse_arg",
+          "params": [
+            "args",
+            "flag",
+            "default"
+          ],
+          "returnType": "usize",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 186
+        },
+        {
+          "name": "pad",
+          "params": [
+            "s",
+            "width"
+          ],
+          "returnType": "String",
+          "exported": false,
+          "lineCount": 4
+        }
+      ],
+      "classes": [
+        {
+          "name": "Metrics",
+          "methods": [],
+          "properties": [
+            "rounds_completed",
+            "commands_sent",
+            "commands_error",
+            "events_received",
+            "observer_lag"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "TableHandle",
+          "methods": [],
+          "properties": [
+            "cmd_tx",
+            "event_tx"
+          ],
+          "exported": false,
+          "lineCount": 4
+        }
+      ],
+      "imports": [
+        {
+          "source": "bj_core::domain",
+          "specifiers": [
+            "DealerId",
+            "PlayerId",
+            "Shoe",
+            "TableId",
+            "TableSettings"
+          ]
+        },
+        {
+          "source": "server",
+          "specifiers": [
+            "wallet::in_memory::InMemoryWallet"
+          ]
+        },
+        {
+          "source": "std::sync",
+          "specifiers": [
+            "Arc"
+          ]
+        },
+        {
+          "source": "std::time",
+          "specifiers": [
+            "Duration"
+          ]
+        },
+        {
+          "source": "tokio::sync",
+          "specifiers": [
+            "broadcast",
+            "mpsc",
+            "RwLock"
+          ]
+        },
+        {
+          "source": "ulid",
+          "specifiers": [
+            "Ulid"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 560,
+      "hasStructuralAnalysis": true
+    },
+    "openapi.json": {
+      "filePath": "openapi.json",
+      "contentHash": "0807c6b4f6fff93d2e573e69005f24c0d15b5392a9e20914f45a6e260699bfda",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 44,
+      "hasStructuralAnalysis": true
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "ce4d6dfdfa8e56b8bebe86117b41d403328ff773978ab9f0eb4856e7c3745d7d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 31,
+      "hasStructuralAnalysis": true
+    },
+    "src/auth/mod.rs": {
+      "filePath": "src/auth/mod.rs",
+      "contentHash": "ecf2b810bae6c567be68c1fb523e54cbc8231197454060338d5d0f85f41da5da",
+      "functions": [
+        {
+          "name": "default",
+          "params": [],
+          "returnType": "Self",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "new",
+          "params": [],
+          "returnType": "Self",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "seed_user",
+          "params": [
+            "username",
+            "password"
+          ],
+          "returnType": "PlayerId",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "authenticate",
+          "params": [
+            "payload"
+          ],
+          "returnType": "Result<PlayerId, AuthError>",
+          "exported": false,
+          "lineCount": 23
+        }
+      ],
+      "classes": [
+        {
+          "name": "AuthPayload",
+          "methods": [],
+          "properties": [
+            "username",
+            "password"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "AuthError",
+          "methods": [],
+          "properties": [
+            "WrongPassword",
+            "Failed"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "Authenticator",
+          "methods": [
+            "authenticate"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "UserRecord",
+          "methods": [],
+          "properties": [
+            "password",
+            "player_id"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "InMemoryAuthenticator",
+          "methods": [
+            "default",
+            "new",
+            "seed_user",
+            "authenticate"
+          ],
+          "properties": [
+            "users"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "imports": [
+        {
+          "source": "password",
+          "specifiers": [
+            "Password"
+          ]
+        },
+        {
+          "source": "std::collections",
+          "specifiers": [
+            "HashMap"
+          ]
+        },
+        {
+          "source": "std::sync",
+          "specifiers": [
+            "RwLock"
+          ]
+        },
+        {
+          "source": "async_trait",
+          "specifiers": [
+            "async_trait"
+          ]
+        },
+        {
+          "source": "bj_core::domain",
+          "specifiers": [
+            "PlayerId"
+          ]
+        },
+        {
+          "source": "thiserror",
+          "specifiers": [
+            "Error"
+          ]
+        },
+        {
+          "source": "ulid",
+          "specifiers": [
+            "Ulid"
+          ]
+        }
+      ],
+      "exports": [
+        "AuthPayload",
+        "AuthError",
+        "Authenticator",
+        "InMemoryAuthenticator",
+        "new",
+        "seed_user"
+      ],
+      "totalLines": 99,
+      "hasStructuralAnalysis": true
+    },
+    "src/auth/password.rs": {
+      "filePath": "src/auth/password.rs",
+      "contentHash": "7ea8173ac3b509437ed61588f8293965ffdd8e32de0ef9fee143c6a5e4bc3c65",
+      "functions": [
+        {
+          "name": "new",
+          "params": [
+            "s"
+          ],
+          "returnType": "Self",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "expose",
+          "params": [],
+          "returnType": "&str",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "eq",
+          "params": [
+            "other"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "fmt",
+          "params": [
+            "f"
+          ],
+          "returnType": "std::fmt::Result",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "Password",
+          "methods": [
+            "new",
+            "expose",
+            "eq",
+            "fmt"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "secrecy",
+          "specifiers": [
+            "ExposeSecret",
+            "SecretString"
+          ]
+        }
+      ],
+      "exports": [
+        "Password",
+        "new",
+        "expose"
+      ],
+      "totalLines": 28,
+      "hasStructuralAnalysis": true
+    },
+    "src/config.rs": {
+      "filePath": "src/config.rs",
+      "contentHash": "966d5d3ad29efbc5e5379ebbab794603b1d532b42c33e487fcab1d35c1c3dded",
+      "functions": [
+        {
+          "name": "load",
+          "params": [],
+          "returnType": "Result<Settings, config::ConfigError>",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "connection_string",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "fmt",
+          "params": [
+            "f"
+          ],
+          "returnType": "std::fmt::Result",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "as_str",
+          "params": [],
+          "returnType": "&'static str",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "try_from",
+          "params": [
+            "value"
+          ],
+          "returnType": "Result<Self, Self::Error>",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [
+        {
+          "name": "Settings",
+          "methods": [
+            "load"
+          ],
+          "properties": [
+            "application",
+            "database"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "ApplicationSettings",
+          "methods": [],
+          "properties": [
+            "host",
+            "port"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "DatabaseSettings",
+          "methods": [
+            "connection_string"
+          ],
+          "properties": [
+            "host",
+            "port",
+            "username",
+            "password",
+            "database_name",
+            "max_connections"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "Environment",
+          "methods": [
+            "fmt",
+            "as_str",
+            "try_from"
+          ],
+          "properties": [
+            "Local",
+            "Production"
+          ],
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "imports": [
+        {
+          "source": "std::fmt",
+          "specifiers": [
+            "Display"
+          ]
+        },
+        {
+          "source": "serde",
+          "specifiers": [
+            "Deserialize"
+          ]
+        },
+        {
+          "source": "serde_aux::field_attributes",
+          "specifiers": [
+            "deserialize_number_from_string"
+          ]
+        }
+      ],
+      "exports": [
+        "Settings",
+        "load",
+        "ApplicationSettings",
+        "DatabaseSettings",
+        "connection_string",
+        "Environment"
+      ],
+      "totalLines": 92,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib.rs": {
+      "filePath": "src/lib.rs",
+      "contentHash": "66f81954ea4ddb884bb6a18ec45c6c8ba903dbc1c46b3225f2e01547f9467d21",
+      "functions": [
+        {
+          "name": "new",
+          "params": [
+            "session",
+            "wallet",
+            "auth"
+          ],
+          "returnType": "Self",
+          "exported": true,
+          "lineCount": 12
+        }
+      ],
+      "classes": [
+        {
+          "name": "App",
+          "methods": [
+            "new"
+          ],
+          "properties": [
+            "connections",
+            "session",
+            "wallet",
+            "auth"
+          ],
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "imports": [
+        {
+          "source": "auth",
+          "specifiers": [
+            "InMemoryAuthenticator"
+          ]
+        },
+        {
+          "source": "session",
+          "specifiers": [
+            "GameSession"
+          ]
+        },
+        {
+          "source": "std::sync",
+          "specifiers": [
+            "atomic::AtomicU64",
+            "Arc"
+          ]
+        },
+        {
+          "source": "wallet",
+          "specifiers": [
+            "Wallet"
+          ]
+        }
+      ],
+      "exports": [
+        "App",
+        "new"
+      ],
+      "totalLines": 37,
+      "hasStructuralAnalysis": true
+    },
+    "src/main.rs": {
+      "filePath": "src/main.rs",
+      "contentHash": "ce0bc17aa182f8ffa185d26ae642aed902b9611d2fa5863c0c2760972a95df87",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 43
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "server::auth",
+          "specifiers": [
+            "InMemoryAuthenticator"
+          ]
+        },
+        {
+          "source": "server::config",
+          "specifiers": [
+            "Settings"
+          ]
+        },
+        {
+          "source": "server::session::in_memory",
+          "specifiers": [
+            "InMemoryGameSession"
+          ]
+        },
+        {
+          "source": "server::wallet::in_memory",
+          "specifiers": [
+            "InMemoryWallet"
+          ]
+        },
+        {
+          "source": "server",
+          "specifiers": [
+            "routes::create_router",
+            "App",
+            "AppState"
+          ]
+        },
+        {
+          "source": "std::sync",
+          "specifiers": [
+            "Arc"
+          ]
+        },
+        {
+          "source": "tokio::net",
+          "specifiers": [
+            "TcpListener"
+          ]
+        },
+        {
+          "source": "tracing",
+          "specifiers": [
+            "info"
+          ]
+        },
+        {
+          "source": "tracing_subscriber",
+          "specifiers": [
+            "layer::SubscriberExt",
+            "util::SubscriberInitExt"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 62,
+      "hasStructuralAnalysis": true
+    },
+    "src/protocol/mod.rs": {
+      "filePath": "src/protocol/mod.rs",
+      "contentHash": "30cae7afefa0e31b6a01cd6aaeb5f142c686adfe0e57f15d69cf6e439ccb681a",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ClientMessage",
+          "methods": [],
+          "properties": [
+            "Auth",
+            "JoinTable",
+            "LeaveSeat",
+            "LeaveTable",
+            "PlaceBet",
+            "Hit",
+            "Stand",
+            "TakeSeat",
+            "DealerOpenBetting",
+            "DealerDealCards",
+            "DealerPlayHand",
+            "DealerSettle"
+          ],
+          "exported": true,
+          "lineCount": 51
+        },
+        {
+          "name": "ServerMessage",
+          "methods": [],
+          "properties": [
+            "AuthOk",
+            "AuthError",
+            "TableList",
+            "Snapshot",
+            "Event",
+            "CommandAck",
+            "CommandError",
+            "Balance"
+          ],
+          "exported": true,
+          "lineCount": 29
+        }
+      ],
+      "imports": [
+        {
+          "source": "crate::session::summary",
+          "specifiers": [
+            "TableSummary"
+          ]
+        },
+        {
+          "source": "bj_core::domain::engine::snapshot",
+          "specifiers": [
+            "GameEventDto",
+            "GameStateSnapshot"
+          ]
+        },
+        {
+          "source": "serde",
+          "specifiers": [
+            "Deserialize",
+            "Serialize"
+          ]
+        }
+      ],
+      "exports": [
+        "ClientMessage",
+        "ServerMessage"
+      ],
+      "totalLines": 90,
+      "hasStructuralAnalysis": true
+    },
+    "src/routes/health.rs": {
+      "filePath": "src/routes/health.rs",
+      "contentHash": "786c8724e25c7d2d473aa3540cf7bb83add32ae393de3421f8c4b7a1a9975ecc",
+      "functions": [
+        {
+          "name": "health_check",
+          "params": [],
+          "returnType": "StatusCode",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "axum::http",
+          "specifiers": [
+            "StatusCode"
+          ]
+        }
+      ],
+      "exports": [
+        "health_check"
+      ],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "src/routes/mod.rs": {
+      "filePath": "src/routes/mod.rs",
+      "contentHash": "560c0a70c9acc03b1e63d3e62273a1deeaad25c3ea805d2dc522713e62610394",
+      "functions": [
+        {
+          "name": "api_router",
+          "params": [],
+          "returnType": "(Router<AppState>, utoipa::openapi::OpenApi)",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "openapi",
+          "params": [],
+          "returnType": "utoipa::openapi::OpenApi",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "create_router",
+          "params": [
+            "state"
+          ],
+          "returnType": "Router",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [
+        {
+          "name": "ApiDoc",
+          "methods": [],
+          "properties": [],
+          "exported": false,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "axum",
+          "specifiers": [
+            "Router"
+          ]
+        },
+        {
+          "source": "utoipa",
+          "specifiers": [
+            "OpenApi"
+          ]
+        },
+        {
+          "source": "utoipa_axum::router",
+          "specifiers": [
+            "OpenApiRouter"
+          ]
+        },
+        {
+          "source": "utoipa_redoc",
+          "specifiers": [
+            "Redoc",
+            "Servable"
+          ]
+        },
+        {
+          "source": "crate",
+          "specifiers": [
+            "AppState"
+          ]
+        }
+      ],
+      "exports": [
+        "openapi",
+        "create_router"
+      ],
+      "totalLines": 36,
+      "hasStructuralAnalysis": true
+    },
+    "src/routes/table.rs": {
+      "filePath": "src/routes/table.rs",
+      "contentHash": "be000e3056f850f7e1ac885fe429dc8bcfb81ae3320197e2294fdedf38977780",
+      "functions": [
+        {
+          "name": "list_tables",
+          "params": [
+            "State(state)"
+          ],
+          "returnType": "Json<Vec<TableSummary>>",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "crate",
+          "specifiers": [
+            "session::summary::TableSummary",
+            "AppState"
+          ]
+        },
+        {
+          "source": "axum",
+          "specifiers": [
+            "extract::State",
+            "Json"
+          ]
+        }
+      ],
+      "exports": [
+        "list_tables"
+      ],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "src/routes/ws.rs": {
+      "filePath": "src/routes/ws.rs",
+      "contentHash": "89a298bce206df81b02e5b24b2aaa7c316acf7868306c12f3db36f87211567bf",
+      "functions": [
+        {
+          "name": "ws_handler",
+          "params": [
+            "ws",
+            "State(state)"
+          ],
+          "returnType": "impl IntoResponse",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "handle_socket",
+          "params": [
+            "socket",
+            "state"
+          ],
+          "exported": false,
+          "lineCount": 157
+        },
+        {
+          "name": "handle_client_msg",
+          "params": [
+            "msg",
+            "player_id",
+            "state",
+            "socket",
+            "current_table",
+            "event_fwd_tx",
+            "fwd_abort"
+          ],
+          "returnType": "Result<(), ()>",
+          "exported": false,
+          "lineCount": 321
+        },
+        {
+          "name": "send_player_cmd",
+          "params": [
+            "socket",
+            "state",
+            "player_id",
+            "table_id_str",
+            "request_id",
+            "action"
+          ],
+          "returnType": "Result<(), ()>",
+          "exported": false,
+          "lineCount": 44
+        },
+        {
+          "name": "send_msg",
+          "params": [
+            "socket",
+            "msg"
+          ],
+          "returnType": "Result<(), ()>",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "axum",
+          "specifiers": [
+            "response::IntoResponse"
+          ]
+        },
+        {
+          "source": "tokio::sync",
+          "specifiers": [
+            "mpsc"
+          ]
+        },
+        {
+          "source": "tracing",
+          "specifiers": [
+            "error",
+            "info",
+            "warn"
+          ]
+        },
+        {
+          "source": "crate",
+          "specifiers": [
+            "session::RequestId",
+            "AppState"
+          ]
+        },
+        {
+          "source": "bj_core::domain",
+          "specifiers": [
+            "engine::snapshot::GameEventDto",
+            "TableId"
+          ]
+        }
+      ],
+      "exports": [
+        "ws_handler"
+      ],
+      "totalLines": 562,
+      "hasStructuralAnalysis": true
+    },
+    "src/session/in_memory.rs": {
+      "filePath": "src/session/in_memory.rs",
+      "contentHash": "e8f6ddaa20c73c02cce665a93871cfb414f1a42bfa69a6c825a2a38d54377dae",
+      "functions": [
+        {
+          "name": "seeds",
+          "params": [],
+          "returnType": "Vec<SeedTable>",
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "new",
+          "params": [
+            "wallet"
+          ],
+          "returnType": "Arc<Self>",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "seed_table",
+          "params": [
+            "name",
+            "settings"
+          ],
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "list_tables",
+          "params": [],
+          "returnType": "Vec<TableSummary>",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "snapshot",
+          "params": [
+            "table_id",
+            "player"
+          ],
+          "returnType": "Result<GameStateSnapshot, SessionError>",
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "send_command",
+          "params": [
+            "table_id",
+            "player_id",
+            "request_id",
+            "action"
+          ],
+          "returnType": "Result<CommandAck, SessionError>",
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "subscribe",
+          "params": [
+            "table_id"
+          ],
+          "returnType": "Result<broadcast::Receiver<GameEvent>, SessionError>",
+          "exported": false,
+          "lineCount": 13
+        }
+      ],
+      "classes": [
+        {
+          "name": "TableHandle",
+          "methods": [],
+          "properties": [
+            "cmd_tx",
+            "event_tx",
+            "summary"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "InMemoryGameSession",
+          "methods": [
+            "new",
+            "seed_table",
+            "list_tables",
+            "snapshot",
+            "send_command",
+            "subscribe"
+          ],
+          "properties": [
+            "tables",
+            "wallet"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "SeedTable",
+          "methods": [],
+          "properties": [
+            "name",
+            "settings"
+          ],
+          "exported": false,
+          "lineCount": 4
+        }
+      ],
+      "imports": [
+        {
+          "source": "crate",
+          "specifiers": [
+            "wallet::Wallet"
+          ]
+        },
+        {
+          "source": "async_trait",
+          "specifiers": [
+            "async_trait"
+          ]
+        },
+        {
+          "source": "bj_core::domain",
+          "specifiers": [
+            "DealerId",
+            "PlayerId",
+            "Shoe",
+            "TableId",
+            "TableSettings"
+          ]
+        },
+        {
+          "source": "dashmap",
+          "specifiers": [
+            "DashMap"
+          ]
+        },
+        {
+          "source": "std::sync",
+          "specifiers": [
+            "Arc"
+          ]
+        },
+        {
+          "source": "tokio::sync",
+          "specifiers": [
+            "broadcast",
+            "mpsc",
+            "RwLock"
+          ]
+        },
+        {
+          "source": "ulid",
+          "specifiers": [
+            "Ulid"
+          ]
+        }
+      ],
+      "exports": [
+        "InMemoryGameSession",
+        "new"
+      ],
+      "totalLines": 205,
+      "hasStructuralAnalysis": true
+    },
+    "src/session/mod.rs": {
+      "filePath": "src/session/mod.rs",
+      "contentHash": "b5b7ff74202afd3aaafa8b233c7d85a56282b01995beb40dc6958ab63cbbd998",
+      "functions": [],
+      "classes": [
+        {
+          "name": "RequestId",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "CommandAck",
+          "methods": [],
+          "properties": [
+            "request_id"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "SessionError",
+          "methods": [],
+          "properties": [
+            "TableNotFound",
+            "CommandRejected",
+            "Internal"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "GameSession",
+          "methods": [
+            "list_tables",
+            "snapshot",
+            "send_command",
+            "subscribe"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 19
+        }
+      ],
+      "imports": [
+        {
+          "source": "async_trait",
+          "specifiers": [
+            "async_trait"
+          ]
+        },
+        {
+          "source": "bj_core::domain",
+          "specifiers": [
+            "PlayerId",
+            "TableId"
+          ]
+        },
+        {
+          "source": "serde",
+          "specifiers": [
+            "Deserialize",
+            "Serialize"
+          ]
+        },
+        {
+          "source": "thiserror",
+          "specifiers": [
+            "Error"
+          ]
+        },
+        {
+          "source": "tokio::sync",
+          "specifiers": [
+            "broadcast"
+          ]
+        },
+        {
+          "source": "summary",
+          "specifiers": [
+            "TableSummary"
+          ]
+        }
+      ],
+      "exports": [
+        "RequestId",
+        "CommandAck",
+        "SessionError",
+        "GameSession"
+      ],
+      "totalLines": 54,
+      "hasStructuralAnalysis": true
+    },
+    "src/session/summary.rs": {
+      "filePath": "src/session/summary.rs",
+      "contentHash": "6090440c8637036cedfb7fce9fbde380bd6431accb1ca12126854da61f9343ec",
+      "functions": [],
+      "classes": [
+        {
+          "name": "TableSummary",
+          "methods": [],
+          "properties": [
+            "id",
+            "name",
+            "settings",
+            "player_count",
+            "phase",
+            "is_joinable"
+          ],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "imports": [
+        {
+          "source": "bj_core::domain",
+          "specifiers": [
+            "TableId",
+            "TableSettings"
+          ]
+        },
+        {
+          "source": "serde",
+          "specifiers": [
+            "Serialize"
+          ]
+        }
+      ],
+      "exports": [
+        "TableSummary"
+      ],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "src/session/table_actor.rs": {
+      "filePath": "src/session/table_actor.rs",
+      "contentHash": "8e527efb0736ad04db207a73371cfb73890b0a311d1807a18a48a029c8bbbac3",
+      "functions": [
+        {
+          "name": "default",
+          "params": [],
+          "returnType": "Self",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "run_table_actor",
+          "params": [
+            "_table_id",
+            "settings",
+            "initial_state",
+            "cmd_rx",
+            "event_tx",
+            "summary",
+            "wallet"
+          ],
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "run_table_actor_with_config",
+          "params": [
+            "_table_id",
+            "settings",
+            "initial_state",
+            "cmd_rx",
+            "event_tx",
+            "summary",
+            "wallet",
+            "config"
+          ],
+          "exported": true,
+          "lineCount": 141
+        },
+        {
+          "name": "apply_and_broadcast",
+          "params": [
+            "state",
+            "events",
+            "tx",
+            "seq"
+          ],
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "update_summary",
+          "params": [
+            "summary",
+            "state",
+            "settings"
+          ],
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "handle_game_finished",
+          "params": [
+            "state",
+            "wallet",
+            "round_dl",
+            "delay"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "reset_player_timer",
+          "params": [
+            "state",
+            "player_dl",
+            "timeout"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "fire_dealer",
+          "params": [
+            "state",
+            "settings",
+            "action",
+            "event_tx",
+            "seq",
+            "summary",
+            "wallet",
+            "round_dl",
+            "round_delay",
+            "player_dl",
+            "player_timeout"
+          ],
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "maybe_advance_dealer",
+          "params": [
+            "state",
+            "settings",
+            "event_tx",
+            "seq",
+            "summary",
+            "wallet",
+            "round_dl",
+            "round_delay",
+            "player_dl",
+            "player_timeout"
+          ],
+          "exported": false,
+          "lineCount": 45
+        }
+      ],
+      "classes": [
+        {
+          "name": "TableCommand",
+          "methods": [],
+          "properties": [
+            "Execute",
+            "DealerExecute",
+            "Snapshot"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TableActorConfig",
+          "methods": [
+            "default"
+          ],
+          "properties": [
+            "betting_timeout",
+            "player_turn_timeout",
+            "round_delay"
+          ],
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "imports": [
+        {
+          "source": "crate",
+          "specifiers": [
+            "wallet::Wallet"
+          ]
+        },
+        {
+          "source": "bj_core::domain",
+          "specifiers": [
+            "PlayerId",
+            "Shoe",
+            "TableId",
+            "TableSettings"
+          ]
+        },
+        {
+          "source": "std",
+          "specifiers": [
+            "sync::Arc",
+            "time::Duration"
+          ]
+        },
+        {
+          "source": "tokio::sync",
+          "specifiers": [
+            "broadcast",
+            "mpsc",
+            "oneshot",
+            "RwLock"
+          ]
+        },
+        {
+          "source": "tracing",
+          "specifiers": [
+            "info",
+            "warn"
+          ]
+        }
+      ],
+      "exports": [
+        "TableCommand",
+        "TableActorConfig",
+        "run_table_actor",
+        "run_table_actor_with_config"
+      ],
+      "totalLines": 369,
+      "hasStructuralAnalysis": true
+    },
+    "src/store/mod.rs": {
+      "filePath": "src/store/mod.rs",
+      "contentHash": "044b6b7ca370ca17681b7c83235b37d5be5069bc148e4742e29b52eab9270244",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "src/wallet/in_memory.rs": {
+      "filePath": "src/wallet/in_memory.rs",
+      "contentHash": "e67abb8d61fc56e092597954903e8648290c31ce416c0c7a0f39df0da8b69a34",
+      "functions": [
+        {
+          "name": "new",
+          "params": [],
+          "returnType": "Self",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "seed",
+          "params": [
+            "player",
+            "amount"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "default",
+          "params": [],
+          "returnType": "Self",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "balance",
+          "params": [
+            "player"
+          ],
+          "returnType": "Result<u32, WalletError>",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "debit",
+          "params": [
+            "player",
+            "amount"
+          ],
+          "returnType": "Result<u32, WalletError>",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "credit",
+          "params": [
+            "player",
+            "amount"
+          ],
+          "returnType": "Result<u32, WalletError>",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "set_balance",
+          "params": [
+            "player",
+            "amount"
+          ],
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "InMemoryWallet",
+          "methods": [
+            "new",
+            "seed",
+            "default",
+            "balance",
+            "debit",
+            "credit",
+            "set_balance"
+          ],
+          "properties": [
+            "balances"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "imports": [
+        {
+          "source": "super",
+          "specifiers": [
+            "Wallet",
+            "WalletError"
+          ]
+        },
+        {
+          "source": "async_trait",
+          "specifiers": [
+            "async_trait"
+          ]
+        },
+        {
+          "source": "bj_core::domain",
+          "specifiers": [
+            "PlayerId"
+          ]
+        },
+        {
+          "source": "dashmap",
+          "specifiers": [
+            "DashMap"
+          ]
+        },
+        {
+          "source": "std::sync",
+          "specifiers": [
+            "Arc"
+          ]
+        }
+      ],
+      "exports": [
+        "InMemoryWallet",
+        "new",
+        "seed"
+      ],
+      "totalLines": 63,
+      "hasStructuralAnalysis": true
+    },
+    "src/wallet/mod.rs": {
+      "filePath": "src/wallet/mod.rs",
+      "contentHash": "551c1f3b896433e79850457f09f0c421d44a84557d73c952373c3ff09d700ec8",
+      "functions": [],
+      "classes": [
+        {
+          "name": "WalletError",
+          "methods": [],
+          "properties": [
+            "PlayerNotFound",
+            "InsufficientBalance"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "Wallet",
+          "methods": [
+            "balance",
+            "debit",
+            "credit",
+            "set_balance"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "imports": [
+        {
+          "source": "async_trait",
+          "specifiers": [
+            "async_trait"
+          ]
+        },
+        {
+          "source": "bj_core::domain",
+          "specifiers": [
+            "PlayerId"
+          ]
+        },
+        {
+          "source": "thiserror",
+          "specifiers": [
+            "Error"
+          ]
+        }
+      ],
+      "exports": [
+        "WalletError",
+        "Wallet"
+      ],
+      "totalLines": 22,
+      "hasStructuralAnalysis": true
+    },
+    "tests/openapi_schema.rs": {
+      "filePath": "tests/openapi_schema.rs",
+      "contentHash": "ac720b0898e86dcaf6591a17a688f6dbef6f569d445a76def51ae2a476272b79",
+      "functions": [
+        {
+          "name": "openapi_schema_is_up_to_date",
+          "params": [],
+          "exported": false,
+          "lineCount": 19
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "server::routes",
+          "specifiers": [
+            "openapi"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 23,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

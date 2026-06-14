@@ -35,6 +35,23 @@ impl Seat {
     }
 }
 
+impl TryFrom<u8> for Seat {
+    type Error = u8;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Seat::One),
+            2 => Ok(Seat::Two),
+            3 => Ok(Seat::Three),
+            4 => Ok(Seat::Four),
+            5 => Ok(Seat::Five),
+            6 => Ok(Seat::Six),
+            7 => Ok(Seat::Seven),
+            v => Err(v),
+        }
+    }
+}
+
 impl std::fmt::Display for Seat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.number())
