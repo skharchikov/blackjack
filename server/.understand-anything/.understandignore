@@ -1,9 +1,0 @@
-# .understandignore
-#
-# Built-in defaults (always excluded unless negated):
-#   target/, *.lock, *.min.js, etc.
-#
-# --- Test file patterns (uncomment to exclude) ---
-
-# *.test.*
-# *.spec.*

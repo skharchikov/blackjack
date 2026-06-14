@@ -33,6 +33,10 @@ server/target/      # Ignore compiled files for the server module
 .ai
 .claude
 
+# understand-anything tool artifacts
+.understand-anything/
+**/.understand-anything/
+
 # app specific files
 blackjack-cli.log
 
