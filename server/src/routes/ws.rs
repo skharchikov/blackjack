@@ -7,6 +7,7 @@ use axum::{
 };
 use tokio::sync::mpsc;
 use tracing::{error, info, warn};
+use ulid::Ulid;
 
 use crate::{
     auth::{AuthPayload, Authenticator, Password},
@@ -31,9 +32,7 @@ pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> 
 }
 
 async fn handle_socket(mut socket: WebSocket, state: AppState) {
-    let conn_id = state
-        .connections
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let conn_id = Ulid::new();
     info!("WS connection {conn_id} opened");
 
     // Auth phase
