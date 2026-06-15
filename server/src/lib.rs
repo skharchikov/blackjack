@@ -8,13 +8,12 @@ pub mod wallet;
 
 use auth::InMemoryAuthenticator;
 use session::GameSession;
-use std::sync::{atomic::AtomicU64, Arc};
+use std::sync::Arc;
 use wallet::Wallet;
 
 pub type AppState = Arc<App>;
 
 pub struct App {
-    pub connections: AtomicU64,
     pub session: Arc<dyn GameSession>,
     pub wallet: Arc<dyn Wallet>,
     pub auth: Arc<InMemoryAuthenticator>,
@@ -27,7 +26,6 @@ impl App {
         auth: Arc<InMemoryAuthenticator>,
     ) -> Self {
         Self {
-            connections: AtomicU64::new(0),
             session,
             wallet,
             auth,
