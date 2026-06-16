@@ -3,7 +3,7 @@ use std::{fmt, str::FromStr};
 use ulid::Ulid;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct TableId(pub Ulid);
 
 impl TableId {

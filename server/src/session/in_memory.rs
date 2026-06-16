@@ -134,7 +134,7 @@ impl GameSession for InMemoryGameSession {
         for s in summaries {
             out.push(s.read().await.clone());
         }
-        out.sort_by(|a, b| a.name.cmp(&b.name));
+        out.sort_by(|a, b| a.id.cmp(&b.id));
         out
     }
 
