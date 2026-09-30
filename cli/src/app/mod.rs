@@ -831,78 +831,18 @@ fn sync_ui_chrome(app: &mut App, phase: crate::state::table::GamePhase) {
         return;
     }
 
-    match phase {
-        GamePhase::WaitingForBets | GamePhase::Betting => {
-            app.ui.betting = Some(BettingState {
-                min_bet: min_bet as u64,
-                max_bet: max_bet as u64,
-                current_bet: min_bet as u64,
-                step: (min_bet as u64).max(5),
-                confirmed: false,
-            });
-            app.ui.footer = FooterState {
-                hints: vec![
-                    FooterHint {
-                        key: "←→",
-                        label: "bet",
-                    },
-                    FooterHint {
-                        key: "enter",
-                        label: "confirm",
-                    },
-                    FooterHint {
-                        key: "l",
-                        label: "leave seat",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
-                ],
-            };
-            app.ui.header.subtitle = format!("Table – {}", phase);
-        }
-        GamePhase::PlayerTurn => {
-            app.ui.betting = None;
-            app.ui.footer = FooterState {
-                hints: vec![
-                    FooterHint {
-                        key: "h",
-                        label: "hit",
-                    },
-                    FooterHint {
-                        key: "s",
-                        label: "stand",
-                    },
-                    FooterHint {
-                        key: "l",
-                        label: "leave seat",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
-                ],
-            };
-            app.ui.header.subtitle = format!("Table – {}", phase);
-        }
-        _ => {
-            app.ui.betting = None;
-            app.ui.footer = FooterState {
-                hints: vec![
-                    FooterHint {
-                        key: "l",
-                        label: "leave seat",
-                    },
-                    FooterHint {
-                        key: "q",
-                        label: "quit",
-                    },
-                ],
-            };
-            app.ui.header.subtitle = format!("Table – {}", phase);
-        }
-    }
+    app.ui.footer = crate::state::ui_state::footer_for_phase(phase);
+    app.ui.header.subtitle = format!("Table – {}", phase);
+    app.ui.betting = match phase {
+        GamePhase::WaitingForBets | GamePhase::Betting => Some(BettingState {
+            min_bet: min_bet as u64,
+            max_bet: max_bet as u64,
+            current_bet: min_bet as u64,
+            step: (min_bet as u64).max(5),
+            confirmed: false,
+        }),
+        _ => None,
+    };
 }
 
 fn server_phase_to_game_phase(

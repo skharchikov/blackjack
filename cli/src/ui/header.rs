@@ -49,7 +49,7 @@ fn build_right_line(ui: &UiState) -> Line<'static> {
 
     if let Some(balance) = ui.header.my_balance {
         spans.push(Span::styled(
-            format!("💰 {balance}"),
+            format!("◉ {balance}"),
             Style::default().fg(COLOR_GREEN),
         ));
     }

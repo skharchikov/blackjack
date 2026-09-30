@@ -86,75 +86,15 @@ impl UiState {
         let phase = table.phase;
         let subtitle = format!("Table – {}", phase);
 
-        let (footer, betting) = match phase {
-            GamePhase::WaitingForBets | GamePhase::Betting => (
-                FooterState {
-                    hints: vec![
-                        FooterHint {
-                            key: "←→",
-                            label: "bet",
-                        },
-                        FooterHint {
-                            key: "enter",
-                            label: "confirm",
-                        },
-                        FooterHint {
-                            key: "l",
-                            label: "leave seat",
-                        },
-                        FooterHint {
-                            key: "q",
-                            label: "quit",
-                        },
-                    ],
-                },
-                Some(BettingState {
-                    min_bet: min_bet as u64,
-                    max_bet: max_bet as u64,
-                    current_bet: min_bet as u64,
-                    step: (min_bet as u64).max(5),
-                    confirmed: false,
-                }),
-            ),
-            GamePhase::PlayerTurn => (
-                FooterState {
-                    hints: vec![
-                        FooterHint {
-                            key: "h",
-                            label: "hit",
-                        },
-                        FooterHint {
-                            key: "s",
-                            label: "stand",
-                        },
-                        FooterHint {
-                            key: "l",
-                            label: "leave seat",
-                        },
-                        FooterHint {
-                            key: "q",
-                            label: "quit",
-                        },
-                    ],
-                },
-                None,
-            ),
-            _ => (
-                FooterState {
-                    hints: vec![
-                        FooterHint {
-                            key: "l",
-                            label: "leave seat",
-                        },
-                        FooterHint {
-                            key: "q",
-                            label: "quit",
-                        },
-                    ],
-                },
-                None,
-            ),
-        };
+        let footer = footer_for_phase(phase);
+        let betting =
+            matches!(phase, GamePhase::WaitingForBets | GamePhase::Betting).then(|| BettingState {
+                min_bet: min_bet as u64,
+                max_bet: max_bet as u64,
+                current_bet: min_bet as u64,
+                step: (min_bet as u64).max(5),
+                confirmed: false,
+            });
 
         Self {
             screen: Screen::Table(table),
@@ -194,6 +134,28 @@ impl UiState {
     }
 }
 
+/// Footer key hints for a seated player in `phase`.
+pub fn footer_for_phase(phase: GamePhase) -> FooterState {
+    let hint = |key: &'static str, label: &'static str| FooterHint { key, label };
+    let hints = match phase {
+        GamePhase::WaitingForBets | GamePhase::Betting => vec![
+            hint("←→", "bet"),
+            hint("enter", "confirm"),
+            hint("l", "leave seat"),
+            hint("q", "quit"),
+        ],
+        GamePhase::PlayerTurn => vec![
+            hint("h", "hit"),
+            hint("s", "stand"),
+            hint("d", "double"),
+            hint("l", "leave seat"),
+            hint("q", "quit"),
+        ],
+        _ => vec![hint("l", "leave seat"), hint("q", "quit")],
+    };
+    FooterState { hints }
+}
+
 #[derive(Debug, Clone)]
 pub struct HeaderState {
     pub title: String,
@@ -211,4 +173,45 @@ pub struct FooterHint {
 #[derive(Debug, Clone)]
 pub struct FooterState {
     pub hints: Vec<FooterHint>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn keys(f: &FooterState) -> Vec<&'static str> {
+        f.hints.iter().map(|h| h.key).collect()
+    }
+
+    #[test]
+    fn player_turn_footer_offers_double() {
+        assert_eq!(
+            keys(&footer_for_phase(GamePhase::PlayerTurn)),
+            vec!["h", "s", "d", "l", "q"]
+        );
+    }
+
+    #[test]
+    fn betting_footer_unchanged() {
+        assert_eq!(
+            keys(&footer_for_phase(GamePhase::Betting)),
+            vec!["←→", "enter", "l", "q"]
+        );
+    }
+
+    #[test]
+    fn other_phases_offer_leave_and_quit() {
+        assert_eq!(
+            keys(&footer_for_phase(GamePhase::DealerTurn)),
+            vec!["l", "q"]
+        );
+    }
+
+    #[test]
+    fn table_view_uses_phase_footer() {
+        assert_eq!(
+            keys(&UiState::table_view().footer),
+            vec!["h", "s", "d", "l", "q"]
+        );
+    }
 }
