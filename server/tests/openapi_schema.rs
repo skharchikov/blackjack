@@ -2,8 +2,11 @@ use server::routes::openapi;
 
 #[test]
 fn openapi_schema_is_up_to_date() {
-    let schema =
-        serde_json::to_string_pretty(&openapi()).expect("Failed to serialize OpenAPI schema");
+    let mut spec = openapi();
+    // `info.version` follows the crate version, which release-plz bumps on every
+    // release. Pin it so version bumps don't invalidate the golden file.
+    spec.info.version = "0.0.0".to_string();
+    let schema = serde_json::to_string_pretty(&spec).expect("Failed to serialize OpenAPI schema");
     let golden_path = format!("{}/openapi.json", env!("CARGO_MANIFEST_DIR"));
 
     if std::env::var("BLESS").is_ok() {
