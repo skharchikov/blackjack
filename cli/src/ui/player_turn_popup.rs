@@ -1,20 +1,14 @@
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
 
 use crate::state::{table::TableState, UiState};
+use crate::ui::theme;
 use crate::ui::widgets::centered_rect;
-
-const COLOR_YELLOW: Color = Color::Rgb(224, 175, 104);
-const COLOR_CYAN: Color = Color::Rgb(125, 207, 255);
-const COLOR_RED: Color = Color::Rgb(247, 118, 142);
-const COLOR_GREEN: Color = Color::Rgb(158, 206, 106);
-const COLOR_COMMENT: Color = Color::Rgb(86, 95, 137);
-const COLOR_BG: Color = Color::Rgb(26, 27, 38); // Tokyo Night background
 
 pub fn render_player_turn_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
     let crate::state::Screen::Table(ref table) = ui.screen else {
@@ -31,18 +25,18 @@ pub fn render_player_turn_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
 
     let block = Block::default()
         .title(Line::from(vec![
-            Span::styled(" ▶ ", Style::default().fg(COLOR_YELLOW)),
+            Span::styled(" ▶ ", Style::default().fg(theme::ACCENT)),
             Span::styled(
                 "YOUR TURN",
                 Style::default()
-                    .fg(COLOR_YELLOW)
+                    .fg(theme::ACCENT)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(" ", Style::default()),
         ]))
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_YELLOW))
-        .style(Style::default().bg(COLOR_BG));
+        .border_style(Style::default().fg(theme::ACCENT))
+        .style(Style::default().bg(theme::BG_POPUP));
 
     let inner = block.inner(popup_area);
     frame.render_widget(block, popup_area);
@@ -68,19 +62,21 @@ pub fn render_player_turn_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
     let buttons = Line::from(vec![
         Span::styled(
             "[ H ] Hit",
-            Style::default()
-                .fg(COLOR_GREEN)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme::WIN).add_modifier(Modifier::BOLD),
         ),
         Span::raw("    "),
         Span::styled(
             "[ S ] Stand",
-            Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::LOSE)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::raw("    "),
         Span::styled(
             "[ D ] Double",
-            Style::default().fg(COLOR_CYAN).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::INFO)
+                .add_modifier(Modifier::BOLD),
         ),
     ]);
     frame.render_widget(
@@ -94,7 +90,7 @@ fn build_hand_line(table: &TableState) -> Line<'static> {
     let Some(p) = me else {
         return Line::from(vec![Span::styled(
             "Your hand: —",
-            Style::default().fg(COLOR_COMMENT),
+            Style::default().fg(theme::MUTED),
         )]);
     };
 
@@ -115,15 +111,17 @@ fn build_hand_line(table: &TableState) -> Line<'static> {
     };
 
     Line::from(vec![
-        Span::styled("Hand: ", Style::default().fg(COLOR_COMMENT)),
+        Span::styled("Hand: ", Style::default().fg(theme::MUTED)),
         Span::styled(
             cards_str,
-            Style::default().fg(COLOR_CYAN).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::INFO)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
             value_str,
             Style::default()
-                .fg(COLOR_YELLOW)
+                .fg(theme::ACCENT)
                 .add_modifier(Modifier::BOLD),
         ),
     ])

@@ -5,6 +5,8 @@ use bj_core::domain::{Card, Rank, Suit};
 use indoc::indoc;
 use ratatui::prelude::*;
 
+use crate::ui::theme;
+
 /// Card widget dimensions: 11 characters wide × 9 lines tall
 pub const CARD_WIDTH: u16 = 11;
 pub const CARD_HEIGHT: u16 = 9;
@@ -169,8 +171,8 @@ fn rank_template(rank: Rank) -> &'static str {
 
 fn suit_color(suit: Suit) -> Color {
     match suit {
-        Suit::Clubs | Suit::Spades => Color::White,
-        Suit::Diamonds | Suit::Hearts => Color::Red,
+        Suit::Clubs | Suit::Spades => theme::TEXT,
+        Suit::Diamonds | Suit::Hearts => theme::CARD_RED,
     }
 }
 
@@ -227,10 +229,12 @@ impl Widget for CardWidget<'_> {
         let card_str = &CARD_STRINGS[self.card.rank as usize - 2][self.card.suit as usize];
 
         let fg = self.style.fg.unwrap_or(suit_color(self.card.suit));
-        let bg = self.style.bg.unwrap_or(Color::Reset);
 
         for (line, row) in zip(card_str.lines(), area.rows()) {
-            let span = Span::raw(line).fg(fg).bg(bg);
+            let mut span = Span::raw(line).fg(fg);
+            if let Some(bg) = self.style.bg {
+                span = span.bg(bg);
+            }
             span.render(row, buf);
         }
     }

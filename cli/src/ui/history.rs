@@ -1,23 +1,16 @@
 use ratatui::{
     layout::Rect,
-    style::{Color, Style},
+    style::Style,
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Paragraph, Wrap},
     Frame,
 };
 
 use crate::state::{Screen, UiState};
-
-use super::theme::TOKIO_NIGHT_GREEN;
+use crate::ui::{theme, widgets::panel};
 
 pub fn render_history(frame: &mut Frame, area: Rect, ui: &UiState) {
-    let border_color = TOKIO_NIGHT_GREEN;
-
-    let block = Block::default()
-        .title(" History ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(border_color));
-
+    let block = panel(" History ");
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
@@ -38,18 +31,18 @@ pub fn render_history(frame: &mut Frame, area: Rect, ui: &UiState) {
         .iter()
         .map(|entry| {
             let color = if entry.contains("BUST") || entry.contains("Lost") {
-                Color::Red
+                theme::LOSE
             } else if entry.contains("Blackjack") || entry.contains("Won") {
-                Color::Green
+                theme::WIN
             } else if entry.contains("snapshot") || entry.contains("phase →") {
-                Color::DarkGray
+                theme::MUTED
             } else {
-                Color::White
+                theme::TEXT
             };
             Line::from(Span::styled(entry.as_str(), Style::default().fg(color)))
         })
         .collect();
 
-    let widget = Paragraph::new(lines).wrap(ratatui::widgets::Wrap { trim: false });
+    let widget = Paragraph::new(lines).wrap(Wrap { trim: false });
     frame.render_widget(widget, inner);
 }

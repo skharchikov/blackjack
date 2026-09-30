@@ -1,21 +1,22 @@
 use ratatui::{
     layout::{Constraint, Rect},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, HighlightSpacing, Row, Table},
+    style::{Modifier, Style},
+    widgets::{Cell, HighlightSpacing, Row, Table},
     Frame,
 };
 
 use crate::state::lobby::LobbyState;
+use crate::ui::{theme, widgets::panel};
 
 pub fn render_lobby(frame: &mut Frame, area: Rect, lobby: &LobbyState) {
     let header_style = Style::default()
-        .fg(Color::White)
-        .bg(Color::DarkGray)
+        .fg(theme::TEXT)
+        .bg(theme::SUBTLE)
         .add_modifier(Modifier::BOLD);
 
     let selected_row_style = Style::default()
-        .fg(Color::Black)
-        .bg(Color::Yellow)
+        .fg(theme::BG_POPUP)
+        .bg(theme::ACCENT)
         .add_modifier(Modifier::BOLD);
 
     let header = ["Table Name", "Stakes", "Players", "Status"]
@@ -31,9 +32,9 @@ pub fn render_lobby(frame: &mut Frame, area: Rect, lobby: &LobbyState) {
         .enumerate()
         .map(|(i, table)| {
             let row_style = if i % 2 == 0 {
-                Style::default().bg(Color::Rgb(30, 30, 30))
+                Style::default().fg(theme::TEXT)
             } else {
-                Style::default().bg(Color::Rgb(40, 40, 40))
+                Style::default().fg(theme::TEXT).bg(theme::BG_POPUP)
             };
 
             Row::new(vec![
@@ -69,12 +70,7 @@ pub fn render_lobby(frame: &mut Frame, area: Rect, lobby: &LobbyState) {
         ],
     )
     .header(header)
-    .block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(" Lobby ")
-            .title_style(Style::default().fg(Color::Cyan).bold()),
-    )
+    .block(panel(" Lobby "))
     .row_highlight_style(selected_row_style)
     .highlight_symbol("▶ ")
     .highlight_spacing(HighlightSpacing::Always);

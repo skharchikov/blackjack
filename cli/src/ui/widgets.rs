@@ -1,4 +1,24 @@
-use ratatui::layout::Rect;
+use ratatui::{
+    layout::Rect,
+    style::{Modifier, Style},
+    text::Line,
+    widgets::{Block, Borders},
+};
+
+use crate::ui::theme;
+
+/// Bordered side panel with a themed title.
+pub fn panel<'a>(title: impl Into<Line<'a>>) -> Block<'a> {
+    Block::default()
+        .title(title.into())
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(theme::SUBTLE))
+        .title_style(
+            Style::default()
+                .fg(theme::INFO)
+                .add_modifier(Modifier::BOLD),
+        )
+}
 
 /// Returns a `width`×`height` rect centered in `area`, clamped to `area`.
 pub fn centered_rect(area: Rect, width: u16, height: u16) -> Rect {

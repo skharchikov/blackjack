@@ -11,7 +11,7 @@ use unicode_width::UnicodeWidthStr;
 use crate::state::login::LoginField;
 use crate::state::{LoginState, LoginStatus};
 use crate::ui::card::{CardWidget, CARD_HEIGHT, CARD_WIDTH};
-use crate::ui::theme::{TOKIO_NIGHT_CYAN, TOKIO_NIGHT_MUTED, TOKIO_NIGHT_SUBTLE};
+use crate::ui::theme;
 use crate::ui::widgets::centered_rect;
 
 const BANNER: &[&str] = &[
@@ -65,7 +65,7 @@ fn render_login_form(frame: &mut Frame, area: Rect, login: &LoginState) {
 
     let form_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(TOKIO_NIGHT_CYAN))
+        .border_style(Style::default().fg(theme::INFO))
         .padding(Padding::horizontal(2));
 
     let inner = form_block.inner(area);
@@ -127,10 +127,10 @@ fn render_login_form(frame: &mut Frame, area: Rect, login: &LoginState) {
     let (status_text, status_color) = match &login.status {
         LoginStatus::Idle => (
             "Enter to login · first time? account created automatically",
-            Color::DarkGray,
+            theme::MUTED,
         ),
-        LoginStatus::Connecting => ("Connecting...", Color::Yellow),
-        LoginStatus::Error(msg) => (msg.as_str(), Color::Red),
+        LoginStatus::Connecting => ("Connecting...", theme::ACCENT),
+        LoginStatus::Error(msg) => (msg.as_str(), theme::LOSE),
     };
 
     let status = Paragraph::new(Line::from(Span::styled(
@@ -164,11 +164,7 @@ fn render_field(
     };
 
     // Label
-    let label_color = if active {
-        TOKIO_NIGHT_CYAN
-    } else {
-        TOKIO_NIGHT_MUTED
-    };
+    let label_color = if active { theme::INFO } else { theme::MUTED };
     let label_widget = Paragraph::new(Span::styled(label, Style::default().fg(label_color)));
     frame.render_widget(label_widget, label_area);
 
@@ -184,17 +180,13 @@ fn render_field(
         (input_area.width as usize).saturating_sub(UnicodeWidthStr::width(text.as_str()));
     let padding: String = " ".repeat(fill_len);
 
-    let line_color = if active {
-        TOKIO_NIGHT_CYAN
-    } else {
-        TOKIO_NIGHT_SUBTLE
-    };
+    let line_color = if active { theme::INFO } else { theme::SUBTLE };
 
     let underlined = Modifier::UNDERLINED;
     let input_line = Line::from(vec![
         Span::styled(
             &text,
-            Style::default().fg(Color::White).add_modifier(underlined),
+            Style::default().fg(theme::TEXT).add_modifier(underlined),
         ),
         Span::styled(
             padding,
@@ -211,7 +203,7 @@ fn render_scatter_bg(frame: &mut Frame, area: Rect) {
         return;
     }
 
-    let dimmed = Style::default().fg(TOKIO_NIGHT_SUBTLE);
+    let dimmed = Style::default().fg(theme::SUBTLE);
 
     let cols = (area.width / (CARD_WIDTH + 2)) as usize;
     let rows = (area.height / (CARD_HEIGHT + 1)) as usize;

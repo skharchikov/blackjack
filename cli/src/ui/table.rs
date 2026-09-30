@@ -1,6 +1,6 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -13,7 +13,7 @@ use super::{
     observers::render_observers,
     player_turn_popup::render_player_turn_popup,
     round_result_popup::render_round_result_popup,
-    theme::TOKIO_NIGHT_BLUE,
+    theme,
     waiting_list::render_waiting_list,
 };
 use crate::state::{table::GamePhase, Screen, UiState};
@@ -37,7 +37,7 @@ fn render_board(frame: &mut Frame, area: Rect, ui: &UiState) {
     let block = Block::default()
         .title(" Board ")
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(TOKIO_NIGHT_BLUE));
+        .border_style(Style::default().fg(theme::INFO));
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -95,9 +95,9 @@ fn render_betting_bar(frame: &mut Frame, area: Rect, ui: &UiState) {
             Block::default()
                 .title(" Bet ")
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Yellow)),
+                .border_style(Style::default().fg(theme::ACCENT)),
         )
-        .style(Style::default().fg(Color::Yellow));
+        .style(Style::default().fg(theme::ACCENT));
     frame.render_widget(widget, area);
 }
 
@@ -117,7 +117,7 @@ fn render_dealer(frame: &mut Frame, area: Rect, ui: &UiState) {
     let block = Block::default()
         .title(title)
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Cyan));
+        .border_style(Style::default().fg(theme::INFO));
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
@@ -144,9 +144,9 @@ fn render_players(frame: &mut Frame, area: Rect, ui: &UiState) {
                 Block::default()
                     .title(" Players ")
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::DarkGray)),
+                    .border_style(Style::default().fg(theme::MUTED)),
             )
-            .style(Style::default().fg(Color::DarkGray));
+            .style(Style::default().fg(theme::MUTED));
         frame.render_widget(widget, area);
         return;
     }
@@ -178,11 +178,11 @@ fn render_player_row(
     phase: GamePhase,
 ) {
     let border_color = if player.active {
-        Color::Yellow
+        theme::ACCENT
     } else if player.is_bust {
-        Color::Red
+        theme::LOSE
     } else {
-        Color::DarkGray
+        theme::MUTED
     };
 
     let is_my_turn = player.active && matches!(phase, GamePhase::PlayerTurn);
@@ -200,10 +200,10 @@ fn render_player_row(
 
     let title_style = if is_my_turn {
         Style::default()
-            .fg(Color::Yellow)
+            .fg(theme::ACCENT)
             .add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(Color::White)
+        Style::default().fg(theme::TEXT)
     };
     let title = Line::from(vec![Span::styled(
         format!(" {}{}{}{} ", arrow, player.name, bet_part, val_part),
@@ -223,7 +223,7 @@ fn render_player_row(
         } else {
             "place your bet"
         };
-        let widget = Paragraph::new(waiting).style(Style::default().fg(Color::DarkGray));
+        let widget = Paragraph::new(waiting).style(Style::default().fg(theme::MUTED));
         frame.render_widget(widget, inner);
     } else {
         render_hand_cards(frame, inner, &player.hand.cards, player.is_bust);
@@ -247,7 +247,7 @@ fn render_hand_cards(
             render_hidden_card(frame, card_area);
         } else if let Some(c) = card.card {
             let style = if busted {
-                Style::default().fg(Color::Red)
+                Style::default().fg(theme::LOSE)
             } else {
                 Style::default()
             };
@@ -275,7 +275,7 @@ fn render_hidden_card(frame: &mut Frame, area: Rect) {
             break;
         }
         let row = Rect::new(area.x, area.y + i as u16, CARD_WIDTH, 1);
-        let span = ratatui::text::Span::styled(*line, Style::default().fg(Color::DarkGray));
+        let span = ratatui::text::Span::styled(*line, Style::default().fg(theme::MUTED));
         span.render(row, frame.buffer_mut());
     }
 }

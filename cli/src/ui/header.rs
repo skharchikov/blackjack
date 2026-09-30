@@ -1,22 +1,18 @@
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
 use crate::state::UiState;
-
-const COLOR_ORANGE: Color = Color::Rgb(255, 158, 100);
-const COLOR_CYAN: Color = Color::Rgb(125, 207, 255);
-const COLOR_COMMENT: Color = Color::Rgb(86, 95, 137);
-const COLOR_GREEN: Color = Color::Rgb(158, 206, 106);
+use crate::ui::theme;
 
 pub fn render_header(frame: &mut Frame, area: Rect, ui: &UiState) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_COMMENT));
+        .border_style(Style::default().fg(theme::MUTED));
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
@@ -29,11 +25,11 @@ pub fn render_header(frame: &mut Frame, area: Rect, ui: &UiState) {
         Span::styled(
             ui.header.title.clone(),
             Style::default()
-                .fg(COLOR_ORANGE)
+                .fg(theme::ACCENT)
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" — ", Style::default().fg(COLOR_COMMENT)),
-        Span::styled(ui.header.subtitle.clone(), Style::default().fg(COLOR_CYAN)),
+        Span::styled(" — ", Style::default().fg(theme::MUTED)),
+        Span::styled(ui.header.subtitle.clone(), Style::default().fg(theme::INFO)),
     ]);
     frame.render_widget(Paragraph::new(title_line), chunks[0]);
 
@@ -50,7 +46,7 @@ fn build_right_line(ui: &UiState) -> Line<'static> {
     if let Some(balance) = ui.header.my_balance {
         spans.push(Span::styled(
             format!("◉ {balance}"),
-            Style::default().fg(COLOR_GREEN),
+            Style::default().fg(theme::WIN),
         ));
     }
 

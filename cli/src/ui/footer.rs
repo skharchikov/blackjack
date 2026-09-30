@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::state::UiState;
-use crate::ui::theme::{TOKIO_NIGHT_CYAN, TOKIO_NIGHT_MUTED, TOKIO_NIGHT_SUBTLE};
+use crate::ui::theme;
 
 pub fn render_footer(frame: &mut Frame, area: Rect, ui: &UiState) {
     let mut spans: Vec<Span> = Vec::new();
@@ -15,23 +15,20 @@ pub fn render_footer(frame: &mut Frame, area: Rect, ui: &UiState) {
     spans.push(Span::styled(
         " >> ",
         Style::default()
-            .fg(TOKIO_NIGHT_CYAN)
+            .fg(theme::INFO)
             .add_modifier(Modifier::BOLD),
     ));
 
     for (i, hint) in ui.footer.hints.iter().enumerate() {
         if i > 0 {
-            spans.push(Span::styled(" │ ", Style::default().fg(TOKIO_NIGHT_SUBTLE)));
+            spans.push(Span::styled(" │ ", Style::default().fg(theme::SUBTLE)));
         }
 
         spans.push(Span::styled(
             format!("[{}]", hint.key),
-            Style::default().fg(TOKIO_NIGHT_CYAN),
+            Style::default().fg(theme::INFO),
         ));
-        spans.push(Span::styled(
-            hint.label,
-            Style::default().fg(TOKIO_NIGHT_MUTED),
-        ));
+        spans.push(Span::styled(hint.label, Style::default().fg(theme::MUTED)));
     }
 
     let footer = Paragraph::new(Line::from(spans));

@@ -1,6 +1,6 @@
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
@@ -10,14 +10,8 @@ use crate::state::{
     table::{RoundOutcome, RoundResult},
     UiState,
 };
+use crate::ui::theme;
 use crate::ui::widgets::centered_rect;
-
-const COLOR_BG: Color = Color::Rgb(26, 27, 38);
-const COLOR_COMMENT: Color = Color::Rgb(86, 95, 137);
-const COLOR_GREEN: Color = Color::Rgb(158, 206, 106);
-const COLOR_RED: Color = Color::Rgb(247, 118, 142);
-const COLOR_YELLOW: Color = Color::Rgb(224, 175, 104);
-const COLOR_CYAN: Color = Color::Rgb(125, 207, 255);
 
 pub fn render_round_result_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
     let crate::state::Screen::Table(ref table) = ui.screen else {
@@ -30,7 +24,8 @@ pub fn render_round_result_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
     let popup_area = centered_rect(area, 44, 8);
     frame.render_widget(Clear, popup_area);
 
-    let (border_color, outcome_color) = outcome_colors(&result.outcome);
+    let border_color = theme::outcome_color(&result.outcome);
+    let outcome_color = border_color;
 
     let block = Block::default()
         .title(Line::from(vec![Span::styled(
@@ -41,7 +36,7 @@ pub fn render_round_result_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
         )]))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(border_color))
-        .style(Style::default().bg(COLOR_BG));
+        .style(Style::default().bg(theme::BG_POPUP));
 
     let inner = block.inner(popup_area);
     frame.render_widget(block, popup_area);
@@ -80,7 +75,7 @@ pub fn render_round_result_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
     frame.render_widget(
         Paragraph::new(Line::from(vec![Span::styled(
             "press any key to dismiss",
-            Style::default().fg(COLOR_COMMENT),
+            Style::default().fg(theme::MUTED),
         )]))
         .alignment(Alignment::Center),
         chunks[4],
@@ -88,35 +83,15 @@ pub fn render_round_result_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
 }
 
 fn build_payout_line(result: &RoundResult) -> Line<'static> {
-    let (net_label, net_color) = match result.outcome {
-        RoundOutcome::Lost | RoundOutcome::Bust => {
-            (format!("bet {} → lost", result.bet), COLOR_RED)
-        }
-        RoundOutcome::Push => (format!("bet {} → returned", result.bet), COLOR_YELLOW),
-        RoundOutcome::Won => (
-            format!("bet {} → won +{}", result.bet, result.payout - result.bet),
-            COLOR_GREEN,
-        ),
-        RoundOutcome::Blackjack => (
-            format!(
-                "bet {} → won +{}  🃏",
-                result.bet,
-                result.payout - result.bet
-            ),
-            COLOR_CYAN,
-        ),
+    let net = result.payout.saturating_sub(result.bet);
+    let label = match result.outcome {
+        RoundOutcome::Lost | RoundOutcome::Bust => format!("bet {} → lost", result.bet),
+        RoundOutcome::Push => format!("bet {} → returned", result.bet),
+        RoundOutcome::Won => format!("bet {} → won +{net}", result.bet),
+        RoundOutcome::Blackjack => format!("bet {} → won +{net}  🃏", result.bet),
     };
     Line::from(vec![Span::styled(
-        net_label,
-        Style::default().fg(net_color),
+        label,
+        Style::default().fg(theme::outcome_color(&result.outcome)),
     )])
-}
-
-fn outcome_colors(outcome: &RoundOutcome) -> (Color, Color) {
-    match outcome {
-        RoundOutcome::Blackjack => (COLOR_CYAN, COLOR_CYAN),
-        RoundOutcome::Won => (COLOR_GREEN, COLOR_GREEN),
-        RoundOutcome::Push => (COLOR_YELLOW, COLOR_YELLOW),
-        RoundOutcome::Lost | RoundOutcome::Bust => (COLOR_RED, COLOR_RED),
-    }
 }
