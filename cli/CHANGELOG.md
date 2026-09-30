@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/skharchikov/blackjack/compare/cli-v0.1.1...cli-v0.1.2) - 2026-09-30
+
+### Added
+
+- add double down action
+- Hetzner deployment – Docker image, deploy workflow, SERVER_URL in CLI
+- *(cli)* full TUI – WS transport, lobby polling, table gameplay UI
+
+### Fixed
+
+- *(cli)* address PR-09 review findings
+
+### Other
+
+- Address PR review comments on event bus and UI rendering
+- Update login screen and form
+- Refactor CLI to async event channel architecture
+- Rename blackjack-core to bj-core and unify CI + release workflows
+
 ## [0.1.1](https://github.com/skharchikov/blackjack/compare/cli-v0.1.0...cli-v0.1.1) - 2026-02-26
 
 ### Other
