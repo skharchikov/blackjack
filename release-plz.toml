@@ -5,8 +5,9 @@
 # Enable changelog generation
 changelog_update = true
 
-# Disable publishing to crates.io for all packages
-publish = false
+# Determine versions from git tags instead of crates.io (crates are not published;
+# crate names like `server`/`cli` collide with unrelated crates.io packages)
+git_only = true
 
 # Enable semantic version checking
 semver_check = true
