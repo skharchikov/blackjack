@@ -7,6 +7,7 @@ use ratatui::{
 };
 
 use crate::state::{table::TableState, UiState};
+use crate::ui::widgets::centered_rect;
 
 const COLOR_YELLOW: Color = Color::Rgb(224, 175, 104);
 const COLOR_CYAN: Color = Color::Rgb(125, 207, 255);
@@ -23,7 +24,7 @@ pub fn render_player_turn_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
         return;
     }
 
-    let popup_area = centered_popup(52, 10, area);
+    let popup_area = centered_rect(area, 52, 10);
 
     // Clear background under popup
     frame.render_widget(Clear, popup_area);
@@ -126,10 +127,4 @@ fn build_hand_line(table: &TableState) -> Line<'static> {
                 .add_modifier(Modifier::BOLD),
         ),
     ])
-}
-
-fn centered_popup(width: u16, height: u16, area: Rect) -> Rect {
-    let x = area.x + area.width.saturating_sub(width) / 2;
-    let y = area.y + area.height.saturating_sub(height) / 2;
-    Rect::new(x, y, width.min(area.width), height.min(area.height))
 }

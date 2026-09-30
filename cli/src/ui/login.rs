@@ -12,6 +12,7 @@ use crate::state::login::LoginField;
 use crate::state::{LoginState, LoginStatus};
 use crate::ui::card::{CardWidget, CARD_HEIGHT, CARD_WIDTH};
 use crate::ui::theme::{TOKIO_NIGHT_CYAN, TOKIO_NIGHT_MUTED, TOKIO_NIGHT_SUBTLE};
+use crate::ui::widgets::centered_rect;
 
 const BANNER: &[&str] = &[
     " ██████  ██       █████   ██████ ██   ██      ██  █████   ██████ ██   ██ ",
@@ -55,7 +56,7 @@ fn banner_color(line_index: usize, total: usize) -> Color {
 pub fn render_login(frame: &mut Frame, area: Rect, login: &LoginState) {
     render_scatter_bg(frame, area);
 
-    let form_area = center(area, FORM_WIDTH, FORM_HEIGHT);
+    let form_area = centered_rect(area, FORM_WIDTH, FORM_HEIGHT);
     render_login_form(frame, form_area, login);
 }
 
@@ -239,33 +240,6 @@ fn render_scatter_bg(frame: &mut Frame, area: Rect) {
             card_idx += 1;
         }
     }
-}
-
-fn center(area: Rect, width: u16, height: u16) -> Rect {
-    let w = width.min(area.width);
-    let h = height.min(area.height);
-
-    let [_, hcenter, _] = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Min(0),
-            Constraint::Length(w),
-            Constraint::Min(0),
-        ])
-        .flex(Flex::Center)
-        .areas(area);
-
-    let [_, vcenter, _] = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(0),
-            Constraint::Length(h),
-            Constraint::Min(0),
-        ])
-        .flex(Flex::Center)
-        .areas(hcenter);
-
-    vcenter
 }
 
 fn center_horizontal(area: Rect, width: u16) -> Rect {

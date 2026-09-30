@@ -11,6 +11,7 @@ pub mod round_result_popup;
 pub mod table;
 pub mod theme;
 pub mod waiting_list;
+pub mod widgets;
 
 use ratatui::Frame;
 

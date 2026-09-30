@@ -10,6 +10,7 @@ use crate::state::{
     table::{RoundOutcome, RoundResult},
     UiState,
 };
+use crate::ui::widgets::centered_rect;
 
 const COLOR_BG: Color = Color::Rgb(26, 27, 38);
 const COLOR_COMMENT: Color = Color::Rgb(86, 95, 137);
@@ -26,7 +27,7 @@ pub fn render_round_result_popup(frame: &mut Frame, area: Rect, ui: &UiState) {
         return;
     };
 
-    let popup_area = centered_popup(44, 8, area);
+    let popup_area = centered_rect(area, 44, 8);
     frame.render_widget(Clear, popup_area);
 
     let (border_color, outcome_color) = outcome_colors(&result.outcome);
@@ -118,10 +119,4 @@ fn outcome_colors(outcome: &RoundOutcome) -> (Color, Color) {
         RoundOutcome::Push => (COLOR_YELLOW, COLOR_YELLOW),
         RoundOutcome::Lost | RoundOutcome::Bust => (COLOR_RED, COLOR_RED),
     }
-}
-
-fn centered_popup(width: u16, height: u16, area: Rect) -> Rect {
-    let x = area.x + area.width.saturating_sub(width) / 2;
-    let y = area.y + area.height.saturating_sub(height) / 2;
-    Rect::new(x, y, width.min(area.width), height.min(area.height))
 }
